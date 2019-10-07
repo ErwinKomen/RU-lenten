@@ -71,13 +71,25 @@ class FieldChoiceAdmin(admin.ModelAdmin):
         obj.save()
 
 
-class CountryAdmin(admin.ModelAdmin):
-    list_display = ['name', 'nameFR', 'idPaysEtab']
-    
+class LocationTypeAdmin(admin.ModelAdmin):
+    """Definition of each location type"""
 
-class CityAdmin(admin.ModelAdmin):
-    list_display = ['name', 'idVilleEtab', 'country']
-    list_filter = ['country']
+    fields = ['name', 'level']
+    list_display = ['name', 'level']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
+
+
+class LocationAdmin(admin.ModelAdmin):
+    """Definition of each location"""
+
+    fields = ['name', 'loctype']
+    list_display = ['name', 'loctype']
+    list_filter = ['loctype']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
 
 
 class ActionAdmin(admin.ModelAdmin):
@@ -97,6 +109,9 @@ class InformationAdmin(admin.ModelAdmin):
 
     list_display = ['name', 'kvalue']
     fields = ['name', 'kvalue']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
 
 
 class ReportAdmin(admin.ModelAdmin):
@@ -104,6 +119,9 @@ class ReportAdmin(admin.ModelAdmin):
 
     list_display = ['user', 'created', 'reptype', 'contents']
     fields = ['user', 'created', 'reptype', 'contents']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
 
 
 class NewsItemAdmin(admin.ModelAdmin):
@@ -117,6 +135,28 @@ class NewsItemAdmin(admin.ModelAdmin):
         }
 
 
+class ManuscriptAdmin(admin.ModelAdmin):
+    """Define a Manuscript"""
+
+    list_display = ['info', 'link']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
+
+
+class SermonCollectionAdmin(admin.ModelAdmin):
+    """Admin interface to SermonCollection""" 
+
+    list_display = ['idno', 'title', 'datecomp', 'authorlist']
+    search_fields =  ['idno', 'title']
+    list_filter = ['place', 'authors']
+    fields = ['idno', 'title', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
+    filter_horizontal = ('authors',)
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
+
+
 
 # Models that serve others
 admin.site.register(FieldChoice, FieldChoiceAdmin)
@@ -124,8 +164,10 @@ admin.site.register(NewsItem, NewsItemAdmin)
 admin.site.register(Information, InformationAdmin)
 
 # Main program models
-admin.site.register(Country, CountryAdmin)
-admin.site.register(City, CityAdmin)
+admin.site.register(LocationType, LocationTypeAdmin)
+admin.site.register(Location, LocationAdmin)
+admin.site.register(SermonCollection, SermonCollectionAdmin)
+admin.site.register(Manuscript, ManuscriptAdmin)
 
 admin.site.register(Report, ReportAdmin)
 

@@ -35,6 +35,7 @@
                         
                        <ul class="dropdown-menu">
                           {% if is_lenten_editor %}
+                            <li><a href="{% url 'location_list' %}" title="List of source information">Locations</a></li>
                             <li><a href="{% url 'report_list' %}" title="List reports of uploading etc.">Reports</a></li>
                           {% endif %}
                         </ul>

@@ -37,9 +37,10 @@ from io import StringIO
 # Application specific
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
-from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm
+from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
-    Country, City, User, Group, Action, Report, Status, NewsItem
+    User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
+    Location, LocationRelation
 
 # Some constants that can be used
 paginateSize = 20
@@ -48,26 +49,6 @@ paginateValues = (100, 50, 20, 10, 5, 2, 1, )
 
 # Global debugging 
 bDebug = False
-
-cnrs_url = "http://medium-avance.irht.cnrs.fr"
-
-SERMON_SEARCH_FILTERS = [
-        {"name": "Author",          "id": "filter_author",      "enabled": False},
-        {"name": "Incipit",         "id": "filter_incipit",     "enabled": False},
-        {"name": "Explicit",        "id": "filter_explicit",    "enabled": False},
-        {"name": "Title",           "id": "filter_title",       "enabled": False},
-        {"name": "Gryson or Clavis", "id": "filter_signature",  "enabled": False},
-        {"name": "Feast",           "id": "filter_feast",       "enabled": False},
-        {"name": "Keyword",         "id": "filter_keyword",     "enabled": False},
-        {"name": "Manuscript...",   "id": "filter_manuscript",  "enabled": False},
-        {"name": "Shelfmark",       "id": "filter_manuid",      "enabled": False, "head_id": "filter_manuscript"},
-        {"name": "Country",         "id": "filter_country",     "enabled": False, "head_id": "filter_manuscript"},
-        {"name": "City",            "id": "filter_city",        "enabled": False, "head_id": "filter_manuscript"},
-        {"name": "Library",         "id": "filter_library",     "enabled": False, "head_id": "filter_manuscript"},
-        {"name": "Origin",          "id": "filter_origin",      "enabled": False, "head_id": "filter_manuscript"},
-        {"name": "Provenance",      "id": "filter_provenance",  "enabled": False, "head_id": "filter_manuscript"},
-        {"name": "Date range",      "id": "filter_daterange",   "enabled": False, "head_id": "filter_manuscript"},
-        ]
 
 
 def treat_bom(sHtml):
@@ -563,6 +544,32 @@ def get_cities(request):
     mimetype = "application/json"
     return HttpResponse(data, mimetype)
     
+@csrf_exempt
+def get_locations(request):
+    """Get a list of location names for autocomplete"""
+
+    data = 'fail'
+    if request.is_ajax():
+        oErr = ErrHandle()
+        try:
+            sName = request.GET.get('name', '')
+            lstQ = []
+            lstQ.append(Q(name__icontains=sName))
+            locations = Location.objects.filter(*lstQ).order_by('name').values('name', 'loctype__name', 'id')
+            results = []
+            for co in locations:
+                name = "{} ({})".format(co['name'], co['loctype__name'])
+                co_json = {'name': name, 'id': co['id'] }
+                results.append(co_json)
+            data = json.dumps(results)
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("get_locations")
+    else:
+        data = "Request is not ajax"
+    mimetype = "application/json"
+    return HttpResponse(data, mimetype)
+
 def download_file(url):
     """Download a file from the indicated URL"""
 
@@ -715,7 +722,7 @@ class BasicPart(View):
                                 # Store the instance id in the data
                                 self.data[prefix + '_instanceid'] = instance.id
                                 # Any action after saving this form
-                                self.after_save(prefix, instance)
+                                self.after_save(prefix, instance=instance, form=formObj['forminstance'])
                             # Also get the cleaned data from the form
                             formObj['cleaned_data'] = formObj['forminstance'].cleaned_data
                         else:
@@ -1072,7 +1079,7 @@ class BasicPart(View):
     def before_delete(self, prefix=None, instance=None):
         return True
 
-    def after_save(self, prefix, instance=None):
+    def after_save(self, prefix, instance=None, form=None):
         return True
 
     def add_to_context(self, context):
@@ -1378,5 +1385,339 @@ class PassimDetails(DetailView):
 
         # Return the calculated context
         return context
+
+
+class LocationListView(ListView):
+    """Listview of locations"""
+
+    model = Location
+    paginate_by = 15
+    template_name = 'seeker/location_list.html'
+    entrycount = 0
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(LocationListView, self).get_context_data(**kwargs)
+
+        # Get parameters
+        initial = self.request.GET
+
+        # Determine the count 
+        context['entrycount'] = self.entrycount # self.get_queryset().count()
+
+        # Set the prefix
+        context['app_prefix'] = APP_PREFIX
+
+        # Get parameters for the search
+        initial = self.request.GET
+        # The searchform is just a list form, but filled with the 'initial' parameters
+        context['searchform'] = LocationForm(initial)
+
+        # Make sure the paginate-values are available
+        context['paginateValues'] = paginateValues
+
+        if 'paginate_by' in initial:
+            context['paginateSize'] = int(initial['paginate_by'])
+        else:
+            context['paginateSize'] = paginateSize
+
+        # Set the title of the application
+        context['title'] = "Passim location info"
+
+        # Check if user may upload
+        context['is_authenticated'] = user_is_authenticated(self.request)
+        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Locations", True)
+        context['prevpage'] = get_previous_page(self.request)
+
+        # Return the calculated context
+        return context
+
+    def get_paginate_by(self, queryset):
+        """
+        Paginate by specified value in default class property value.
+        """
+        return self.paginate_by
+  
+    def get_queryset(self):
+        # Get the parameters passed on with the GET or the POST request
+        get = self.request.GET if self.request.method == "GET" else self.request.POST
+        get = get.copy()
+        self.get = get
+
+        lstQ = []
+
+        # Check for author [name]
+        if 'name' in get and get['name'] != '':
+            val = adapt_search(get['name'])
+            # Search in both the name field
+            lstQ.append(Q(name__iregex=val))
+
+        # Check for location type
+        if 'loctype' in get and get['loctype'] != '':
+            val = get['loctype']
+            # Search in both the name field
+            lstQ.append(Q(loctype=val))
+
+        # Calculate the final qs
+        qs = Location.objects.filter(*lstQ).order_by('name').distinct()
+
+        # Determine the length
+        self.entrycount = len(qs)
+
+        # Return the resulting filtered and sorted queryset
+        return qs
+
+
+class LocationDetailsView(PassimDetails):
+    model = Location
+    mForm = LocationForm
+    template_name = 'seeker/location_details.html'
+    prefix = 'loc'
+    prefix_type = "simple"
+    title = "LocationDetails"
+    rtype = "html"
+
+    def after_new(self, form, instance):
+        """Action to be performed after adding a new item"""
+
+        self.afternewurl = reverse('location_list')
+        return True, "" 
+
+    def add_to_context(self, context, instance):
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Location edit", False)
+        context['prevpage'] = get_previous_page(self.request)
+        return context
+
+
+class LocationEdit(BasicPart):
+    """The details of one location"""
+
+    MainModel = Location
+    template_name = 'seeker/location_edit.html'  
+    title = "Location" 
+    afternewurl = ""
+    # One form is attached to this 
+    prefix = "loc"
+    form_objects = [{'form': LocationForm, 'prefix': prefix, 'readonly': False}]
+
+    def before_save(self, prefix, request, instance = None, form = None):
+        bNeedSaving = False
+        if prefix == "loc":
+            pass
+
+        return bNeedSaving
+
+    def after_save(self, prefix, instance = None, form = None):
+        bStatus = True
+
+        return bStatus
+
+    def add_to_context(self, context):
+
+        # Get the instance
+        instance = self.obj
+
+        if instance != None:
+            pass
+
+        afternew =  reverse('location_list')
+        if 'afternewurl' in self.qd:
+            afternew = self.qd['afternewurl']
+        context['afternewurl'] = afternew
+
+        return context
+
+
+class LocationRelset(BasicPart):
+    """The set of provenances from one manuscript"""
+
+    MainModel = Location
+    template_name = 'seeker/location_relset.html'
+    title = "LocationRelations"
+    LrelFormSet = inlineformset_factory(Location, LocationRelation,
+                                         form=LocationRelForm, min_num=0,
+                                         fk_name = "contained",
+                                         extra=0, can_delete=True, can_order=False)
+    formset_objects = [{'formsetClass': LrelFormSet, 'prefix': 'lrel', 'readonly': False}]
+
+    def get_queryset(self, prefix):
+        qs = None
+        if prefix == "lrel":
+            # List the parent locations for this location correctly
+            qs = LocationRelation.objects.filter(contained=self.obj).order_by('container__name')
+        return qs
+
+    def before_save(self, prefix, request, instance = None, form = None):
+        has_changed = False
+        if prefix == "lrel":
+            # Get any selected partof location id
+            loc_id = form.cleaned_data['partof']
+            if loc_id != "":
+                # Check if a new relation should be made or an existing one should be changed
+                if instance.id == None:
+                    # Set the correct container
+                    location = Location.objects.filter(id=loc_id).first()
+                    instance.container = location
+                    has_changed = True
+                elif instance.container == None or instance.container.id == None or instance.container.id != int(loc_id):
+                    location = Location.objects.filter(id=loc_id).first()
+                    # Set the correct container
+                    instance.container = location
+                    has_changed = True
+ 
+        return has_changed
+
+
+class ReportListView(ListView):
+    """Listview of reports"""
+
+    model = Report
+    paginate_by = 20
+    template_name = 'seeker/report_list.html'
+    entrycount = 0
+    bDoTime = True
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(ReportListView, self).get_context_data(**kwargs)
+
+        # Get parameters
+        initial = self.request.GET
+
+        # Prepare searching
+        #search_form = ReportSearchForm(initial)
+        #context['searchform'] = search_form
+
+        # Determine the count 
+        context['entrycount'] = self.entrycount # self.get_queryset().count()
+
+        # Set the prefix
+        context['app_prefix'] = APP_PREFIX
+
+        # Make sure the paginate-values are available
+        context['paginateValues'] = paginateValues
+
+        if 'paginate_by' in initial:
+            context['paginateSize'] = int(initial['paginate_by'])
+        else:
+            context['paginateSize'] = paginateSize
+
+        # Set the title of the application
+        context['title'] = "Passim reports"
+
+        # Check if user may upload
+        context['is_authenticated'] = user_is_authenticated(self.request)
+        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Upload reports", True)
+        context['prevpage'] = get_previous_page(self.request)
+
+        # Return the calculated context
+        return context
+
+    def get_paginate_by(self, queryset):
+        """
+        Paginate by specified value in querystring, or use default class property value.
+        """
+        return self.request.GET.get('paginate_by', self.paginate_by)
+  
+    def get_queryset(self):
+        # Get the parameters passed on with the GET or the POST request
+        get = self.request.GET if self.request.method == "GET" else self.request.POST
+        get = get.copy()
+        self.get = get
+
+        # Calculate the final qs
+        qs = Report.objects.all().order_by('-created')
+
+        # Determine the length
+        self.entrycount = len(qs)
+
+        # Return the resulting filtered and sorted queryset
+        return qs
+
+
+class ReportDetailsView(PassimDetails):
+    model = Report
+    mForm = ReportEditForm
+    template_name = 'seeker/report_details.html'
+    prefix = 'report'
+    title = "ReportDetails"
+    rtype = "html"
+
+    def add_to_context(self, context, instance):
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Report edit", False)
+        context['prevpage'] = get_previous_page(self.request)
+        return context
+
+
+class ReportDownload(BasicPart):
+    MainModel = Report
+    template_name = "seeker/download_status.html"
+    action = "download"
+    dtype = "csv"       # Download Type
+
+    def custom_init(self):
+        """Calculate stuff"""
+        
+        dt = self.qd.get('downloadtype', "")
+        if dt != None and dt != '':
+            self.dtype = dt
+
+    def get_data(self, prefix, dtype):
+        """Gather the data as CSV, including a header line and comma-separated"""
+
+        # Initialize
+        lData = []
+
+        # Unpack the report contents
+        sData = self.obj.contents
+
+        if dtype == "json":
+            # no need to do anything: the information is already in sData
+            pass
+        else:
+            # Convert the JSON to a Python object
+            oContents = json.loads(sData)
+            # Get the headers and the list
+            headers = oContents['headers']
+
+            # Create CSV string writer
+            output = StringIO()
+            delimiter = "\t" if dtype == "csv" else ","
+            csvwriter = csv.writer(output, delimiter=delimiter, quotechar='"')
+
+            # Write Headers
+            csvwriter.writerow(headers)
+
+            # Two lists
+            todo = [oContents['list'], oContents['read'] ]
+            for lst_report in todo:
+
+                # Loop
+                for item in lst_report:
+                    row = []
+                    for key in headers:
+                        if key in item:
+                            row.append(item[key])
+                        else:
+                            row.append("")
+                    csvwriter.writerow(row)
+
+            # Convert to string
+            sData = output.getvalue()
+            output.close()
+
+        return sData
 
 

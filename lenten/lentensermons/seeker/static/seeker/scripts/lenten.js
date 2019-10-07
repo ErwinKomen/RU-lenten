@@ -8,10 +8,10 @@ var $ = jQuery;
   $(function () {
     $(document).ready(function () {
       // Initialize event listeners
-      ru.passim.init_event_listeners();
+      ru.lenten.init_event_listeners();
       $('#id_subtype >option').show();
       // Add 'copy' action to inlines
-      ru.passim.tabinline_add_copy();
+      ru.lenten.tabinline_add_copy();
       // Initialize Bootstrap popover
       // Note: this is used when hovering over the question mark button
       $('[data-toggle="popover"]').popover();
@@ -32,42 +32,12 @@ var ru = (function ($, ru) {
     // Define variables for ru.collbank here
     var loc_example = "",
         loc_divErr = "lenten_err",
-        loc_countries = [],
-        loc_countriesL = [],
-        loc_cities = [],
-        loc_citiesL = [],
-        loc_libraries = [],
-        loc_librariesL = [],
         loc_authors = [],
         loc_authorsL = [],
-        loc_nicknames = [],
-        loc_nicknamesL = [],
-        loc_origins = [],
-        loc_originsL = [],
         loc_locations = [],         // Provenance and Origina locations for manuscripts
         loc_locationsL = [],
-        loc_litrefs = [],           // Literatur references for manuscripts
-        loc_litrefsL = [],
-        loc_gldincipits = [],       // Use in sermongold_select.html
-        loc_gldincipitsL = [],  
-        loc_gldexplicits = [],      // Use in sermongold_select.html
-        loc_gldexplicitsL = [],
-        loc_srmincipits = [],       // Use in sermon_list.html
-        loc_srmincipitsL = [],
-        loc_srmexplicits = [],      // Use in sermon_list.html
-        loc_srmexplicitsL = [],
         loc_signature = [],         // Use in sermongold_select.html
         loc_signatureL = [],
-        loc_gldsiggryson = [],      // When creating a new SermonDescr
-        loc_gldsiggrysonL = [],
-        loc_gldsigclavis = [],      // When creating a new SermonDescr
-        loc_gldsigclavisL = [],
-        loc_srmsignature = [],      // Use in ???
-        loc_srmsignatureL = [],
-        loc_srmsiggryson = [],      // Use in sermon_list.html
-        loc_srmsiggrysonL = [],
-        loc_srmsigclavis = [],      // Use in sermon_list.html
-        loc_srmsigclavisL = [],
         loc_manuidno = [],          // use in sermon_list.html
         loc_manuidnoL = [],
         loc_edition = [],           // critical editions that belong to a gold sermon
@@ -109,363 +79,125 @@ var ru = (function ($, ru) {
        *    Initialize eent listeners for this module
        */
       init_event_listeners: function () {
+        var bUseTypeahead = false;  // Put this to 'True' to actually use typeahead!!!
+
         // Get the base URL
         base_url = $("#__baseurl__").text();
-
-        // Bloodhound: COUNTRY
-        loc_countries = new Bloodhound({
-          datumTokenizer: Bloodhound.tokenizers.whitespace,
-          queryTokenizer: Bloodhound.tokenizers.whitespace,
-          // loc_countries will be an array of countries
-          // local: loc_countries,
-          prefetch: { url: base_url + 'api/countries/', cache: true },
-          remote:   { url: base_url + 'api/countries/?country=%QUERY', wildcard: '%QUERY' }
-        });
-
-        // Bloodhound: CITY
-        loc_cities = new Bloodhound({
-          datumTokenizer: Bloodhound.tokenizers.whitespace,
-          queryTokenizer: Bloodhound.tokenizers.whitespace,
-          // loc_cities will be an array of countries
-          local: loc_citiesL,
-          prefetch: { url: base_url + 'api/cities/', cache: true },
-          remote: {
-            url: base_url + 'api/cities/?city=',
-            replace: ru.lenten.tt_city
-          }
-        });
-
-        // Bloodhound: LIBRARY
-        loc_libraries = new Bloodhound({
-          datumTokenizer: Bloodhound.tokenizers.whitespace,
-          queryTokenizer: Bloodhound.tokenizers.whitespace,
-          // loc_libraries will be an array of libraries
-          local: loc_librariesL,
-          prefetch: { url: base_url + 'api/libraries/', cache: true },
-          remote: {
-            url: base_url + 'api/libraries/?library=',
-            replace: ru.lenten.tt_library
-          }
-        });
-
-        // Bloodhound: ORIGIN
-        loc_origins = new Bloodhound({
-          datumTokenizer: Bloodhound.tokenizers.whitespace,
-          queryTokenizer: Bloodhound.tokenizers.whitespace,
-          // loc_libraries will be an array of libraries
-          local: loc_originsL,
-          prefetch: { url: base_url + 'api/origins/', cache: true },
-          remote: {
-            url: base_url + 'api/origins/?name=',
-            replace: ru.lenten.tt_library
-          }
-        });
-
-        // Bloodhound: LOCATION
-        loc_locations = new Bloodhound({
-          datumTokenizer: Bloodhound.tokenizers.whitespace,
-          queryTokenizer: Bloodhound.tokenizers.whitespace,
-          // loc_libraries will be an array of libraries
-          local: loc_locationsL,
-          prefetch: { url: base_url + 'api/locations/', cache: true },
-          remote: {
-            url: base_url + 'api/locations/?name=',
-            replace: ru.lenten.tt_library
-          }
-        });
-
-        // Bloodhound: LITREF
-        loc_litrefs = new Bloodhound({
-          datumTokenizer: Bloodhound.tokenizers.whitespace,
-          queryTokenizer: Bloodhound.tokenizers.whitespace,
-          // loc_litrefs will be an array of literature references
-          local: loc_litrefsL,
-          prefetch: { url: base_url + 'api/litrefs/', cache: true },
-          remote: {
-            url: base_url + 'api/litrefs/?name=',
-            replace: ru.passim.tt_library
-          }
-        });
-
-        // Bloodhound: AUTHOR
-        loc_authors = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_authorsL,
-          prefetch: { url: base_url + 'api/authors/list/', cache: true },
-          remote: {
-            url: base_url + 'api/authors/list/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
+        
+        if (bUseTypeahead) {
+          // Bloodhound: LOCATION
+          loc_locations = new Bloodhound({
+            datumTokenizer: Bloodhound.tokenizers.whitespace,
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            // loc_libraries will be an array of libraries
+            local: loc_locationsL,
+            prefetch: { url: base_url + 'api/locations/', cache: true },
+            remote: {
+              url: base_url + 'api/locations/?name=',
+              replace: ru.lenten.tt_library
             }
-          }
-        });
+          });
 
-        // Bloodhound: NICKNAME
-        loc_nicknames = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_nicknamesL,
-          prefetch: { url: base_url + 'api/nicknames/', cache: true },
-          remote: {
-            url: base_url + 'api/nicknames/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
+          // Bloodhound: AUTHOR
+          loc_authors = new Bloodhound({
+            datumTokenizer: function (myObj) {
+              return myObj;
+            },
+            queryTokenizer: function (myObj) {
+              return myObj;
+            },
+            // loc_countries will be an array of countries
+            local: loc_authorsL,
+            prefetch: { url: base_url + 'api/authors/list/', cache: true },
+            remote: {
+              url: base_url + 'api/authors/list/?name=',
+              replace: function (url, uriEncodedQuery) {
+                url += encodeURIComponent(uriEncodedQuery);
+                return url;
+              }
             }
-          }
-        });
+          });
 
-        // Bloodhound: gldincipit
-        loc_gldincipits = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_gldincipitsL,
-          prefetch: { url: base_url + 'api/gldincipits/', cache: true },
-          remote: {
-            url: base_url + 'api/gldincipits/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
+          // Bloodhound: SIGNATURE
+          loc_signature = new Bloodhound({
+            datumTokenizer: function (myObj) {
+              return myObj;
+            },
+            queryTokenizer: function (myObj) {
+              return myObj;
+            },
+            // loc_countries will be an array of countries
+            local: loc_signatureL,
+            prefetch: { url: base_url + 'api/signatures/', cache: true },
+            remote: {
+              url: base_url + 'api/signatures/?name=',
+              replace: function (url, uriEncodedQuery) {
+                url += encodeURIComponent(uriEncodedQuery);
+                return url;
+              }
             }
-          }
-        });
-
-        // Bloodhound: srmincipit
-        loc_srmincipits = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_srmincipitsL,
-          prefetch: { url: base_url + 'api/srmincipits/', cache: true },
-          remote: {
-            url: base_url + 'api/srmincipits/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
+          });
+        
+          // Bloodhound: manuidno
+          loc_manuidno = new Bloodhound({
+            datumTokenizer: function (myObj) { return myObj; },
+            queryTokenizer: function (myObj) { return myObj; },
+            // loc_countries will be an array of countries
+            local: loc_manuidnoL,
+            prefetch: { url: base_url + 'api/manuidnos/', cache: true },
+            remote: {
+              url: base_url + 'api/manuidnos/?name=',
+              replace: function (url, uriEncodedQuery) {
+                url += encodeURIComponent(uriEncodedQuery);
+                return url;
+              }
             }
-          }
-        });
+          });
 
-        // Bloodhound: gldexplicit
-        loc_gldexplicits = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_gldexplicitsL,
-          prefetch: { url: base_url + 'api/gldexplicits/', cache: true },
-          remote: {
-            url: base_url + 'api/gldexplicits/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
+          // Bloodhound: EDITION
+          loc_edition = new Bloodhound({
+            datumTokenizer: function (myObj) {
+              return myObj;
+            },
+            queryTokenizer: function (myObj) {
+              return myObj;
+            },
+            // loc_countries will be an array of countries
+            local: loc_editionL,
+            prefetch: { url: base_url + 'api/editions/', cache: true },
+            remote: {
+              url: base_url + 'api/editions/?name=',
+              replace: function (url, uriEncodedQuery) {
+                url += encodeURIComponent(uriEncodedQuery);
+                return url;
+              }
             }
-          }
-        });
+          });
 
-        // Bloodhound: srmexplicit
-        loc_srmexplicits = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_srmexplicitsL,
-          prefetch: { url: base_url + 'api/srmexplicits/', cache: true },
-          remote: {
-            url: base_url + 'api/srmexplicits/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
+          // Bloodhound: KEYWORD
+          loc_keyword = new Bloodhound({
+            datumTokenizer: function (myObj) {
+              return myObj;
+            },
+            queryTokenizer: function (myObj) {
+              return myObj;
+            },
+            // loc_countries will be an array of countries
+            local: loc_keywordL,
+            prefetch: { url: base_url + 'api/keywords/', cache: true },
+            remote: {
+              url: base_url + 'api/keywords/?name=',
+              replace: function (url, uriEncodedQuery) {
+                url += encodeURIComponent(uriEncodedQuery);
+                return url;
+              }
             }
-          }
-        });
+          });
 
-        // Bloodhound: SIGNATURE - SermonGold
-        loc_signature = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_signatureL,
-          prefetch: { url: base_url + 'api/gldsignatures/', cache: true },
-          remote: {
-            url: base_url + 'api/gldsignatures/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
-            }
-          }
-        });
+          // Initialize typeahead
+          ru.lenten.init_typeahead();
 
-        // Bloodhound: SRMSIGGRYSON - SermonDescr
-        loc_gldsiggryson = new Bloodhound({
-          datumTokenizer: function (myObj) { return myObj; },
-          queryTokenizer: function (myObj) { return myObj; },
-          // loc_countries will be an array of countries
-          local: loc_gldsiggrysonL,
-          prefetch: { url: base_url + 'api/gldsignatures/', cache: true },
-          remote: {
-            url: base_url + 'api/gldsignatures/?type=gr&name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
-            }
-          }
-        });
-
-        // Bloodhound: SRMSIGCLAVIS - SermonDescr
-        loc_gldsigclavis = new Bloodhound({
-          datumTokenizer: function (myObj) { return myObj; },
-          queryTokenizer: function (myObj) { return myObj; },
-          // loc_countries will be an array of countries
-          local: loc_gldsigclavisL,
-          prefetch: { url: base_url + 'api/gldsignatures/', cache: true },
-          remote: {
-            url: base_url + 'api/gldsignatures/?type=cl&name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
-            }
-          }
-        });
-
-        // Bloodhound: SRMSIGNATURE - SermonGold
-        loc_srmsignature = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_srmsignatureL,
-          prefetch: { url: base_url + 'api/srmsignatures/', cache: true },
-          remote: {
-            url: base_url + 'api/srmsignatures/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
-            }
-          }
-        });
-
-        // Bloodhound: SRMSIGGRYSON - SermonDescr
-        loc_srmsiggryson = new Bloodhound({
-          datumTokenizer: function (myObj) {return myObj;},
-          queryTokenizer: function (myObj) {return myObj;},
-          // loc_countries will be an array of countries
-          local: loc_srmsiggrysonL,
-          prefetch: { url:  base_url + 'api/srmsignatures/', cache: true },
-          remote: {url:     base_url + 'api/srmsignatures/?type=gr&name=',
-                   replace: function (url, uriEncodedQuery) {
-                      url += encodeURIComponent(uriEncodedQuery);
-                      return url; } }
-        });
-
-        // Bloodhound: SRMSIGCLAVIS - SermonDescr
-        loc_srmsigclavis = new Bloodhound({
-          datumTokenizer: function (myObj) { return myObj; },
-          queryTokenizer: function (myObj) { return myObj; },
-          // loc_countries will be an array of countries
-          local: loc_srmsigclavisL,
-          prefetch: { url: base_url + 'api/srmsignatures/', cache: true },
-          remote: {
-            url: base_url + 'api/srmsignatures/?type=cl&name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
-            }
-          }
-        });
-
-        // Bloodhound: manuidno
-        loc_manuidno = new Bloodhound({
-          datumTokenizer: function (myObj) { return myObj; },
-          queryTokenizer: function (myObj) { return myObj; },
-          // loc_countries will be an array of countries
-          local: loc_manuidnoL,
-          prefetch: { url: base_url + 'api/manuidnos/', cache: true },
-          remote: {
-            url: base_url + 'api/manuidnos/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
-            }
-          }
-        });
-
-        // Bloodhound: EDITION
-        loc_edition = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_editionL,
-          prefetch: { url: base_url + 'api/editions/', cache: true },
-          remote: {
-            url: base_url + 'api/editions/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
-            }
-          }
-        });
-
-        // Bloodhound: KEYWORD
-        loc_keyword = new Bloodhound({
-          datumTokenizer: function (myObj) {
-            return myObj;
-          },
-          queryTokenizer: function (myObj) {
-            return myObj;
-          },
-          // loc_countries will be an array of countries
-          local: loc_keywordL,
-          prefetch: { url: base_url + 'api/keywords/', cache: true },
-          remote: {
-            url: base_url + 'api/keywords/?name=',
-            replace: function (url, uriEncodedQuery) {
-              url += encodeURIComponent(uriEncodedQuery);
-              return url;
-            }
-          }
-        });
-
-        // Initialize typeahead
-        ru.passim.init_typeahead();
+        }
 
       },
 
@@ -476,89 +208,12 @@ var ru = (function ($, ru) {
       init_typeahead: function () {
         try {
           // First destroy them
-          $(".typeahead.countries").typeahead('destroy');
-          $(".typeahead.cities").typeahead('destroy');
-          $(".typeahead.libraries").typeahead('destroy');
-          $(".typeahead.origins").typeahead('destroy');
           $(".typeahead.locations").typeahead('destroy');
-          $(".typeahead.litrefs").typeahead('destroy');
           $(".typeahead.authors").typeahead('destroy');
-          $(".typeahead.nicknames").typeahead('destroy');
-          $(".typeahead.gldincipits").typeahead('destroy');
-          $(".typeahead.gldexplicits").typeahead('destroy');
-          $(".typeahead.srmincipits").typeahead('destroy');
-          $(".typeahead.srmexplicits").typeahead('destroy');
           $(".typeahead.signatures").typeahead('destroy');
-          $(".typeahead.gldsiggrysons").typeahead('destroy');
-          $(".typeahead.gldsigclavises").typeahead('destroy');
-          $(".typeahead.srmsignatures").typeahead('destroy');
-          $(".typeahead.siggrysons").typeahead('destroy');
-          $(".typeahead.sigclavises").typeahead('destroy');
           $(".typeahead.editions").typeahead('destroy');
           $(".typeahead.keywords").typeahead('destroy');
           $(".typeahead.manuidnos").typeahead('destroy');
-
-          // Make sure the signature types (gryson/clavis) are set correctly
-          $(".editype-gr .signaturetype").each(function () {
-            $(this).removeClass("signaturetype");
-            $(this).addClass("gldsiggrysons");
-            $(this).attr("placeholder", "Gryson code...");
-          });
-          $(".editype-cl .signaturetype").each(function () {
-            $(this).removeClass("signaturetype");
-            $(this).addClass("gldsigclavises");
-            $(this).attr("placeholder", "Clavis code...");
-          });
-
-          // Explicitly clear them
-          // loc_litrefs.clear();
-
-          // Type-ahead: COUNTRY
-          $(".form-row:not(.empty-form) .typeahead.countries, .manuscript-details .typeahead.countries").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            { name: 'countries', source: loc_countries, limit: 20, displayKey: "name",
-              templates: { suggestion: function (item) { return '<div>' + item.name + '</div>'; } }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".country-key input").last().val(suggestion.id);
-          });
-          // Type-ahead: CITY
-          $(".form-row:not(.empty-form) .typeahead.cities, .manuscript-details .typeahead.cities").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            { name: 'cities', source: loc_cities, limit: 25, displayKey: "name",
-              templates: { suggestion: function (item) { return '<div>' + item.name + '</div>'; } }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".city-key input").last().val(suggestion.id);
-          });
-          // Type-ahead: LIBRARY
-          $(".form-row:not(.empty-form) .typeahead.libraries, .manuscript-details .typeahead.libraries").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            { name: 'libraries', source: loc_libraries, limit: 25, displayKey: "name",
-              templates: {
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".library-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: ORIGIN
-          $(".form-row:not(.empty-form) .typeahead.origins, .manuscript-details .typeahead.origins").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'origins', source: loc_origins, limit: 25, displayKey: "name",
-              templates: {
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".origin-key input").last().val(suggestion.id);
-          });
 
           // Type-ahead: LOCATION
           $(".form-row:not(.empty-form) .typeahead.locations, .manuscript-details .typeahead.locations").typeahead(
@@ -573,21 +228,6 @@ var ru = (function ($, ru) {
             }
           ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
             $(this).closest("td").find(".location-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: LITREF
-          $(".form-row:not(.empty-form) .typeahead.litrefs, .manuscript-details .typeahead.litrefs").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'litrefs', source: loc_litrefs, limit: 25, displayKey: "name",
-              templates: {
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".litref-key input").last().val(suggestion.id);
           });
 
           // Type-ahead: AUTHOR -- NOTE: not in a form-row, but in a normal 'row'
@@ -606,85 +246,6 @@ var ru = (function ($, ru) {
             $(this).closest("td").find(".author-key input").last().val(suggestion.id);
           });
 
-          // Type-ahead: NICKNAME -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.nicknames, tr .typeahead.nicknames").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'nicknames', source: loc_nicknames, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>This person will be added... <i>(on saving)</i></p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".nickname-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: gldincipit -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.gldincipits, tr .typeahead.gldincipits").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'gldincipits', source: loc_gldincipits, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact wording</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".gldincipit-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: srmincipit -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.srmincipits, tr .typeahead.srmincipits").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'srmincipits', source: loc_srmincipits, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact wording</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".srmincipit-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: gldexplicit -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.gldexplicits, tr:not(.empty-form) .typeahead.gldexplicits").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'gldexplicits', source: loc_gldexplicits, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact wording</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".gldexplicit-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: srmexplicit -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.srmexplicits, tr:not(.empty-form) .typeahead.srmexplicits").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'srmexplicits', source: loc_srmexplicits, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact wording</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".srmexplicit-key input").last().val(suggestion.id);
-          });
 
           // Type-ahead: SIGNATURE (SermonGold) -- NOTE: not in a form-row, but in a normal 'row'
           $("tr:not(.empty-form) .typeahead.signatures, .manuscript-details .typeahead.signatures").typeahead(
@@ -700,86 +261,6 @@ var ru = (function ($, ru) {
             }
           ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
             $(this).closest("td").find(".signature-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: Gld Gryson Signature
-          $(".row .typeahead.gldsiggrysons, tr:not(.empty-form) .typeahead.gldsiggrysons").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'gldsiggrysons', source: loc_gldsiggryson, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact code</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".gldsiggryson-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: Srm Clavis Signature
-          $(".row .typeahead.gldsigclavises, tr:not(.empty-form) .typeahead.gldsigclavises").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'gldsigclavises', source: loc_gldsigclavis, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact code</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".gldsigclavis-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: SRMSIGNATURE (SermonDescr) -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.srmsignatures, tr:not(.empty-form) .typeahead.srmsignatures").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'srmsignatures', source: loc_srmsignature, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact code</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".srmsignature-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: Srm Gryson Signature
-          $(".row .typeahead.siggrysons, tr:not(.empty-form) .typeahead.siggrysons").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'siggrysons', source: loc_srmsiggryson, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact code</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".siggryson-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: Srm Clavis Signature
-          $(".row .typeahead.sigclavises, tr:not(.empty-form) .typeahead.sigclavises").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'sigclavises', source: loc_srmsigclavis, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact code</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".sigclavis-key input").last().val(suggestion.id);
           });
 
           // Type-ahead: EDITION -- NOTE: not in a form-row, but in a normal 'row'
@@ -1244,7 +725,7 @@ var ru = (function ($, ru) {
 
         // Start looking only after some time
         oJson = { 'status': 'started' };
-        ru.passim.oSyncTimer = window.setTimeout(function () { ru.passim.sync_progress(sSyncType, oJson); }, 3000);
+        ru.lenten.oSyncTimer = window.setTimeout(function () { ru.lenten.sync_progress(sSyncType, oJson); }, 3000);
 
         // Define the URL
         sUrl = $("#sync_start_" + sSyncType).attr('sync-start');
@@ -1257,7 +738,7 @@ var ru = (function ($, ru) {
           cache: false,
           success: function (json) {
             $("#sync_details_" + sSyncType).html("start >> sync_stop");
-            ru.passim.sync_stop(sSyncType, json);
+            ru.lenten.sync_stop(sSyncType, json);
           },
           failure: function () {
             $("#sync_details_" + sSyncType).html("Ajax failure");
@@ -1286,7 +767,7 @@ var ru = (function ($, ru) {
           cache: false,
           success: function (json) {
             $("#sync_details_" + sSyncType).html("progress >> sync_handle");
-            ru.passim.sync_handle(sSyncType, json);
+            ru.lenten.sync_handle(sSyncType, json);
           },
           failure: function () {
             $("#sync_details_" + sSyncType).html("Ajax failure");
@@ -1314,24 +795,24 @@ var ru = (function ($, ru) {
           case 'error':
             // Show we are ready
             $("#sync_progress_" + sSyncType).html("Error synchronizing: " + sSyncType);
-            $("#sync_details_" + sSyncType).html(ru.passim.sync_details(json));
+            $("#sync_details_" + sSyncType).html(ru.lenten.sync_details(json));
             // Stop the progress calling
-            window.clearInterval(ru.passim.oSyncTimer);
+            window.clearInterval(ru.lenten.oSyncTimer);
             // Leave the routine, and don't return anymore
             return;
           case "done":
           case "finished":
             // Default action is to show the status
             $("#sync_progress_" + sSyncType).html(json.status);
-            $("#sync_details_" + sSyncType).html(ru.passim.sync_details(json));
+            $("#sync_details_" + sSyncType).html(ru.lenten.sync_details(json));
             // Finish nicely
-            ru.passim.sync_stop(sSyncType, json);
+            ru.lenten.sync_stop(sSyncType, json);
             return;
           default:
             // Default action is to show the status
             $("#sync_progress_" + sSyncType).html(json.status);
-            $("#sync_details_" + sSyncType).html(ru.passim.sync_details(json));
-            ru.passim.oSyncTimer = window.setTimeout(function () { ru.passim.sync_progress(sSyncType, options); }, 1000);
+            $("#sync_details_" + sSyncType).html(ru.lenten.sync_details(json));
+            ru.lenten.oSyncTimer = window.setTimeout(function () { ru.lenten.sync_progress(sSyncType, options); }, 1000);
             break;
         }
       },
@@ -1345,7 +826,7 @@ var ru = (function ($, ru) {
         var lHtml = [];
 
         // Stop the progress calling
-        window.clearInterval(ru.passim.oSyncTimer);
+        window.clearInterval(ru.lenten.oSyncTimer);
         // Show we are ready
         $("#sync_progress_" + sSyncType).html("Finished synchronizing: " + sSyncType + "<br>" + JSON.stringify(json, null, 2));
 

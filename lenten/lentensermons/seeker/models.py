@@ -25,13 +25,15 @@ from io import StringIO
 
 STANDARD_LENGTH=100
 LONG_STRING=255
-MAX_TEXT_LEN = 200
+MEDIUM_LENGTH = 200
 
 VIEW_STATUS = "view.status"     # For news items
 REPORT_TYPE = "seeker.reptype"
 LINK_TYPE = "seeker.linktype"
 EDI_TYPE = "seeker.editype"
 STATUS_TYPE = "seeker.stype"
+DATE_TYPE = "seeker.datetype"
+FORMAT_TYPE = "seeker.formattype"
 
 
 class FieldChoice(models.Model):
@@ -351,6 +353,58 @@ def import_data_file(sContents, arErr):
         arErr.DoError("import_data_file error:")
         return {}
 
+def process_tags(sText, tagitems, cls):
+    """Extract the tags from [sText] and then make sure that the many-to-many field [m2m] only has these tags"""
+
+    oErr = ErrHandle()
+    sMarker = "_"       # Use the underscore
+    try:
+        # Split the string
+        arPart = sText.split("_")
+        # There should be an even number of underscores, so an odd number of parts
+        if len(arPart) % 2 != 0:
+            # Odd number of parts
+            num_tags = (len(arPart) - 1) / 2
+            if num_tags == 0:
+                # Make sure to remove all tags
+                tagitems.all().delete()
+            else:
+                add_list = []
+                # Create a list of what the tags should be:
+                taglist = []
+                tagnum = 1 
+                while tagnum < num_tags:
+                    idx = (tagnum-1) * 2 + 1
+                    taglist.append(arPart[idx])
+                # Look for deletions
+                for obj in tagitems.all():
+                    if obj.name not in taglist:
+                        # Must be removed
+                        tagitems.remove(obj)
+                # Get an update of what is in the database
+                db_tags = [x.name for x in tagitems.all()]
+                # Look for needed additions
+                for tag in tagitems:
+                    if tag not in db_tags:
+                        obj = cls.objects.filter(name=tag).first()
+                        if obj == None:
+                            # Create and add an item in one go
+                            tagitems.create(name=tag)
+                        else:
+                            # Add the existing item
+                            tagitems.add(obj)
+
+
+                current_tags
+        else:
+            # Even number of parts: do NOTHING...
+            pass
+        
+        return True, ""
+    except:
+        sMsg = oErr.get_error_message()
+        oErr.DoError("process_tags")
+        return False, sMsg
 
 class Status(models.Model):
     """Intermediate loading of sync information and status of processing it"""
@@ -387,9 +441,9 @@ class Action(models.Model):
     # [1] The user
     user = models.ForeignKey(User)
     # [1] The item (e.g: Manuscript, SermonDescr, SermonGold)
-    itemtype = models.CharField("Item type", max_length=MAX_TEXT_LEN)
+    itemtype = models.CharField("Item type", max_length=MEDIUM_LENGTH)
     # [1] The kind of action performed (e.g: create, edit, delete)
-    actiontype = models.CharField("Action type", max_length=MAX_TEXT_LEN)
+    actiontype = models.CharField("Action type", max_length=MEDIUM_LENGTH)
     # [0-1] Room for possible action-specific details
     details = models.TextField("Detail", blank=True, null=True)
     # [1] Date and time of this action
@@ -472,11 +526,161 @@ class Information(models.Model):
         return super(Information, self).save(force_insert, force_update, using, update_fields)
 
 
+class Profile(models.Model):
+    """Information about the user"""
+
+    # [1] Every profile is linked to a user
+    user = models.ForeignKey(User)
+    # [1] Every user has a stack: a list of visit objects
+    stack = models.TextField("Stack", default = "[]")
+
+    ## [1] Current size of the user's basket
+    #basketsize = models.IntegerField("Basket size", default=0)
+    ## Many-to-many field for the contents of a search basket per user
+    #basketitems = models.ManyToManyField("SermonDescr", through="Basket", related_name="basketitems_user")
+
+    def __str__(self):
+        sStack = self.stack
+        return sStack
+
+    def add_visit(self, name, path, is_menu, **kwargs):
+        """Process one visit in an adaptation of the stack"""
+
+        oErr = ErrHandle()
+        bNeedSaving = False
+        try:
+            # Check if this is a menu choice
+            if is_menu:
+                # Rebuild the stack
+                path_home = reverse("home")
+                oStack = []
+                oStack.append({'name': "Home", 'url': path_home })
+                if path != path_home:
+                    oStack.append({'name': name, 'url': path })
+                self.stack = json.dumps(oStack)
+                bNeedSaving = True
+            else:
+                # Unpack the current stack
+                lst_stack = json.loads(self.stack)
+                # Check if this path is already on the stack
+                bNew = True
+                for idx, item in enumerate(lst_stack):
+                    # Check if this item is on it already
+                    if item['url'] == path:
+                        # The url is on the stack, so cut off the stack from here
+                        lst_stack = lst_stack[0:idx+1]
+                        # But make sure to add any kwargs
+                        if kwargs != None:
+                            item['kwargs'] = kwargs
+                        bNew = False
+                        break
+                    elif item['name'] == name:
+                        # Replace the url
+                        item['url'] = path
+                        # But make sure to add any kwargs
+                        if kwargs != None:
+                            item['kwargs'] = kwargs
+                        bNew = False
+                        break
+                if bNew:
+                    # Add item to the stack
+                    lst_stack.append({'name': name, 'url': path })
+                # Add changes
+                self.stack = json.dumps(lst_stack)
+                bNeedSaving = True
+            # All should have been done by now...
+            if bNeedSaving:
+                self.save()
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("profile/add_visit")
+
+    def get_stack(username):
+        """Get the stack as a list from the current user"""
+
+        # Sanity check
+        if username == "":
+            # Rebuild the stack
+            path_home = reverse("home")
+            oStack = []
+            oStack.append({'name': "Home", 'url': path_home })
+            return oStack
+        # Get the user
+        user = User.objects.filter(username=username).first()
+        # Get to the profile of this user
+        profile = Profile.objects.filter(user=user).first()
+        if profile == None:
+            # Return an empty list
+            return []
+        else:
+            # Return the stack as object (list)
+            return json.loads(profile.stack)
+
+    def get_user_profile(username):
+        # Sanity check
+        if username == "":
+            # Rebuild the stack
+            return None
+        # Get the user
+        user = User.objects.filter(username=username).first()
+        # Get to the profile of this user
+        profile = Profile.objects.filter(user=user).first()
+        return profile
+
+
+class Visit(models.Model):
+    """One visit to part of the application"""
+
+    # [1] Every visit is made by a user
+    user = models.ForeignKey(User)
+    # [1] Every visit is done at a certain moment
+    when = models.DateTimeField(default=get_current_datetime)
+    # [1] Every visit is to a 'named' point
+    name = models.CharField("Name", max_length=STANDARD_LENGTH)
+    # [1] Every visit needs to have a URL
+    path = models.URLField("URL")
+
+    def __str__(self):
+        msg = "{} ({})".format(self.name, self.path)
+        return msg
+
+    def add(username, name, path, is_menu = False, **kwargs):
+        """Add a visit from user [username]"""
+
+        oErr = ErrHandle()
+        try:
+            # Sanity check
+            if username == "": return True
+            # Get the user
+            user = User.objects.filter(username=username).first()
+            # Adapt the path if there are kwargs
+            # Add an item
+            obj = Visit(user=user, name=name, path=path)
+            obj.save()
+            # Get to the stack of this user
+            profile = Profile.objects.filter(user=user).first()
+            if profile == None:
+                # There is no profile yet, so make it
+                profile = Profile(user=user)
+                profile.save()
+
+            # Process this visit in the profile
+            profile.add_visit(name, path, is_menu, **kwargs)
+            # Return success
+            result = True
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("visit/add")
+            result = False
+        # Return the result
+        return result
+
+
 class NewsItem(models.Model):
     """A news-item that can be displayed for a limited time"""
 
     # [1] title of this news-item
-    title = models.CharField("Title",  max_length=MAX_TEXT_LEN)
+    title = models.CharField("Title",  max_length=MEDIUM_LENGTH)
     # [1] the date when this item was created
     created = models.DateTimeField(default=get_current_datetime)
     saved = models.DateTimeField(null=True, blank=True)
@@ -501,80 +705,417 @@ class NewsItem(models.Model):
       return response
 
 
-class Country(models.Model):
-    """Countries in which there are library cities"""
+class LocationType(models.Model):
+    """Kind of location and level on the location hierarchy"""
 
-    # [1] CNRS numerical identifier of the country
-    idPaysEtab = models.IntegerField("CNRS country id", default=-1)
-    # [1] Name of the country (English)
-    name = models.CharField("Name (EN)", max_length=STANDARD_LENGTH)
-    # [1] Name of the country (French)
-    nameFR = models.CharField("Name (FR)", max_length=STANDARD_LENGTH)
-
-    def __str__(self):
-        return self.name
-
-    def get_country(sId, sCountryEn, sCountryFr):
-        iId = int(sId)
-        lstQ = []
-        lstQ.append(Q(idPaysEtab=iId))
-        lstQ.append(Q(name=sCountryEn))
-        lstQ.append(Q(nameFR=sCountryFr))
-        hit = Country.objects.filter(*lstQ).first()
-        if hit == None:
-            hit = Country(idPaysEtab=iId, name=sCountryEn, nameFR=sCountryFr)
-            hit.save()
-
-        return hit
-
-
-class City(models.Model):
-    """Cities that contain libraries"""
-
-    # [1] CNRS numerical identifier of the city
-    idVilleEtab = models.IntegerField("CNRS city id", default=-1)
-    # [1] Name of the city
+    # [1] obligatory name
     name = models.CharField("Name", max_length=STANDARD_LENGTH)
-    # [0-1] Name of the country this is in
-    #       Note: when a country is deleted, its cities are automatically deleted too
-    country = models.ForeignKey(Country, null=True, blank=True, related_name="country_cities")
+    # [1] obligatory level of this location on the scale
+    level = models.IntegerField("Hierarchy level", default=0)
 
     def __str__(self):
         return self.name
 
-    def get_city(sId, sCity, country):
-        iId = int(sId)
-        lstQ = []
-        lstQ.append(Q(idVilleEtab=iId))
-        lstQ.append(Q(name=sCity))
-        lstQ.append(Q(country=country))
-        hit = City.objects.filter(*lstQ).first()
-        if hit == None:
-            hit = City(idVilleEtab=iId, name=sCity, country=country)
-            hit.save()
+    def find(sname):
+        obj = LocationType.objects.filter(name__icontains=sname).first()
+        return obj
 
+
+class Location(models.Model):
+    """One location element can be a city, village, cloister, region"""
+
+    # [1] obligatory name in ENGLISH
+    name = models.CharField("Name (eng)", max_length=STANDARD_LENGTH)
+    # [1] Link to the location type of this location
+    loctype = models.ForeignKey(LocationType)
+
+    # Many-to-many field that identifies relations between locations
+    relations = models.ManyToManyField("self", through="LocationRelation", symmetrical=False, related_name="relations_location")
+
+    def __str__(self):
+        return self.name
+
+    def get_loc_name(self):
+        lname = "{} ({})".format(self.name, self.loctype)
+        return lname
+
+    def get_location(city="", country=""):
+        """Get the correct location object, based on the city and/or the country"""
+
+        obj = None
+        lstQ = []
+        qs_country = None
+        if country != "" and country != None:
+            # Specify the country
+            lstQ.append(Q(loctype__name="country"))
+            lstQ.append(Q(name__iexact=country))
+            qs_country = Location.objects.filter(*lstQ)
+            if city == "" or city == None:
+                obj = qs_country.first()
+            else:
+                lstQ = []
+                lstQ.append(Q(loctype__name="city"))
+                lstQ.append(Q(name__iexact=city))
+                lstQ.append(relations_location__in=qs_country)
+                obj = Location.objects.filter(*lstQ).first()
+        elif city != "" and city != None:
+            lstQ.append(Q(loctype__name="city"))
+            lstQ.append(Q(name__iexact=city))
+            obj = Location.objects.filter(*lstQ).first()
+        return obj
+
+    def partof(self):
+        """give a list of locations (and their type) of which I am part"""
+
+        lst_main = []
+        lst_back = []
+
+        def get_above(loc, lst_this):
+            """Perform depth-first recursive procedure above"""
+
+            above_lst = LocationRelation.objects.filter(contained=loc)
+            for item in above_lst:
+                # Add this item
+                lst_this.append(item.container)
+                # Add those above this item
+                get_above(item.container, lst_this)
+
+        # Calculate the aboves
+        get_above(self, lst_main)
+
+        # Walk the main list
+        for item in lst_main:
+            lst_back.append("{} ({})".format(item.name, item.loctype.name))
+
+        # Return the list of locations
+        return " | ".join(lst_back)
+
+    def hierarchy(self):
+        """give a list of locations (and their type) of which I am part"""
+
+        lst_main = [self]
+
+        def get_above(loc, lst_this):
+            """Perform depth-first recursive procedure above"""
+
+            above_lst = LocationRelation.objects.filter(contained=loc)
+            for item in above_lst:
+                # Add this item
+                lst_this.append(item.container)
+                # Add those above this item
+                get_above(item.container, lst_this)
+
+        # Calculate the aboves
+        get_above(self, lst_main)
+
+        # Return the list of locations
+        return lst_main
+
+    
+class LocationName(models.Model):
+    """The name of a location in a particular language"""
+
+    # [1] obligatory name in vernacular
+    name = models.CharField("Name", max_length=STANDARD_LENGTH)
+    # [1] the language in which this name is given - ISO 3 letter code
+    language = models.CharField("Language", max_length=STANDARD_LENGTH, default="eng")
+    # [1] the Location to which this (vernacular) name belongs
+    location = models.ForeignKey(Location, related_name="location_names")
+
+    def __str__(self):
+        return "{} ({})".format(self.name, self.language)
+
+
+class LocationRelation(models.Model):
+    """Container-contained relation between two locations"""
+
+    # [1] Obligatory container
+    container = models.ForeignKey(Location, related_name="container_locrelations")
+    # [1] Obligatory contained
+    contained = models.ForeignKey(Location, related_name="contained_locrelations")
+
+
+class TagLiturgical(models.Model):
+    """The field 'liturgical' can have [0-n] tag words associated with it"""
+
+    # [1]
+    name = models.CharField("Name", max_length=LONG_STRING)
+
+    def __str__(self):
+        return self.name
+
+
+class TagCommunicative(models.Model):
+    """The field 'communicative' can have [0-n] tag words associated with it"""
+
+    # [1]
+    name = models.CharField("Name", max_length=LONG_STRING)
+
+    def __str__(self):
+        return self.name
+
+
+class TagNote(models.Model):
+    """The field 'notes' can have [0-n] tag words associated with it"""
+
+    # [1]
+    name = models.CharField("Name", max_length=LONG_STRING)
+
+    def __str__(self):
+        return self.name
+
+
+class Author(models.Model):
+    """We have a set of authors that are the 'golden' standard"""
+
+    # [1] Name of the author
+    name = models.CharField("Name", max_length=LONG_STRING)
+    # [0-1] Information per author and bibliography
+    info = models.TextField("Information", blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
+    def find_or_create(sName):
+        """Find an author or create it."""
+
+        qs = Author.objects.filter(Q(name__iexact=sName))
+        if qs.count() == 0:
+            # Create one
+            hit = Author(name=sName)
+            hit.save()
+        else:
+            hit = qs[0]
+        # Return what we found or created
         return hit
 
-    def find_or_create(sName, country):
-        """Find a city or create it."""
+    def find(sName):
+        """Find an author."""
 
-        errHandle = ErrHandle()
+        # Check for the author's full name as well as the abbreviation
+        hit = Author.objects.filter(Q(name__iexact=sName)).first()
+        # Return what we found
+        return hit
+
+
+class SermonCollection(models.Model):
+
+    # [0-1] Identification number assigned by the researcher
+    idno = models.CharField("Identification", max_length=MEDIUM_LENGTH, blank=True, null=True)
+    # [1] Title is obligatory for any sermon collection
+    title = models.CharField("Title", max_length=MEDIUM_LENGTH)
+    # [0-1] Date of composition
+    datecomp = models.IntegerField("Year of composition", blank=True, null=True)
+    # [0-1] Type of this date: fixed, approximate?
+    datetype = models.CharField("Composition date type", choices=build_abbr_list(DATE_TYPE), 
+                            max_length=5)
+    # [0-1] Place of manuscript: may be city or country
+    place = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL)
+
+    # Edition information: editions are linked to [SermonCollection]
+    #   - first edition' information is derived by first_edition()
+    #   - the number of editions is derived by edicount()
+
+    # Typology / Structure 
+    # [0-1] short structure description (one or two words)
+    structure = models.CharField("Structure", max_length=MEDIUM_LENGTH, blank=True, null=True)
+    # [0-1] Relationship with liturgical texts - use markdown '_' to identify repetative elements
+    liturgical = models.TextField("Relationship with liturgical texts", blank=True, null=True)
+    # [0-1] Communicative strategy - use markdown '_' to identify repetative elements
+    communicative = models.TextField("Communicative strategy", blank=True, null=True)
+
+    # General notes
+    # [0-1] Particular sources quoted
+    sources = models.TextField("Sources quoted", blank=True, null=True)
+    # [0-1] Exempla
+    exempla = models.TextField("Exempla", blank=True, null=True)
+    # [0-1] Notes
+    notes = models.TextField("Notes", blank=True, null=True)
+    
+    # --------- MANY-TO-MANY connections ------------------
+    # [n-n] Author: each sermoncollection may have 1 or more authors
+    authors = models.ManyToManyField(Author)
+    # [n-n] Liturgical tags
+    liturtags = models.ManyToManyField(TagLiturgical)
+    # [n-n] Communicative tags
+    commutags = models.ManyToManyField(TagCommunicative)
+    # [n-n] Tags in the notes
+    notetags = models.ManyToManyField(TagNote)
+
+
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+        # Perform the actual saving
+        response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
+
+        # (1) Check and correct the liturgical tags
+        process_tags(self.liturgical, self.liturtags, TagLiturgical)
+
+        # (2) Check and correct the communicative tags
+        process_tags(self.communicative, self.commutags, TagCommunicative)
+
+        # (3) Check and correct the notes tags
+        process_tags(self.notes, self.notetags, TagNote)
+
+        # Return the saving result
+        return response
+
+    def first_edition(self):
+        """Find the first edition from those linked to me"""
+
+        # Order the editions by ascending date and then take the first
+        hit = self.editions.all().order("date").first()
+        return hit
+
+    def edicount(self):
+        """Calculate the number of editions linked to me"""
+
+        return self.editions.all().count()
+
+    def authorlist(self):
+
+        lst_author = [x.id for x in self.authors.all()]
+        qs = Author.objects.filter(id__in=lst_author)
+        return qs
+
+    def __str__(self):
+        # Combine my ID number and the title (which is obligatory)
+        sBack = "({}) {}".format(self.id, self.title)
+        return sBack
+
+
+class Manuscript(models.Model):
+    """Information on the manuscripts that belong to a sermon collection""" 
+
+    # [1] If there are manuscripts there must be information on them
+    info = models.TextField("Info on manuscripts", default="-")
+    # [0-1] Possibly provide a link to the manuscript online
+    link = models.URLField("Link (if available)", blank=True, null=True)
+    # [1] Each Manuscript belongs to a collection
+    collection = models.ForeignKey(SermonCollection, related_name="manuscripts", on_delete=models.CASCADE)
+
+
+class Sermon(models.Model):
+    """a"""
+
+    # [1] Each sermon belongs to a collection
+    collection = models.ForeignKey(SermonCollection, related_name="sermons", on_delete=models.CASCADE)
+
+
+class Publisher(models.Model):
+    """A publisher is defined by a name"""
+
+    # [1]
+    name = models.CharField("name", max_length=MEDIUM_LENGTH, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Edition(models.Model):
+    """An edition belonging to a particular sermon collection"""
+
+    # [0-1] Code: first number collection, second edition
+    code = models.CharField("Code", max_length=MEDIUM_LENGTH, null=True, blank=True)
+
+    # ------------ DATE DEFINITION -----------------
+    # [0-1] Date when this edition was published
+    date = models.IntegerField("Year of publication (earliest)", blank=True, null=True)
+    date_late = models.IntegerField("Year of publication (latest)", blank=True, null=True)
+    # [0-1] Type of this date: fixed, approximate?
+    datetype = models.CharField("Date type", choices=build_abbr_list(DATE_TYPE), max_length=5)
+    # [0-1] Comment on the date
+    datecomment = models.TextField("Comment on the date", blank=True, null=True)
+
+    # [0-1] Place of manuscript: may be city or country
+    place = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL)
+    # [0-1] Format: a fixed number of choices
+    format = models.CharField("Format", choices=build_abbr_list(FORMAT_TYPE), max_length=5)
+    # [0-1] Number of folia: this may include the text layout 
+    folia = models.TextField("Number of folia", blank=True, null=True)
+
+    # ----------- PARATEXTUAL ELEMENTS -------------
+    # [0-1] Front or title page
+    frontpage = models.TextField("Front page / title page", blank=True, null=True)
+    # [0-1] Prologue
+    prologue = models.TextField("Prologue", blank=True, null=True)
+    # [0-1] Dedicatory letter
+    dedicatory = models.TextField("Dedicatory letter", blank=True, null=True)
+    # [0-1] Table of contents
+    contents = models.TextField("Table of contents", blank=True, null=True)
+    # [0-1] Other texts
+    othertexts = models.TextField("Other texts", blank=True, null=True)
+    # [0-1] Other texts
+    images = models.TextField("Images", blank=True, null=True)
+    # [0-1] Other texts
+    fulltitle = models.TextField("Full title", blank=True, null=True)
+    # [0-1] Other texts
+    colophon = models.TextField("Colophon", blank=True, null=True)
+
+    # [1] Each edition belongs to a sermoncollection. 
+    #     (When the SermonCollection is deleted, I should be deleted too - CASCADE)
+    sermoncollection = models.ForeignKey(SermonCollection, related_name="editions", on_delete=models.CASCADE)
+
+    # --------- MANY-TO-MANY connections ------------------
+    # [n-n] Each edition may have any number of publishers
+    publishers = models.ManyToManyField(Publisher)
+
+    def __str__(self):
+        return self.code
+
+    def get_sermons(self):
+        """Recover all the sermons that fall under this edition"""
+
+        oErr = ErrHandle()
+        qs = []
         try:
-            qs = City.objects.filter(Q(name__iexact=sName))
-            if qs.count() == 0:
-                # Create one
-                hit = City(name=sName)
-                if country != None:
-                    hit.country = country
-                hit.save()
-            else:
-                hit = qs[0]
-            # Return what we found or created
-            return hit
+            # Get the basic collection/sermons
+            qs = self.sermoncollection.sermons.all()
+            # TODO: order the sermons somehow??
         except:
-            sError = errHandle.get_error_message()
-            oBack['status'] = 'error'
-            oBack['msg'] = sError
-            return None
+            sMsg = oErr.get_error_message()
+            oErr.DoError("Edition/get_sermons")
+            qs = None
+        return qs
+
+    def sermon_count(self):
+        """The number of sermons under this edition"""
+
+        count = self.sermoncollection.sermons.all().count()
+        return count
+
+
+class Consulting(models.Model):
+    """An actual copy that the researcher has consulted or has seen"""
+
+    # [0-1] Location
+    location = models.TextField("Images", blank=True, null=True)
+    # [0-1] link
+    link = models.URLField("Link to online edition", blank=True, null=True)
+    # [0-1] Ownership
+    ownership = models.TextField("Ownership", blank=True, null=True)
+    # [0-1] Marginalia
+    marginalia = models.TextField("Marginalia", blank=True, null=True)
+    # [0-1] Images
+    images = models.TextField("Images", blank=True, null=True)
+    # [1] Each consulting pertains to a particular edition
+    edition = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return self.code
+
+
+class Signature(models.Model):
+    """Each edition may have a code/id in a widely used db (ISTC, GW, Edit16)"""
+
+    # [1] The actual code
+    code = models.CharField("Code", max_length=MEDIUM_LENGTH, null=True, blank=True)
+    # [0-1] The link to that database
+    link = models.URLField("Link to external database", null=True, blank=True)
+    # [1] One signature belongs to exactly one Edition
+    #     (When an edition is removed, the signature needs to be removed too)
+    edition = models.ForeignKey(Edition, related_name="signatures", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.code
 
 

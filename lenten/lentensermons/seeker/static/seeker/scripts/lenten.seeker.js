@@ -7,8 +7,8 @@ var $ = jQuery;
 var ru = (function ($, ru) {
   "use strict";
 
-  ru.passim.seeker = (function ($, config) {
-    // Define variables for ru.passim.seeker here
+  ru.lenten.seeker = (function ($, config) {
+    // Define variables for ru.lenten.seeker here
     var loc_example = "",
         loc_bManuSaved = false,
         loc_progr = [],         // Progress tracking
@@ -18,21 +18,21 @@ var ru = (function ($, ru) {
         loc_divErr = "passim_err",
         loc_sWaiting = " <span class=\"glyphicon glyphicon-refresh glyphicon-refresh-animate\"></span>",
         lAddTableRow = [
-          { "table": "manu_search", "prefix": "manu", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "gftxt_formset", "prefix": "gftxt", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "gedi_formset", "prefix": "gedi", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "gkw_formset", "prefix": "gkw", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "geq_formset", "prefix": "geq", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "glink_formset", "prefix": "glink", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "stog_formset", "prefix": "stog", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "skw_formset", "prefix": "skw", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "sedi_formset", "prefix": "sedi", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "mprov_formset", "prefix": "mprov", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "mlit_formset", "prefix": "mlit", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "mext_formset", "prefix": "mext", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "lrel_formset", "prefix": "lrel", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "gsign_formset", "prefix": "gsign", "counter": false, "events": ru.passim.init_typeahead },
-          { "table": "srmsign_formset", "prefix": "srmsign", "counter": false, "events": ru.passim.init_typeahead }
+          { "table": "manu_search", "prefix": "manu", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "gftxt_formset", "prefix": "gftxt", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "gedi_formset", "prefix": "gedi", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "gkw_formset", "prefix": "gkw", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "geq_formset", "prefix": "geq", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "glink_formset", "prefix": "glink", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "stog_formset", "prefix": "stog", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "skw_formset", "prefix": "skw", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "sedi_formset", "prefix": "sedi", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "mprov_formset", "prefix": "mprov", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "mlit_formset", "prefix": "mlit", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "mext_formset", "prefix": "mext", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "lrel_formset", "prefix": "lrel", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "gsign_formset", "prefix": "gsign", "counter": false, "events": ru.lenten.init_typeahead },
+          { "table": "srmsign_formset", "prefix": "srmsign", "counter": false, "events": ru.lenten.init_typeahead }
         ];
 
 
@@ -454,7 +454,7 @@ var ru = (function ($, ru) {
                       // Show the result
                       $(targetid).html(response['html']);
                       // Call initialisation again
-                      ru.passim.seeker.init_events(sUrlShow);
+                      ru.lenten.seeker.init_events(sUrlShow);
                       break;
                     case "error":
                       // Show the error
@@ -475,17 +475,17 @@ var ru = (function ($, ru) {
           $("tr.add-row").each(function () {
             elA = $(this).find("a").first();
             $(elA).unbind("click");
-            $(elA).click(ru.passim.seeker.tabular_addrow);
+            $(elA).click(ru.lenten.seeker.tabular_addrow);
           });
           // Bind one 'tabular_deletrow' event handler to clicking that button
           $(".delete-row").unbind("click");
-          $('tr td a.delete-row').click(ru.passim.seeker.tabular_deleterow);
+          $('tr td a.delete-row').click(ru.lenten.seeker.tabular_deleterow);
 
           // Bind the click event to all class="ajaxform" elements
-          $(".ajaxform").unbind('click').click(ru.passim.seeker.ajaxform_click);
+          $(".ajaxform").unbind('click').click(ru.lenten.seeker.ajaxform_click);
 
-          $(".ms.editable a").unbind("click").click(ru.passim.seeker.manu_edit);
-          $(".srm.editable a").unbind("click").click(ru.passim.seeker.sermo_edit);
+          $(".ms.editable a").unbind("click").click(ru.lenten.seeker.manu_edit);
+          $(".srm.editable a").unbind("click").click(ru.lenten.seeker.sermo_edit);
 
           // Show URL if needed
           if (loc_urlStore !== undefined && loc_urlStore !== "") {
@@ -497,10 +497,10 @@ var ru = (function ($, ru) {
           }
 
           // Make sure typeahead is re-established
-          ru.passim.init_typeahead();
+          ru.lenten.init_typeahead();
 
           // Switch filters
-          $(".badge.filter").unbind("click").click(ru.passim.seeker.filter_click);
+          $(".badge.filter").unbind("click").click(ru.lenten.seeker.filter_click);
 
           // Make modal draggable
           $(".modal-header").on("mousedown", function (mousedownEvt) {
@@ -631,7 +631,7 @@ var ru = (function ($, ru) {
                   // Show the result
                   $(targetid).html(response['html']);
                   // Call initialisation again
-                  ru.passim.seeker.init_events(sUrlShow);
+                  ru.lenten.seeker.init_events(sUrlShow);
                   break;
                 case "error":
                   // Show the error
@@ -701,8 +701,8 @@ var ru = (function ($, ru) {
                   // Possibly do some initialisations again??
 
                   // Make sure events are re-established
-                  // ru.passim.seeker.init_events();
-                  ru.passim.init_typeahead();
+                  // ru.lenten.seeker.init_events();
+                  ru.lenten.init_typeahead();
                   break;
                 case "error":
                   // Show the error
@@ -854,8 +854,8 @@ var ru = (function ($, ru) {
                       // Possibly do some initialisations again??
 
                       // Make sure events are re-established
-                      // ru.passim.seeker.init_events();
-                      ru.passim.init_typeahead();
+                      // ru.lenten.seeker.init_events();
+                      ru.lenten.init_typeahead();
                       break;
                     case "error":
                       // Show the error
@@ -889,7 +889,7 @@ var ru = (function ($, ru) {
         try {
           // And then go to the first element within the form that is of any use
           elStart = $(".search_paged_start").first();
-          ru.passim.seeker.search_start(elStart, 'submit', iPage)
+          ru.lenten.seeker.search_start(elStart, 'submit', iPage)
         } catch (ex) {
           private_methods.errMsg("search_paged_start", ex);
         }
@@ -934,8 +934,8 @@ var ru = (function ($, ru) {
                   break;
               }
               // Make sure events are re-established
-              // ru.passim.seeker.init_events();
-              ru.passim.init_typeahead();
+              // ru.lenten.seeker.init_events();
+              ru.lenten.init_typeahead();
             }
 
           });
@@ -987,7 +987,7 @@ var ru = (function ($, ru) {
 
         try {
           elStart = $("#" + sFormDiv);
-          ru.passim.seeker.search_start(elStart, "post", iPage);
+          ru.lenten.seeker.search_start(elStart, "post", iPage);
         } catch (ex) {
           private_methods.errMsg("gold_page", ex);
         }
@@ -1038,7 +1038,7 @@ var ru = (function ($, ru) {
                   sMsg = "<div style=\"max-height: 200px; overflow-y: scroll;\"><table>" + loc_progr.reverse().join("\n") + "</table></div>";
                   $(elTarget).html(sMsg);
                   // Make sure we check again
-                  window.setTimeout(function () { ru.passim.seeker.check_progress(progrurl, sTargetDiv); }, 200);
+                  window.setTimeout(function () { ru.lenten.seeker.check_progress(progrurl, sTargetDiv); }, 200);
                   break;
               }
             }
@@ -1198,7 +1198,7 @@ var ru = (function ($, ru) {
           // Now initiate any possible progress calling
           if (progrurl !== null) {
             loc_progr = [];
-            window.setTimeout(function () { ru.passim.seeker.check_progress(progrurl, sTargetDiv); }, 2000);
+            window.setTimeout(function () { ru.lenten.seeker.check_progress(progrurl, sTargetDiv); }, 2000);
           }
 
           // Upload XHR
@@ -1247,16 +1247,16 @@ var ru = (function ($, ru) {
                               break;
                           }
                           // Make sure events are in place again
-                          ru.passim.seeker.init_events();
+                          ru.lenten.seeker.init_events();
                           switch (sFtype) {
                             case "cvar":
-                              ru.passim.seeker.init_cvar_events();
+                              ru.lenten.seeker.init_cvar_events();
                               break;
                             case "cond":
-                              ru.passim.seeker.init_cond_events();
+                              ru.lenten.seeker.init_cond_events();
                               break;
                             case "feat":
-                              ru.passim.seeker.init_feat_events();
+                              ru.lenten.seeker.init_feat_events();
                               break;
                           }
                           // Indicate we are through with waiting
@@ -1285,16 +1285,16 @@ var ru = (function ($, ru) {
                     // Show the message at the appropriate location
                     $(elErr).html("<div class='error'>" + sMsg + "</div>");
                     // Make sure events are in place again
-                    ru.passim.seeker.init_events();
+                    ru.lenten.seeker.init_events();
                     switch (sFtype) {
                       case "cvar":
-                        ru.passim.seeker.init_cvar_events();
+                        ru.lenten.seeker.init_cvar_events();
                         break;
                       case "cond":
-                        ru.passim.seeker.init_cond_events();
+                        ru.lenten.seeker.init_cond_events();
                         break;
                       case "feat":
-                        ru.passim.seeker.init_feat_events();
+                        ru.lenten.seeker.init_feat_events();
                         break;
                     }
                     // Indicate we are through with waiting
@@ -1440,8 +1440,8 @@ var ru = (function ($, ru) {
 
 
 
-                ru.passim.seeker.init_events();
-                ru.passim.init_typeahead();
+                ru.lenten.seeker.init_events();
+                ru.lenten.init_typeahead();
               });
               break;
             case "edit":
@@ -1463,8 +1463,8 @@ var ru = (function ($, ru) {
                 $("#sermon_number").attr("number", number);
                 // Pass on a message to the user
                 $(targetid).html("<i>Please edit manuscript item "+number+" above and then either Save or Cancel</i>");
-                ru.passim.seeker.init_events();
-                ru.passim.init_typeahead();
+                ru.lenten.seeker.init_events();
+                ru.lenten.init_typeahead();
               });
               break;
             case "delete":
@@ -1526,8 +1526,8 @@ var ru = (function ($, ru) {
                 }
               });
 
-              ru.passim.seeker.init_events();
-              ru.passim.init_typeahead();
+              ru.lenten.seeker.init_events();
+              ru.lenten.init_typeahead();
               break;
             case "save":
               // Enter into save mode
@@ -1701,7 +1701,7 @@ var ru = (function ($, ru) {
                             // In all cases: open the target
                             $("#" + elTarget).removeClass("hidden");
                             // And make sure typeahead works
-                            ru.passim.init_typeahead();
+                            ru.lenten.init_typeahead();
                             break;
                         }
                       }
@@ -1716,7 +1716,7 @@ var ru = (function ($, ru) {
               $(elTr).find(".view-mode").addClass("hidden");
               $(elTr).find(".edit-mode").removeClass("hidden");
               // Make sure typeahead works here
-              ru.passim.init_typeahead();
+              ru.lenten.init_typeahead();
               break;
             case "view":
             case "new":
@@ -1865,8 +1865,8 @@ var ru = (function ($, ru) {
                       break;
                   }
                   // Perform init again
-                  ru.passim.init_typeahead();
-                  ru.passim.seeker.init_events();
+                  ru.lenten.init_typeahead();
+                  ru.lenten.seeker.init_events();
                 });
 
               }
@@ -1973,7 +1973,7 @@ var ru = (function ($, ru) {
                     // Hide waiting symbol
                     $(elTr).find(".waiting").addClass("hidden");
                     // Perform init again
-                    ru.passim.seeker.init_events();
+                    ru.lenten.seeker.init_events();
                   }
                 });
               } else {
@@ -2088,7 +2088,7 @@ var ru = (function ($, ru) {
                   // Hide waiting symbol
                   $(elTr).find(".waiting").addClass("hidden");
                   // Perform init again
-                  ru.passim.seeker.init_events();
+                  ru.lenten.seeker.init_events();
                 });
               } else {
                 // Or else stop waiting - with error message above
@@ -2346,16 +2346,16 @@ var ru = (function ($, ru) {
                       switch (targetid) {
                         case "sermongold_eqset":
                           // We need to update 'sermongold_linkset'
-                          ru.passim.seeker.do_get("sermongold_linkset");
+                          ru.lenten.seeker.do_get("sermongold_linkset");
                           break;
                         case "sermon_linkset":
                           // We need to update 'sermongold_ediset'
-                          ru.passim.seeker.do_get("sermondescr_ediset");
+                          ru.lenten.seeker.do_get("sermondescr_ediset");
                           break;
                       }
                     }
                     // But make sure events are back on again
-                    ru.passim.seeker.init_events();
+                    ru.lenten.seeker.init_events();
                   } else {
                     // Send a message
                     $(errdiv).html("<i>There is no <code>html</code> in the response from the server</i>");
@@ -2479,7 +2479,7 @@ var ru = (function ($, ru) {
             switch (sId) {
               case "search_mode_simple":
                 // Update -- NOTE: THIS IS A LEFT-OVER FROM CESAR
-                ru.passim.seeker.simple_update();
+                ru.lenten.seeker.simple_update();
                 break;
               case "glink_formset_OLD":
                 if (deleteurl !== "") {
@@ -2545,7 +2545,7 @@ var ru = (function ($, ru) {
               elTable = $(this).closest("tbody").children("tr.form-row.empty-form")
 
               // Perform the cloneMore function to this <tr>
-              rowNew = ru.passim.seeker.cloneMore(elTable, oTdef.prefix, oTdef.counter);
+              rowNew = ru.lenten.seeker.cloneMore(elTable, oTdef.prefix, oTdef.counter);
               // Call the event initialisation again
               if (oTdef.events !== null) {
                 oTdef.events();

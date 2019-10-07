@@ -38,6 +38,14 @@ urlpatterns = [
     url(r'^short', lentensermons.seeker.views.about, name='short'),
     url(r'^nlogin', lentensermons.seeker.views.nlogin, name='nlogin'),
 
+    url(r'^location/list', LocationListView.as_view(), name='location_list'),
+    url(r'^location/details(?:/(?P<pk>\d+))?/$', LocationDetailsView.as_view(), name='location_details'),
+    url(r'^location/edit(?:/(?P<pk>\d+))?/$', LocationEdit.as_view(), name='location_edit'),
+    url(r'^location/relset(?:/(?P<pk>\d+))?/$', LocationRelset.as_view(), name='loc_relset'),
+
+    url(r'^report/list', ReportListView.as_view(), name='report_list'),
+    url(r'^report/details(?:/(?P<pk>\d+))?/$', ReportDetailsView.as_view(), name='report_details'),
+
     # For working with ModelWidgets from the select2 package https://django-select2.readthedocs.io
     url(r'^select2/', include('django_select2.urls')),
 
