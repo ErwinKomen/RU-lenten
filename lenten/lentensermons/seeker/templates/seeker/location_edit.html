@@ -1,9 +1,5 @@
 ﻿{% load i18n %}
 
-{% block scripts %}
-  {{locForm.media.css}}
-{% endblock %}
-
 <!-- Source information -->
 <form>
   {% csrf_token %}
@@ -19,8 +15,9 @@
             <a mode="cancel" class="edit-mode btn btn-xs jumbo-2 hidden">
               <span class="glyphicon glyphicon-arrow-left" title="Cancel (do *NOT* save)"></span>
             </a>
-            <a mode="save" class="edit-mode btn btn-xs jumbo-1 hidden" targetid="" oldtargetid="location_edit"
-               targeturl="{% if locForm.instance.id %}{% url 'location_edit' locForm.instance.id %}{% else %}{% url 'location_edit' %}{% endif %}" >
+            <a mode="save" class="edit-mode btn btn-xs jumbo-1 hidden" targetid=""
+               targeturl="{% if locForm.instance.id %}{% url 'location_edit' locForm.instance.id %}{% else %}{% url 'location_edit' %}{% endif %}"
+               afterurl="{% if locForm.instance.id %}{% url 'location_details' locForm.instance.id %}{% endif %}" >
               <span class="glyphicon glyphicon-ok" title="Save these data">&nbsp;Save</span>
             </a>
 
@@ -32,7 +29,7 @@
 
             <!-- Put the delete button completely to the right-->
             <a mode="delete" class="edit-mode btn btn-xs jumbo-3 pull-right" 
-               targetid="" oldtargetid="location_edit"
+               targetid=""
                targeturl="{% if locForm.instance.id %}{% url 'location_edit' locForm.instance.id %}{% endif %}">
               <span class="glyphicon glyphicon-remove" title="Delete this location"></span>
             </a>
@@ -63,9 +60,8 @@
         <td class="hoverable" valign="top">This location is part of</td>
         <td style="width: 100%;">
           <div class="view-mode">
-            {% for loc in locForm.instance.all %}
-              <span>[{{loc.name}} ({{loc.get_loctype_display}})]</span>
-              {% if not forloop.last %}, {% endif %}
+            {% for loc in contained_locations %}
+              <span class="badge loctype-{{loc.loctype.name}}" title="{{loc.loctype.name}}">{{loc.name}}</span>
             {% endfor %}
           </div>
           {% if is_lenten_editor %}
@@ -86,6 +82,3 @@
     </table>
 </form>
 
-{% block endcontent %} 
-  {{locForm.media.js }} 
-{% endblock %}

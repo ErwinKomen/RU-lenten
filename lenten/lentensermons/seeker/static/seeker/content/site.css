@@ -1145,13 +1145,13 @@ td.hightlighted {
 }
 
 /* Badges with background color for link types */
-span.badge.eqs-link {
+span.badge.loctype-city {
   background-color: darkblue;
 }
-span.badge.prt-link {
-  background-color: lightgreen;
+span.badge.loctype-country {
+  background-color: darkgreen;
 }
-span.badge.neq-link {
+span.badge.loctype-region_high {
   background-color: darkgoldenrod;
 }
 span.badge.sim-link {

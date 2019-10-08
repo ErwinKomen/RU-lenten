@@ -424,7 +424,7 @@ var ru = (function ($, ru) {
        *      Bind main necessary events
        *
        */
-      init_events: function (sUrlShow) {
+      init_events: function (sUrlShow, options) {
         var lHtml = [],
             elA = null,
             object_id = "",
@@ -525,6 +525,21 @@ var ru = (function ($, ru) {
 /*          $(".modal-dialog").draggable({
             "handle": ".modal-header"
           })*/
+
+          // Look for options
+          if (options !== undefined) {
+            // Evaluate that object
+            if ('isnew' in options && options['isnew']) {
+              // Make sure the 'new' is triggered
+              $(".edit-mode").removeClass("hidden");
+              $(".view-mode").addClass("hidden");
+              // This is 'new', so don't show buttons cancel and delete
+              $("a[mode='cancel'], a[mode='delete']").addClass("hidden");
+              // Since this is new, don't show fields that may not be shown for new
+              $(".edit-notnew").addClass("hidden");
+              $(".edit-new").removeClass("hidden");
+            }
+          }
 
         } catch (ex) {
           private_methods.errMsg("init_events", ex);
@@ -1872,6 +1887,9 @@ var ru = (function ($, ru) {
               }
               break;
             case "save":
+              // Do we have an afterurl?
+              afterurl = $(el).attr("afterurl");
+
               // Show waiting symbol
               $(elTr).find(".waiting").removeClass("hidden");
 
@@ -1943,6 +1961,11 @@ var ru = (function ($, ru) {
                         break;
                       case "ready":
                       case "ok":
+                        // First check for afterurl
+                        if (afterurl !== undefined && afterurl !== "") {
+                          // Make sure we go to the afterurl
+                          window.location = afterurl;
+                        }
                         if ("html" in response) {
                           // Show the HTML in the targetid
                           $(targetid).html(response['html']);
