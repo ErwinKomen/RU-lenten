@@ -81,15 +81,30 @@ class LocationTypeAdmin(admin.ModelAdmin):
         }
 
 
+class LocationRelationInline(admin.TabularInline):
+    model = LocationRelation
+    fk_name = 'contained'
+    extra = 0                   # Number of rows to show
+
+
 class LocationAdmin(admin.ModelAdmin):
     """Definition of each location"""
 
     fields = ['name', 'loctype']
     list_display = ['name', 'loctype']
     list_filter = ['loctype']
+    inlines = [LocationRelationInline]
+    filter_horizontal = ('relations',)
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
         }
+
+
+class LocationRelationAdmin(admin.ModelAdmin):
+    """All kinds of relations between locations"""
+
+    fields = ['container', 'contained']
+    list_display = ['container', 'contained']
 
 
 class ActionAdmin(admin.ModelAdmin):
@@ -157,6 +172,67 @@ class SermonCollectionAdmin(admin.ModelAdmin):
         }
 
 
+class TagNoteAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    fields = ['name']
+    search_fields = ['name']
+
+
+class TagCommunicativeAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    fields = ['name']
+    search_fields = ['name']
+
+
+class TagLiturgicalAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    fields = ['name']
+    search_fields = ['name']
+
+
+class TopicAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    fields = ['name']
+    search_fields = ['name']
+
+
+class KeywordAdmin(admin.ModelAdmin):
+    list_display = ['name', 'language']
+    fields = ['name', 'language']
+    list_filter = ['language'] 
+    search_fields = ['name']
+
+
+class BookAdmin(admin.ModelAdmin):
+    fields = ['num', 'abbr', 'name', 'chapters', 'layout']
+    list_display = ['num', 'abbr', 'name', 'chapters'] 
+    search_fields = ['abbr', 'name']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
+
+
+class SermonAdmin(admin.ModelAdmin):
+    list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection']
+    search_fields = ['code', 'litday', 'book']
+    list_filter = ['litday', 'book']
+    fields = ['code', 'litday', 'thema', 'book', 'chapter', 'verse', 'collection']
+
+    filter_horizontal = ('topics', 'keywords',)
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
+
+
+class AuthorAdmin(admin.ModelAdmin):
+    fields = ['name', 'info']
+    list_display = ['name', 'info']
+    search_fields = ['name', 'info']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        }
+
+
 
 # Models that serve others
 admin.site.register(FieldChoice, FieldChoiceAdmin)
@@ -166,8 +242,17 @@ admin.site.register(Information, InformationAdmin)
 # Main program models
 admin.site.register(LocationType, LocationTypeAdmin)
 admin.site.register(Location, LocationAdmin)
+admin.site.register(LocationRelation, LocationRelationAdmin)
 admin.site.register(SermonCollection, SermonCollectionAdmin)
 admin.site.register(Manuscript, ManuscriptAdmin)
+admin.site.register(Topic, TopicAdmin)
+admin.site.register(TagCommunicative, TagNoteAdmin)
+admin.site.register(TagNote, TagCommunicativeAdmin)
+admin.site.register(TagLiturgical, TagLiturgicalAdmin)
+admin.site.register(Keyword, KeywordAdmin)
+admin.site.register(Sermon, SermonAdmin)
+admin.site.register(Book, BookAdmin)
+admin.site.register(Author, AuthorAdmin)
 
 admin.site.register(Report, ReportAdmin)
 

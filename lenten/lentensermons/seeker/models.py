@@ -34,6 +34,7 @@ EDI_TYPE = "seeker.editype"
 STATUS_TYPE = "seeker.stype"
 DATE_TYPE = "seeker.datetype"
 FORMAT_TYPE = "seeker.formattype"
+LANGUAGE_tYPE = "seeker.language"
 
 
 class FieldChoice(models.Model):
@@ -406,6 +407,9 @@ def process_tags(sText, tagitems, cls):
         oErr.DoError("process_tags")
         return False, sMsg
 
+
+# ============= GENERAL CLASSES =================================================================
+
 class Status(models.Model):
     """Intermediate loading of sync information and status of processing it"""
 
@@ -705,6 +709,8 @@ class NewsItem(models.Model):
       return response
 
 
+# ============================= APPLICATION-SPECIFIC CLASSES =====================================
+
 class LocationType(models.Model):
     """Kind of location and level on the location hierarchy"""
 
@@ -999,11 +1005,73 @@ class Manuscript(models.Model):
     collection = models.ForeignKey(SermonCollection, related_name="manuscripts", on_delete=models.CASCADE)
 
 
+class Book(models.Model):
+    """Book in the Bible""" 
+
+    # [1] Every book must have a number
+    num = models.IntegerField("Number")
+    # [1] Every book must have a standard abbreviations
+    abbr = models.CharField("Abbreviation", max_length=MEDIUM_LENGTH)
+    # [1] Every book must have a full name
+    name = models.CharField("Name", max_length = MEDIUM_LENGTH)
+    # [1] The number of chapters in this book
+    chapters = models.IntegerField("Chapters")
+    # [0-1] The chapter/verse layout of this book (JSON list of objects)
+    layout = models.TextField("Chapter/verse layout (JSON)", default="[]")
+
+    def __str__(self):
+        return self.abbr
+
+
+class Topic(models.Model):
+    # [1] Every topic consists of a name
+    name = models.CharField("Name", max_length = MEDIUM_LENGTH)
+
+    def __str__(self):
+        return self.name
+
+
+class Keyword(models.Model):
+    # [1] Every topic consists of a name
+    name = models.CharField("Name", max_length = MEDIUM_LENGTH)
+    # [1] Every keyword must belong to language English or Latin
+    language = models.CharField("Language", choices=build_abbr_list(LANGUAGE_tYPE),  max_length=5)
+
+    def __str__(self):
+        combi = "{} - {}".format(self.name, self.language)
+        return combi
+
+
 class Sermon(models.Model):
-    """a"""
+    """The layout of one particular sermon (level three)"""
+
+    # [0-1] Each sermon must be recognizable by a particular code
+    #       The code x/y/z of the sermon refers to the collection, the edition used for the analysis, the number of the sermon
+    code = models.CharField("Code", max_length=MEDIUM_LENGTH, null=True, blank=True)
+    # [0-1] Liturgical day (e.g. T18/4 = sermon 'de tempore', week 18, day 4)
+    litday = models.CharField("Liturgical day", max_length=MEDIUM_LENGTH, null=True, blank=True)
+    # [0-1] Thema = initial line of a sermon
+    thema = models.TextField("Thema", null=True, blank=True)
+    # [0-1] Biblical reference (optional), consisting of three parts: book, chapter, verse
+    book = models.ForeignKey(Book, related_name="book_sermons", null=True, on_delete=models.SET_NULL)
+    chapter = models.IntegerField("Chapter", null=True, blank=True)
+    verse = models.IntegerField("Verse", null=True, blank=True)
+    # [0-1] The main division of the sermon: both in Latin as well as in English
+    divisionL = models.TextField("Division (Latin)", null=True, blank=True)
+    divisionE = models.TextField("Division (English)", null=True, blank=True)
+    # [0-1] Summary of the sermon
+    summary = models.TextField("Summary", null=True, blank=True)
+    # [0-1] Notes on this sermon
+    note = models.TextField("Note", null=True, blank=True)
 
     # [1] Each sermon belongs to a collection
-    collection = models.ForeignKey(SermonCollection, related_name="sermons", on_delete=models.CASCADE)
+    collection = models.ForeignKey(SermonCollection, related_name="collection_sermons", on_delete=models.CASCADE)
+
+    # =================== many-to-many fields =================================================
+    # [0-n] zero or more topics
+    topics = models.ManyToManyField(Topic)
+    # [0-n] Zero or more keywords linked to each Sermon
+    keywords = models.ManyToManyField(Keyword)
 
 
 class Publisher(models.Model):

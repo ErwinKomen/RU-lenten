@@ -71,10 +71,6 @@ class LocationWidget(ModelSelect2MultipleWidget):
         sLabel = "{} ({})".format(obj.name, obj.loctype)
         return sLabel
 
-    #def get_queryset(self):
-    #    qs = Location.objects.all().order_by('loctype__level', 'name').distinct()
-    #    return qs
-
 
 class LocationForm(forms.ModelForm):
 
@@ -105,8 +101,8 @@ class LocationForm(forms.ModelForm):
 
             # Set the list of initial items
             my_list = [x.id for x in instance.hierarchy(False)]
-            qs = Location.objects.filter(id__in=my_list).order_by('loctype__level')
-            id_list = [x for x in qs.values_list('id', flat=True)]
+            #qs = Location.objects.filter(id__in=my_list).order_by('loctype__level')
+            #id_list = [x for x in qs.values_list('id', flat=True)]
             # self.fields['locationlist'].initial = id_list
             self.initial['locationlist'] = my_list
         else:
