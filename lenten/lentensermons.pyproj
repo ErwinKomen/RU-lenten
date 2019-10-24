@@ -71,6 +71,7 @@
     </Content>
     <None Include="lentensermons\seeker\static\seeker\scripts\_references.js" />
     <Content Include="lentensermons\seeker\static\seeker\content\bootstrap.css" />
+    <Content Include="lentensermons\seeker\static\seeker\content\ru-admin.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-base.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-form.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-widgets.css" />

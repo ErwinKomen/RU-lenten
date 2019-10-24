@@ -155,7 +155,35 @@ class ManuscriptAdmin(admin.ModelAdmin):
 
     list_display = ['info', 'link']
     formfield_overrides = {
-        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+
+class ManuscriptInline(admin.StackedInline):
+    model = Manuscript
+    extra = 0
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+
+class EditionAdmin(admin.ModelAdmin):
+    """Define an edition""" 
+
+    filter_horizontal = ('publishers',)
+    fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'frontpage', 'prologue', 'dedicatory', 'contents',\
+              'othertexts', 'images', 'fulltitle', 'colophon', 'publishers']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+
+class EditionInline(admin.StackedInline):
+    model = Edition
+    extra = 0
+    filter_horizontal = ('publishers',)
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
 
 
@@ -165,10 +193,11 @@ class SermonCollectionAdmin(admin.ModelAdmin):
     list_display = ['idno', 'title', 'datecomp', 'authorlist']
     search_fields =  ['idno', 'title']
     list_filter = ['place', 'authors']
-    fields = ['idno', 'title', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
+    fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
+    inlines = [ManuscriptInline, EditionInline]
     filter_horizontal = ('authors',)
     formfield_overrides = {
-        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
 
 
@@ -245,6 +274,7 @@ admin.site.register(Location, LocationAdmin)
 admin.site.register(LocationRelation, LocationRelationAdmin)
 admin.site.register(SermonCollection, SermonCollectionAdmin)
 admin.site.register(Manuscript, ManuscriptAdmin)
+admin.site.register(Edition, EditionAdmin)
 admin.site.register(Topic, TopicAdmin)
 admin.site.register(TagCommunicative, TagNoteAdmin)
 admin.site.register(TagNote, TagCommunicativeAdmin)

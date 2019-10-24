@@ -373,8 +373,9 @@ def process_tags(sText, tagitems, cls):
                 add_list = []
                 # Create a list of what the tags should be:
                 taglist = []
-                tagnum = 1 
+                tagnum = 0
                 while tagnum < num_tags:
+                    tagnum += 1
                     idx = (tagnum-1) * 2 + 1
                     taglist.append(arPart[idx])
                 # Look for deletions
@@ -385,7 +386,7 @@ def process_tags(sText, tagitems, cls):
                 # Get an update of what is in the database
                 db_tags = [x.name for x in tagitems.all()]
                 # Look for needed additions
-                for tag in tagitems:
+                for tag in taglist:
                     if tag not in db_tags:
                         obj = cls.objects.filter(name=tag).first()
                         if obj == None:
@@ -396,7 +397,7 @@ def process_tags(sText, tagitems, cls):
                             tagitems.add(obj)
 
 
-                current_tags
+                # Everything is okay (current_tags)
         else:
             # Even number of parts: do NOTHING...
             pass
@@ -517,7 +518,7 @@ class Information(models.Model):
     kvalue = models.TextField("Key value", default = "", null=True, blank=True)
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else self.name
 
     def get_kvalue(name):
         info = Information.objects.filter(name=name).first()
@@ -720,7 +721,7 @@ class LocationType(models.Model):
     level = models.IntegerField("Hierarchy level", default=0)
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else self.name
 
     def find(sname):
         obj = LocationType.objects.filter(name__icontains=sname).first()
@@ -739,7 +740,7 @@ class Location(models.Model):
     relations = models.ManyToManyField("self", through="LocationRelation", symmetrical=False, related_name="relations_location")
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else  self.name
 
     def get_loc_name(self):
         lname = "{} ({})".format(self.name, self.loctype)
@@ -853,7 +854,7 @@ class TagLiturgical(models.Model):
     name = models.CharField("Name", max_length=LONG_STRING)
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else  self.name
 
 
 class TagCommunicative(models.Model):
@@ -863,7 +864,7 @@ class TagCommunicative(models.Model):
     name = models.CharField("Name", max_length=LONG_STRING)
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else  self.name
 
 
 class TagNote(models.Model):
@@ -873,7 +874,7 @@ class TagNote(models.Model):
     name = models.CharField("Name", max_length=LONG_STRING)
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else self.name
 
 
 class Author(models.Model):
@@ -885,7 +886,7 @@ class Author(models.Model):
     info = models.TextField("Information", blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else  self.name
 
     def find_or_create(sName):
         """Find an author or create it."""
@@ -915,6 +916,8 @@ class SermonCollection(models.Model):
     idno = models.CharField("Identification", max_length=MEDIUM_LENGTH, blank=True, null=True)
     # [1] Title is obligatory for any sermon collection
     title = models.CharField("Title", max_length=MEDIUM_LENGTH)
+    # [0-1] Author information and bibliography
+    bibliography = models.TextField("Info author and bibliography", blank=True, null=True)
     # [0-1] Date of composition
     datecomp = models.IntegerField("Year of composition", blank=True, null=True)
     # [0-1] Type of this date: fixed, approximate?
@@ -945,13 +948,13 @@ class SermonCollection(models.Model):
     
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Author: each sermoncollection may have 1 or more authors
-    authors = models.ManyToManyField(Author)
+    authors = models.ManyToManyField(Author, null=True)
     # [n-n] Liturgical tags
-    liturtags = models.ManyToManyField(TagLiturgical)
+    liturtags = models.ManyToManyField(TagLiturgical, null=True)
     # [n-n] Communicative tags
-    commutags = models.ManyToManyField(TagCommunicative)
+    commutags = models.ManyToManyField(TagCommunicative, null=True)
     # [n-n] Tags in the notes
-    notetags = models.ManyToManyField(TagNote)
+    notetags = models.ManyToManyField(TagNote, null=True)
 
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
@@ -1000,7 +1003,7 @@ class Manuscript(models.Model):
     # [1] If there are manuscripts there must be information on them
     info = models.TextField("Info on manuscripts", default="-")
     # [0-1] Possibly provide a link to the manuscript online
-    link = models.URLField("Link (if available)", blank=True, null=True)
+    link = models.TextField("Link (if available)", blank=True, null=True)
     # [1] Each Manuscript belongs to a collection
     collection = models.ForeignKey(SermonCollection, related_name="manuscripts", on_delete=models.CASCADE)
 
@@ -1028,7 +1031,7 @@ class Topic(models.Model):
     name = models.CharField("Name", max_length = MEDIUM_LENGTH)
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else  self.name
 
 
 class Keyword(models.Model):
@@ -1069,9 +1072,9 @@ class Sermon(models.Model):
 
     # =================== many-to-many fields =================================================
     # [0-n] zero or more topics
-    topics = models.ManyToManyField(Topic)
+    topics = models.ManyToManyField(Topic, null=True)
     # [0-n] Zero or more keywords linked to each Sermon
-    keywords = models.ManyToManyField(Keyword)
+    keywords = models.ManyToManyField(Keyword, null=True)
 
 
 class Publisher(models.Model):
@@ -1081,7 +1084,7 @@ class Publisher(models.Model):
     name = models.CharField("name", max_length=MEDIUM_LENGTH, null=True, blank=True)
 
     def __str__(self):
-        return self.name
+        return "-" if self == None else  self.name
 
 
 class Edition(models.Model):
@@ -1102,7 +1105,7 @@ class Edition(models.Model):
     # [0-1] Place of manuscript: may be city or country
     place = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL)
     # [0-1] Format: a fixed number of choices
-    format = models.CharField("Format", choices=build_abbr_list(FORMAT_TYPE), max_length=5)
+    format = models.CharField("Format", choices=build_abbr_list(FORMAT_TYPE), max_length=5, blank=True, null=True)
     # [0-1] Number of folia: this may include the text layout 
     folia = models.TextField("Number of folia", blank=True, null=True)
 
@@ -1130,10 +1133,11 @@ class Edition(models.Model):
 
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Each edition may have any number of publishers
-    publishers = models.ManyToManyField(Publisher)
+    publishers = models.ManyToManyField(Publisher, blank=True, null=True)
 
     def __str__(self):
-        return self.code
+        response = "-" if self.code == None else self.code
+        return response
 
     def get_sermons(self):
         """Recover all the sermons that fall under this edition"""
@@ -1174,7 +1178,7 @@ class Consulting(models.Model):
     edition = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return self.code
+        return "-" if self == None else self.code
 
 
 class Signature(models.Model):
@@ -1189,6 +1193,6 @@ class Signature(models.Model):
     edition = models.ForeignKey(Edition, related_name="signatures", on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.code
+        return "-" if self == None else  self.code
 
 
