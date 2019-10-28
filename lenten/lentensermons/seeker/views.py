@@ -40,7 +40,8 @@ from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
-    Location, LocationRelation
+    Location, LocationRelation, \
+    Sermon
 
 # Some constants that can be used
 paginateSize = 20
@@ -1607,6 +1608,91 @@ class LocationRelset(BasicPart):
         return has_changed
 
 
+class SermonListView(ListView):
+    """Listview of locations"""
+
+    model = Sermon
+    paginate_by = 15
+    template_name = 'seeker/sermon_list.html'
+    entrycount = 0
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(SermonListView, self).get_context_data(**kwargs)
+
+        # Get parameters
+        initial = self.request.GET
+
+        # Determine the count 
+        context['entrycount'] = self.entrycount # self.get_queryset().count()
+
+        # Set the prefix
+        context['app_prefix'] = APP_PREFIX
+
+        # Get parameters for the search
+        initial = self.request.GET
+        # The searchform is just a list form, but filled with the 'initial' parameters
+        # context['searchform'] = LocationForm(initial)
+
+        # Make sure the paginate-values are available
+        context['paginateValues'] = paginateValues
+
+        if 'paginate_by' in initial:
+            context['paginateSize'] = int(initial['paginate_by'])
+        else:
+            context['paginateSize'] = paginateSize
+
+        # Set the title of the application
+        context['title'] = "Sermons"
+
+        # Check if user may upload
+        context['is_authenticated'] = user_is_authenticated(self.request)
+        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Locations", True)
+        context['prevpage'] = get_previous_page(self.request)
+
+        # Return the calculated context
+        return context
+
+    def get_paginate_by(self, queryset):
+        """
+        Paginate by specified value in default class property value.
+        """
+        return self.paginate_by
+  
+    def get_queryset(self):
+        # Get the parameters passed on with the GET or the POST request
+        get = self.request.GET if self.request.method == "GET" else self.request.POST
+        get = get.copy()
+        self.get = get
+
+        lstQ = []
+
+        # Check for liturgical day
+        if 'litday' in get and get['litday'] != '':
+            val = adapt_search(get['litday'])
+            # Search in both the name field
+            lstQ.append(Q(litday__iregex=val))
+
+        # Check for the code of the sermon
+        if 'code' in get and get['code'] != '':
+            val = get['code']
+            # Search in both the name field
+            lstQ.append(Q(code=val))
+
+        # Calculate the final qs
+        qs = Sermon.objects.filter(*lstQ).order_by('code').distinct()
+
+        # Determine the length
+        self.entrycount = len(qs)
+
+        # Return the resulting filtered and sorted queryset
+        return qs
+    
+
 class ReportListView(ListView):
     """Listview of reports"""
 
@@ -1642,7 +1728,7 @@ class ReportListView(ListView):
             context['paginateSize'] = paginateSize
 
         # Set the title of the application
-        context['title'] = "Passim reports"
+        context['title'] = "Lentensermons reports"
 
         # Check if user may upload
         context['is_authenticated'] = user_is_authenticated(self.request)

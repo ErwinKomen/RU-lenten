@@ -469,7 +469,7 @@ svg g.lithium-node:hover > text {
     font-family: monospace;
 }
 .mytextarea {
-  font-family: monospace;
+  /* font-family: monospace; */
   color: darkblue;
 }
 

@@ -245,11 +245,11 @@ class SermonAdmin(admin.ModelAdmin):
     list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection']
     search_fields = ['code', 'litday', 'book']
     list_filter = ['litday', 'book']
-    fields = ['code', 'litday', 'thema', 'book', 'chapter', 'verse', 'collection']
+    fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'keywords', 'divisionL', 'divisionE', 'summary', 'note']
 
     filter_horizontal = ('topics', 'keywords',)
     formfield_overrides = {
-        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
 
 

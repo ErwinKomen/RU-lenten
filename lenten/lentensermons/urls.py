@@ -43,6 +43,18 @@ urlpatterns = [
     url(r'^location/edit(?:/(?P<pk>\d+))?/$', LocationEdit.as_view(), name='location_edit'),
     url(r'^location/relset(?:/(?P<pk>\d+))?/$', LocationRelset.as_view(), name='loc_relset'),
 
+    url(r'^author/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/author'), name='author_list'),
+
+    url(r'^sermon/list',  SermonListView.as_view(), name='sermon_list'),
+    # url(r'^sermon/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon'), name='sermon_list'),
+    url(r'^sermon/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon/add'), name='sermon_add'),
+
+    url(r'^collection/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermoncollection'), name='collection_list'),
+
+    url(r'^manuscript/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/manuscript'), name='manuscript_list'),
+
+    url(r'^edition/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/edition'), name='edition_list'),
+
     url(r'^report/list', ReportListView.as_view(), name='report_list'),
     url(r'^report/details(?:/(?P<pk>\d+))?/$', ReportDetailsView.as_view(), name='report_details'),
 

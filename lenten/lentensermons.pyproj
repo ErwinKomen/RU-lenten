@@ -99,6 +99,7 @@
     <Content Include="lentensermons\seeker\static\seeker\scripts\xhr2.js" />
     <Content Include="lentensermons\seeker\templates\seeker\author_details.html" />
     <Content Include="lentensermons\seeker\templates\seeker\author_edit.html" />
+    <Content Include="lentensermons\seeker\templates\seeker\sermon_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\author_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\location_details.html" />
     <Content Include="lentensermons\seeker\templates\seeker\location_edit.html" />

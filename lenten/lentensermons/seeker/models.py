@@ -1076,6 +1076,22 @@ class Sermon(models.Model):
     # [0-n] Zero or more keywords linked to each Sermon
     keywords = models.ManyToManyField(Keyword, null=True)
 
+    def __str__(self):
+        return self.code
+
+    def get_bibref(self):
+        sRef = "-"
+        if self.book != None:
+            sBook = self.book.name
+            if self.chapter:
+                if self.verse:
+                    sRef = "{} {}:{}".format(sBook, self.chapter, self.verse)
+                else:
+                    sRef = "{} {}".format(sBook, self.chapter)
+            else:
+                sRef = sBook
+        return sRef
+
 
 class Publisher(models.Model):
     """A publisher is defined by a name"""

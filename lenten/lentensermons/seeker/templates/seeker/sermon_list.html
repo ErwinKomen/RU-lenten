@@ -1,0 +1,101 @@
+﻿{% extends "layout.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs">
+    {% include 'breadcrumb_list.html' %}
+  </div>
+{% endblock %}
+
+{% block content %}
+
+
+      <div class="panel panel-default">
+
+        <!-- Heading and button to add a new sermon -->
+        <form>
+          <h3>
+            <span title="Every sermon belongs to a sermon collection">Sermons</span>
+            {% if is_lenten_editor %}
+              <span id="add_sermon" class="pull-right">
+                {% csrf_token %}
+                <a class="btn btn-xs jumbo-3" role="button" 
+                    href="{% url 'sermon_add' %}">
+                  <span class="glyphicon glyphicon-plus"></span>Add a sermon
+                </a>
+              </span>
+            {% endif %}
+          </h3>
+        </form>
+
+
+      {% if object_list %}
+        <!-- Top pagination -->
+        <div class="row">
+            <div class="col-sm-4"><span>Found: </span><span>{{entrycount}}</span></div>
+            <div class="col-sm-8">
+            <span class="step-links pull-right">
+
+            {% include 'pagination.html' %}
+
+            </span>
+            </div>
+        </div>
+
+        <!-- Table that lists all sermons -->
+        <div class="row">
+          <div class="col-md-12">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th class="hidden">id</th>
+                  <th>Code</th>
+                  <th>Collection</th>
+                  <th>Liturgical day</th>
+                  <th>Reference</th>
+                  <th><!-- Buttons --></th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for sermon in object_list %}
+                <tr class="dict-entry">
+                  <td class="hidden"> {{ sermon.id }}</td>
+                  <td class="clickable" title="Edit the sermon"
+                      onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermon_change' sermon.id %}')'">{{sermon.code}}</td>
+                  <td class="clickable" title="Edit the sermon collection"
+                      onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermoncollection_change' sermon.collection.id %}')">{{sermon.collection.title}}</td>
+                  <td style="width: 100%;">{{sermon.litday}}</td>
+                  <td class="tdnowrap">{{sermon.get_bibref}}</td>
+
+                  <!-- Short indications for this sermon-->
+                  <td style="min-width: 80px;">
+                  </td>
+                </tr>
+
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Bottom pagination -->
+        <div class="pagination">
+            <span class="step-links">
+
+            {% include 'pagination.html' %}
+
+            </span>
+        </div>
+
+      {% else %}
+        <p>No sermons have been found.</p>
+      {% endif %}
+
+      </div>
+
+<script>
+  ru.lenten.seeker.init_events();
+</script>
+
+{% endblock content %}
+
