@@ -737,7 +737,7 @@ class Location(models.Model):
     loctype = models.ForeignKey(LocationType)
 
     # Many-to-many field that identifies relations between locations
-    relations = models.ManyToManyField("self", through="LocationRelation", symmetrical=False, related_name="relations_location")
+    relations = models.ManyToManyField("self", through="LocationRelation", symmetrical=False, related_name="relations_location", blank=True)
 
     def __str__(self):
         return "-" if self == None else  self.name
@@ -948,13 +948,13 @@ class SermonCollection(models.Model):
     
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Author: each sermoncollection may have 1 or more authors
-    authors = models.ManyToManyField(Author, null=True)
+    authors = models.ManyToManyField(Author, blank=True)
     # [n-n] Liturgical tags
-    liturtags = models.ManyToManyField(TagLiturgical, null=True)
+    liturtags = models.ManyToManyField(TagLiturgical, blank=True)
     # [n-n] Communicative tags
-    commutags = models.ManyToManyField(TagCommunicative, null=True)
+    commutags = models.ManyToManyField(TagCommunicative, blank=True)
     # [n-n] Tags in the notes
-    notetags = models.ManyToManyField(TagNote, null=True)
+    notetags = models.ManyToManyField(TagNote, blank=True)
 
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
@@ -1072,9 +1072,9 @@ class Sermon(models.Model):
 
     # =================== many-to-many fields =================================================
     # [0-n] zero or more topics
-    topics = models.ManyToManyField(Topic, null=True)
+    topics = models.ManyToManyField(Topic, blank=True)
     # [0-n] Zero or more keywords linked to each Sermon
-    keywords = models.ManyToManyField(Keyword, null=True)
+    keywords = models.ManyToManyField(Keyword, blank=True)
 
     def __str__(self):
         return self.code
@@ -1149,7 +1149,7 @@ class Edition(models.Model):
 
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Each edition may have any number of publishers
-    publishers = models.ManyToManyField(Publisher, blank=True, null=True)
+    publishers = models.ManyToManyField(Publisher, related_name="publisher_editions", blank=True)
 
     def __str__(self):
         response = "-" if self.code == None else self.code
