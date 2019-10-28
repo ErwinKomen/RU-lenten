@@ -473,6 +473,13 @@ svg g.lithium-node:hover > text {
   color: darkblue;
 }
 
+span[contenteditable] {
+  background-color: lightgray;
+  border-radius: 2px;
+  padding: 1px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
 
 .arg-type select {
     font-size: 11px;

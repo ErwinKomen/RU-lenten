@@ -5,6 +5,7 @@
 <title>{% block title %}{% endblock %}</title>
 <link rel="stylesheet" type="text/css" href="{% block stylesheet %}{% static "admin/css/base.css" %}{% endblock %}" />
 <link rel="stylesheet" type="text/css" href="{% static 'seeker/content/ru-admin.css' %}" />
+<link rel="stylesheet" type="text/css" href="{% static 'seeker/content/tribute.css' %}" />
 {% block extrastyle %}{% endblock %}
 {% if LANGUAGE_BIDI %}<link rel="stylesheet" type="text/css" href="{% block stylesheet_rtl %}{% static "admin/css/rtl.css" %}{% endblock %}" />{% endif %}
 {% block extrahead %}{% endblock %}
@@ -18,12 +19,17 @@
     <script src="{% static 'seeker/scripts/bootstrap.js' %}"></script>
     <script src="{% static 'seeker/scripts/modernizr-2.6.2.js' %}"></script>
     <script src="{% static 'seeker/scripts/typeahead.bundle.js' %}"></script>
+    <script src="{% static 'seeker/scripts/tribute.js' %}"></script>
+
     <script src="{% static 'seeker/scripts/lenten.js' %}"></script>
+    <script src="{% static 'seeker/scripts/lenten.seeker.js' %}"></script>
 </head>
 {% load i18n %}
 
 <body class="{% if is_popup %}popup {% endif %}{% block bodyclass %}{% endblock %}"
   data-admin-utc-offset="{% now "Z" %}">
+
+  <div id="__baseurl__" class="hidden">{% url 'home' %}</div>
 
 <!-- Container -->
 <div id="container"  url_home="{% url 'home' %}">
@@ -94,9 +100,21 @@
     </div>
     <!-- END Content -->
 
-    {% block footer %}<div id="footer"></div>{% endblock %}
+    {% block footer %}
+      <!-- <div id="footer"></div> -->
+        <footer>
+            <span>LentenSermons v1.0.0 &copy; oct/2019 </span>
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <span>Sponsored by: <a href="https://cordis.europa.eu/project/rcn/218691/factsheet/en">Cordis</a></span>
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <span>Developed at: <a href="http://cls.ru.nl">Radboud University Nijmegen</a></span>
+        </footer>
+    {% endblock %}
 </div>
 <!-- END Container -->
+<script>
+  ru.lenten.seeker.init_events();
+</script>
 
 </body>
 </html>

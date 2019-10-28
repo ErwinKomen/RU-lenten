@@ -38,6 +38,8 @@ urlpatterns = [
     url(r'^short', lentensermons.seeker.views.about, name='short'),
     url(r'^nlogin', lentensermons.seeker.views.nlogin, name='nlogin'),
 
+    url(r'^api/tributes/', lentensermons.seeker.views.get_tributes, name='api_tributes'),
+
     url(r'^location/list', LocationListView.as_view(), name='location_list'),
     url(r'^location/details(?:/(?P<pk>\d+))?/$', LocationDetailsView.as_view(), name='location_details'),
     url(r'^location/edit(?:/(?P<pk>\d+))?/$', LocationEdit.as_view(), name='location_edit'),

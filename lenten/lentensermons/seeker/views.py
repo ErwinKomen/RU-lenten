@@ -41,7 +41,7 @@ from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUr
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, \
-    Sermon
+    Sermon, TagCommunicative, TagLiturgical, TagNote
 
 # Some constants that can be used
 paginateSize = 20
@@ -445,6 +445,46 @@ def signup(request):
     else:
         form = SignUpForm()
     return render(request, 'signup.html', {'form': form})
+
+@csrf_exempt
+def get_tributes(request):
+    """Get a list of tribute values for autocomplete"""
+
+    data = 'fail'
+    requestOk = request.is_ajax()
+    requestOk = True
+    if requestOk:
+        oErr = ErrHandle()
+        try:
+            # Get the tribute class
+            sTclass = request.GET.get('tclass', '')   
+            # Get the actual word(s) to search for
+            sQuery = request.GET.get('q', '')
+            if sTclass!= "" and sQuery != "":
+                # Yes, continue...
+                lstQ = []
+                lstQ.append(Q(name__icontains=sQuery))
+                clsThis = None
+                if sTclass == "communicative":
+                    clsThis = TagCommunicative
+                elif sTclass == "liturgical":
+                    clsThis = TagLiturgical
+                elif sTclass == "notes":
+                    clsThis = TagNote
+                if clsThis != None:
+                    qs = clsThis.objects.filter(*lstQ).order_by('name')
+                    results = []
+                    for co in qs:
+                        co_json = {'name': co.name, 'value': co.name, 'id': co.id }
+                        results.append(co_json)
+                    data = json.dumps(results)
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("get_tributes")
+    else:
+        data = "Request is not ajax"
+    mimetype = "application/json"
+    return HttpResponse(data, mimetype)
 
 @csrf_exempt
 def get_countries(request):

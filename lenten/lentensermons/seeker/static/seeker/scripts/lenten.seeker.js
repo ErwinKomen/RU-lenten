@@ -522,9 +522,34 @@ var ru = (function ($, ru) {
             });
           });
 
-/*          $(".modal-dialog").draggable({
-            "handle": ".modal-header"
-          })*/
+          // Initialize tribute on all elements that need it
+          // See: https://github.com/zurb/tribute
+          $(".use_tribute").each(function (idx, elThis) {
+            var sTclass = $(elThis).attr("tclass"),
+                loc_tribute = new Tribute({
+                  collection: [
+                    {
+                      trigger: "@",
+                      selectTemplate: function (item) {
+                        return ('<span contenteditable="false">' +
+                          item.original.value +
+                          '</span>'
+                        );
+                      },
+                      lookup: 'name',
+                      fillAttr: 'name',
+                      values: function (text, cb) {
+                        ru.lenten.seeker.get_tribute(text, sTclass, users => cb(users));
+                      },
+                      menuItemTemplate: function (item) {
+                        return item.string;
+                      }
+                    }
+                  ]
+                });
+            // Attach it
+            loc_tribute.attach(elThis);
+          });
 
           // Look for options
           if (options !== undefined) {
@@ -543,6 +568,39 @@ var ru = (function ($, ru) {
 
         } catch (ex) {
           private_methods.errMsg("init_events", ex);
+        }
+      },
+
+      /**
+       * get_tribute
+       *    Remotely get tribute informatino
+       *
+       */
+      get_tribute: function (text, sTclass, cb) {
+        var sUrl = "",
+            xhr = new XMLHttpRequest(),
+            base_url = "";
+
+        try {
+          // Get the base URL
+          base_url = $("#__baseurl__").text();
+          // Get the real URL 
+          sUrl = base_url + 'api/tributes/';
+          // Fill in the XHR
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+              if (xhr.status === 200) {
+                var data = JSON.parse(xhr.responseText);
+                cb(data);
+              } else if (xhr.status === 403) {
+                cb([]);
+              }
+            }
+          };
+          xhr.open("GET", sUrl + "?tclass=" + sTclass + "&q=" + text, true);
+          xhr.send();
+        } catch (ex) {
+          private_methods.errMsg("get_tribute", ex);
         }
       },
 

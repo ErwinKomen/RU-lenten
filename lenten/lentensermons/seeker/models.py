@@ -1191,7 +1191,7 @@ class Consulting(models.Model):
     # [0-1] Images
     images = models.TextField("Images", blank=True, null=True)
     # [1] Each consulting pertains to a particular edition
-    edition = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL)
+    edition = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL, related_name="consultings")
 
     def __str__(self):
         return "-" if self == None else self.code

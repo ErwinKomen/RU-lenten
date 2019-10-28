@@ -6,6 +6,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.utils.translation import ugettext_lazy as _
 from django.forms import ModelMultipleChoiceField
+from django.forms.utils import flatatt
 from django.forms.widgets import *
 from django_select2.forms import Select2MultipleWidget, ModelSelect2MultipleWidget, ModelSelect2TagWidget
 
@@ -41,6 +42,19 @@ class SignUpForm(UserCreationForm):
     class Meta:
         model = User
         fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2', )
+
+
+class MultiTagTextareaWidget(forms.Textarea):
+    def render(self, name, value, attrs = None, renderer = None):
+        response = super().render(name, value, attrs, renderer)
+        flat_attrs = flatatt(attrs)
+        html = '''
+        <textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
+        {% if widget.value %}{{ widget.value }}{% endif %}
+        </textarea>
+       ''' % {'attrs': flat_attrs, 'id': attrs['id'], 'value': value}
+
+        return mark_safe(html)
 
 
 class UploadFileForm(forms.Form):

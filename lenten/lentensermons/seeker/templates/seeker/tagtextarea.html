@@ -1,0 +1,8 @@
+﻿<textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %} class="hidden">
+
+{% if widget.value %}{{ widget.value }}{% endif %}
+
+</textarea>
+<div contenteditable="true" class="use_tribute" {% include "django/forms/widgets/attrs.html" %} >
+  {% if widget.value %}{{ widget.value }}{% endif %}
+</div>

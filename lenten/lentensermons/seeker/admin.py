@@ -70,6 +70,18 @@ class FieldChoiceAdmin(admin.ModelAdmin):
 
         obj.save()
 
+class TagTextarea(forms.Textarea):
+    template_name = 'seeker/tagtextarea.html'
+
+    def __init__(self, attrs=None):
+        # Use slightly better defaults than HTML's 20x2 box
+        default_attrs = {'cols': '80', 'rows': '2'}
+        if attrs:
+            default_attrs.update(attrs)
+            if 'tclass' in attrs:
+                self.tclass = attrs['tclass'] 
+        super(TagTextarea, self).__init__(default_attrs)
+
 
 class LocationTypeAdmin(admin.ModelAdmin):
     """Definition of each location type"""
@@ -172,7 +184,7 @@ class EditionAdmin(admin.ModelAdmin):
 
     filter_horizontal = ('publishers',)
     fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'frontpage', 'prologue', 'dedicatory', 'contents',\
-              'othertexts', 'images', 'fulltitle', 'colophon', 'publishers']
+              'othertexts', 'images', 'fulltitle', 'colophon', 'publishers'] #, 'consultings']
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
@@ -187,18 +199,32 @@ class EditionInline(admin.StackedInline):
         }
 
 
+class SermonCollectionAdminForm(forms.ModelForm):
+    class Meta:
+        model = SermonCollection
+        fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
+        widgets = {
+            'bibliography':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'liturgical':       TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'liturgical'}),
+            'communicative':    TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'communicative'}),
+            'sources':          TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
+            'exempla':          TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
+            'notes':            TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
+            }
+
+
 class SermonCollectionAdmin(admin.ModelAdmin):
     """Admin interface to SermonCollection""" 
 
+    form = SermonCollectionAdminForm
     list_display = ['idno', 'title', 'datecomp', 'authorlist']
     search_fields =  ['idno', 'title']
     list_filter = ['place', 'authors']
-    fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
     inlines = [ManuscriptInline, EditionInline]
     filter_horizontal = ('authors',)
-    formfield_overrides = {
-        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
-        }
+    #formfield_overrides = {
+    #    models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+    #    }
 
 
 class TagNoteAdmin(admin.ModelAdmin):
