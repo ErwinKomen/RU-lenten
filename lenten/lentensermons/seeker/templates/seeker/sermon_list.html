@@ -61,7 +61,7 @@
                 <tr class="dict-entry">
                   <td class="hidden"> {{ sermon.id }}</td>
                   <td class="clickable" title="Edit the sermon"
-                      onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermon_change' sermon.id %}')'">{{sermon.code}}</td>
+                      onclick="ru.lenten.seeker.goto_url('{% url 'sermon_details' sermon.id %}')">{% if sermon.code %}{{sermon.code}}{% endif %}</td>
                   <td class="clickable" title="Edit the sermon collection"
                       onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermoncollection_change' sermon.collection.id %}')">{{sermon.collection.title}}</td>
                   <td style="width: 100%;">{{sermon.litday}}</td>
@@ -69,20 +69,19 @@
 
                   <!-- Short indications for this sermon-->
                   <td style="min-width: 80px;">
+                    {% if is_lenten_editor %}
+                      <!-- Edit button -->
+                      <a mode="edit" class="view-mode btn btn-xs jumbo-1"
+                         onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermon_change' sermon.id %}')">
+                        <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
+                      </a>
+                    {% endif %}
                   </td>
                 </tr>
 
               {% endfor %}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-4 panel panel-default">
-            <div class="use_tribute" tclass="liturgical" style="color: darkblue;" contenteditable="true">
-              Hier typen
-            </div>
           </div>
         </div>
 

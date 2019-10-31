@@ -50,6 +50,7 @@ urlpatterns = [
     url(r'^sermon/list',  SermonListView.as_view(), name='sermon_list'),
     # url(r'^sermon/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon'), name='sermon_list'),
     url(r'^sermon/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon/add'), name='sermon_add'),
+    url(r'^sermon/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='sermon_details'),
 
     url(r'^collection/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermoncollection'), name='collection_list'),
 

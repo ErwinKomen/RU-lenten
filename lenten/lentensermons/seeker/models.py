@@ -14,6 +14,7 @@ from datetime import datetime
 from markdown import markdown
 from lentensermons.utils import *
 from lentensermons.settings import APP_PREFIX, WRITABLE_DIR
+from lentensermons import tagtext
 import sys, os, io, re
 import copy
 import json
@@ -358,17 +359,22 @@ def process_tags(sText, tagitems, cls):
     """Extract the tags from [sText] and then make sure that the many-to-many field [m2m] only has these tags"""
 
     oErr = ErrHandle()
-    sMarker = "_"       # Use the underscore
+    # OLD sMarker = "_"       # Use the underscore
+    sMarker = "@"       # Use the ampersand to add new tags
+    # sBack = ""
     try:
         # Split the string
-        arPart = sText.split("_")
+        arPart = sText.split(sMarker)
         # There should be an even number of underscores, so an odd number of parts
         if len(arPart) % 2 != 0:
             # Odd number of parts
             num_tags = (len(arPart) - 1) / 2
             if num_tags == 0:
-                # Make sure to remove all tags
-                tagitems.all().delete()
+                # Make sure to remove all the tag links
+                for obj in tagitems.all():
+                    # Double check for tagid
+                    if 'tagid="{}"'.format(obj.id) not in sText:
+                        tagitems.remove(obj)
             else:
                 add_list = []
                 # Create a list of what the tags should be:
@@ -396,13 +402,34 @@ def process_tags(sText, tagitems, cls):
                             # Add the existing item
                             tagitems.add(obj)
 
-
+                # Make sure the arPart and the return string get adapted properly
+                tagnum = 0
+                while tagnum < num_tags:
+                    tagnum += 1
+                    idx = (tagnum-1) * 2 + 1
+                    tagtext = arPart[idx]
+                    obj = cls.objects.filter(name=tagtext).first()
+                    if obj != None:
+                        sReplace = '<span contenteditable="false" tagid="{}">{}</span>'.format(obj.id, tagtext)
+                        arPart[idx] = sReplace
+                sText = "".join(arPart)
                 # Everything is okay (current_tags)
         else:
             # Even number of parts: do NOTHING...
             pass
+
+        # Now check for all occurrances of [tagid=]
+        tag_list = re.findall(r'(tagid=")(\d+)', sText)
+        for item in tag_list:
+            # The id itself is in [1]
+            tagid = item[1]
+            # Check if it is in tagitems
+            if tagitems.filter(id=tagid).first() == None:
+                obj = cls.objects.filter(id=tagid).first()
+                if obj != None:
+                    tagitems.add(obj)
         
-        return True, ""
+        return True, sText
     except:
         sMsg = oErr.get_error_message()
         oErr.DoError("process_tags")
@@ -710,6 +737,9 @@ class NewsItem(models.Model):
       return response
 
 
+    
+
+
 # ============================= APPLICATION-SPECIFIC CLASSES =====================================
 
 class LocationType(models.Model):
@@ -910,7 +940,7 @@ class Author(models.Model):
         return hit
 
 
-class SermonCollection(models.Model):
+class SermonCollection(tagtext.models.TagtextModel):
 
     # [0-1] Identification number assigned by the researcher
     idno = models.CharField("Identification", max_length=MEDIUM_LENGTH, blank=True, null=True)
@@ -953,25 +983,20 @@ class SermonCollection(models.Model):
     liturtags = models.ManyToManyField(TagLiturgical, blank=True)
     # [n-n] Communicative tags
     commutags = models.ManyToManyField(TagCommunicative, blank=True)
+    # [n-n] Tags in the sources
+    sourcetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_sources")
+    # [n-n] Tags in the exempla
+    exemplatags = models.ManyToManyField(TagNote, blank=True, related_name="collection_exempla")
     # [n-n] Tags in the notes
-    notetags = models.ManyToManyField(TagNote, blank=True)
+    notetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_notes")
 
-
-    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
-        # Perform the actual saving
-        response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
-
-        # (1) Check and correct the liturgical tags
-        process_tags(self.liturgical, self.liturtags, TagLiturgical)
-
-        # (2) Check and correct the communicative tags
-        process_tags(self.communicative, self.commutags, TagCommunicative)
-
-        # (3) Check and correct the notes tags
-        process_tags(self.notes, self.notetags, TagNote)
-
-        # Return the saving result
-        return response
+    mixed_tag_fields = [
+            {"textfield": "liturgical",     "m2mfield": "liturtags",    "class": TagLiturgical},
+            {"textfield": "communicative",  "m2mfield": "commutags",    "class": TagCommunicative},
+            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagNote},
+            {"textfield": "exempla",        "m2mfield": "exemplatags",  "class": TagNote},
+            {"textfield": "notes",          "m2mfield": "notetags",     "class": TagNote}
+        ]
 
     def first_edition(self):
         """Find the first edition from those linked to me"""
@@ -1045,7 +1070,7 @@ class Keyword(models.Model):
         return combi
 
 
-class Sermon(models.Model):
+class Sermon(tagtext.models.TagtextModel):
     """The layout of one particular sermon (level three)"""
 
     # [0-1] Each sermon must be recognizable by a particular code
@@ -1075,9 +1100,16 @@ class Sermon(models.Model):
     topics = models.ManyToManyField(Topic, blank=True)
     # [0-n] Zero or more keywords linked to each Sermon
     keywords = models.ManyToManyField(Keyword, blank=True)
+    # [0-n] = zero or more notetags in the note field
+    notetags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_notetags")
+
+    mixed_tag_fields = [
+            {"textfield": "note",           "m2mfield": "notetags",     "class": TagNote}
+        ]
+
 
     def __str__(self):
-        return self.code
+        return self.code if self.code else ""
 
     def get_bibref(self):
         sRef = "-"

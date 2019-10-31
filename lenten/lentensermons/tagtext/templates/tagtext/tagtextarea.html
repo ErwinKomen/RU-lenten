@@ -1,0 +1,10 @@
+﻿<textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
+
+{% if widget.value %}{{ widget.value }}{% endif %}
+
+</textarea>
+<div contenteditable="true" 
+     class="use_tribute panel panel-default" {% include "django/forms/widgets/attrs.html" %} 
+     spellcheck="false">
+  {% if widget.showvalue %}{{ widget.showvalue|safe }}{% endif %}
+</div>

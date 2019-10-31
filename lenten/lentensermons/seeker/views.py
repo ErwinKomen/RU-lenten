@@ -1291,6 +1291,7 @@ class PassimDetails(DetailView):
 
         # Define where to go to after deletion
         context['afterdelurl'] = get_previous_page(self.request)
+        context['afternewurl'] = ""
 
         # Get the parameters passed on with the GET or the POST request
         get = self.request.GET if self.request.method == "GET" else self.request.POST
@@ -1306,6 +1307,7 @@ class PassimDetails(DetailView):
         instance = self.object
         bNew = False
         mForm = self.mForm
+        frm = None
         oErr = ErrHandle()
 
         # prefix = self.prefix
@@ -1315,112 +1317,131 @@ class PassimDetails(DetailView):
         else:
             prefix = self.prefix
 
-        # Check if this is a POST or a GET request
-        if self.request.method == "POST":
-            # Determine what the action is (if specified)
-            action = ""
-            if 'action' in initial: action = initial['action']
-            if action == "delete":
-                # The user wants to delete this item
-                try:
-                    bResult, msg = self.before_delete(instance)
-                    if bResult:
-                        # Log the DELETE action
-                        details = {'id': instance.id}
-                        Action.add(self.request.user.username, instance.__class__.__name__, "delete", json.dumps(details))
-                        # Remove this sermongold instance
-                        instance.delete()
-                    else:
-                        # Removing is not possible
-                        context['errors'] = {'delete': msg }
-                except:
-                    msg = oErr.get_error_message()
-                    # Create an errors object
-                    context['errors'] = {'delete':  msg }
-                # And return the complied context
-                return context
+        if mForm != None:
+            # Check if this is a POST or a GET request
+            if self.request.method == "POST":
+                # Determine what the action is (if specified)
+                action = ""
+                if 'action' in initial: action = initial['action']
+                if action == "delete":
+                    # The user wants to delete this item
+                    try:
+                        bResult, msg = self.before_delete(instance)
+                        if bResult:
+                            # Log the DELETE action
+                            details = {'id': instance.id}
+                            Action.add(self.request.user.username, instance.__class__.__name__, "delete", json.dumps(details))
+                            # Remove this sermongold instance
+                            instance.delete()
+                        else:
+                            # Removing is not possible
+                            context['errors'] = {'delete': msg }
+                    except:
+                        msg = oErr.get_error_message()
+                        # Create an errors object
+                        context['errors'] = {'delete':  msg }
+                    # And return the complied context
+                    return context
             
-            # All other actions just mean: edit or new and send back
+                # All other actions just mean: edit or new and send back
 
-            # Do we have an existing object or are we creating?
-            if instance == None:
-                # Saving a new item
-                frm = mForm(initial, prefix=prefix)
-                bNew = True
-            else:
-                # Editing an existing one
-                frm = mForm(initial, prefix=prefix, instance=instance)
-            # Both cases: validation and saving
-            if frm.is_valid():
-                # The form is valid - do a preliminary saving
-                instance = frm.save(commit=False)
-                # Any checks go here...
-                bResult, msg = self.before_save(instance)
-                if bResult:
-                    # Now save it for real
-                    instance.save()
-                    # Make it available
-                    context['object'] = instance
-                    self.object = instance
-                    # Log the SAVE action
-                    details = {'id': instance.id}
-                    details["savetype"] = "new" if bNew else "change"
-                    if frm.changed_data != None:
-                        details['changes'] = action_model_changes(frm, instance)
-                    Action.add(self.request.user.username, instance.__class__.__name__, "save", json.dumps(details))
+                # Do we have an existing object or are we creating?
+                if instance == None:
+                    # Saving a new item
+                    frm = mForm(initial, prefix=prefix)
+                    bNew = True
                 else:
-                    context['errors'] = {'save': msg }
-            else:
-                # We need to pass on to the user that there are errors
-                context['errors'] = frm.errors
-            # Check if this is a new one
-            if bNew:
-                # Any code that should be added when creating a new [SermonGold] instance
-                bResult, msg = self.after_new(frm, instance)
-                if not bResult:
-                    # Removing is not possible
-                    context['errors'] = {'new': msg }
-                # Check if an 'afternewurl' is specified
-                if self.afternewurl != "":
-                    context['afternewurl'] = self.afternewurl
-                
-        else:
-            # Check if this is asking for a new form
-            if instance == None:
-                # Get the form for the sermon
-                frm = mForm(prefix=prefix)
-            else:
-                # Get the form for the sermon
-                frm = mForm(instance=instance, prefix=prefix)
-            # Walk all the formset objects
-            for formsetObj in self.formset_objects:
-                formsetClass = formsetObj['formsetClass']
-                prefix  = formsetObj['prefix']
-                form_kwargs = self.get_form_kwargs(prefix)
-                if self.add:
-                    # - CREATE a NEW formset, populating it with any initial data in the request
-                    # Saving a NEW item
-                    formset = formsetClass(initial=initial, prefix=prefix, form_kwargs=form_kwargs)
-                else:
-                    # show the data belonging to the current [obj]
-                    qs = self.get_formset_queryset(prefix)
-                    if qs == None:
-                        formset = formsetClass(prefix=prefix, instance=instance, form_kwargs=form_kwargs)
+                    # Editing an existing one
+                    frm = mForm(initial, prefix=prefix, instance=instance)
+                # Both cases: validation and saving
+                if frm.is_valid():
+                    # The form is valid - do a preliminary saving
+                    instance = frm.save(commit=False)
+                    # Any checks go here...
+                    bResult, msg = self.before_save(instance)
+                    if bResult:
+                        # Now save it for real
+                        instance.save()
+                        # Make it available
+                        context['object'] = instance
+                        self.object = instance
+                        # Log the SAVE action
+                        details = {'id': instance.id}
+                        details["savetype"] = "new" if bNew else "change"
+                        if frm.changed_data != None:
+                            details['changes'] = action_model_changes(frm, instance)
+                        Action.add(self.request.user.username, instance.__class__.__name__, "save", json.dumps(details))
                     else:
-                        formset = formsetClass(prefix=prefix, instance=instance, queryset=qs, form_kwargs=form_kwargs)
-                # Process all the forms in the formset
-                ordered_forms = self.process_formset(prefix, self.request, formset)
-                if ordered_forms:
-                    context[prefix + "_ordered"] = ordered_forms
-                # Store the instance
-                formsetObj['formsetinstance'] = formset
-                # Add the formset to the context
-                context[prefix + "_formset"] = formset
+                        context['errors'] = {'save': msg }
+                else:
+                    # We need to pass on to the user that there are errors
+                    context['errors'] = frm.errors
+                # Check if this is a new one
+                if bNew:
+                    # Any code that should be added when creating a new [SermonGold] instance
+                    bResult, msg = self.after_new(frm, instance)
+                    if not bResult:
+                        # Removing is not possible
+                        context['errors'] = {'new': msg }
+                    # Check if an 'afternewurl' is specified
+                    if self.afternewurl != "":
+                        context['afternewurl'] = self.afternewurl
+                
+            else:
+                # Check if this is asking for a new form
+                if instance == None:
+                    # Get the form for the sermon
+                    frm = mForm(prefix=prefix)
+                else:
+                    # Get the form for the sermon
+                    frm = mForm(instance=instance, prefix=prefix)
+                # Walk all the formset objects
+                for formsetObj in self.formset_objects:
+                    formsetClass = formsetObj['formsetClass']
+                    prefix  = formsetObj['prefix']
+                    form_kwargs = self.get_form_kwargs(prefix)
+                    if self.add:
+                        # - CREATE a NEW formset, populating it with any initial data in the request
+                        # Saving a NEW item
+                        formset = formsetClass(initial=initial, prefix=prefix, form_kwargs=form_kwargs)
+                    else:
+                        # show the data belonging to the current [obj]
+                        qs = self.get_formset_queryset(prefix)
+                        if qs == None:
+                            formset = formsetClass(prefix=prefix, instance=instance, form_kwargs=form_kwargs)
+                        else:
+                            formset = formsetClass(prefix=prefix, instance=instance, queryset=qs, form_kwargs=form_kwargs)
+                    # Process all the forms in the formset
+                    ordered_forms = self.process_formset(prefix, self.request, formset)
+                    if ordered_forms:
+                        context[prefix + "_ordered"] = ordered_forms
+                    # Store the instance
+                    formsetObj['formsetinstance'] = formset
+                    # Add the formset to the context
+                    context[prefix + "_formset"] = formset
 
         # Put the form and the formset in the context
         context['{}Form'.format(self.prefix)] = frm
         context['instance'] = instance
         context['options'] = json.dumps({"isnew": (instance == None)})
+
+        # Possibly define where a listview is
+        classname = self.model._meta.model_name
+        listviewname = "{}_list".format(classname)
+        try:
+            context['listview'] = reverse(listviewname)
+        except:
+            context['listview'] = reverse('home')
+
+        # Possibly define the admin detailsview
+        if instance:
+            admindetails = "admin:seeker_{}_change".format(classname)
+            try:
+                context['admindetails'] = reverse(admindetails, args=[instance.id])
+            except:
+                pass
+        context['modelname'] = self.model._meta.object_name
+
 
         # Possibly add to context by the calling function
         context = self.add_to_context(context, instance)
@@ -1879,4 +1900,12 @@ class ReportDownload(BasicPart):
 
         return sData
 
+
+class SermonDetailsView(PassimDetails):
+    model = Sermon
+    mForm = None
+    template_name = 'seeker/sermon_view.html'
+    prefix = ""
+    title = "SermonDetails"
+    rtype = "html"
 

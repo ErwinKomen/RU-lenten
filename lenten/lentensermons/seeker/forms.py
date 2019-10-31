@@ -44,17 +44,17 @@ class SignUpForm(UserCreationForm):
         fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2', )
 
 
-class MultiTagTextareaWidget(forms.Textarea):
-    def render(self, name, value, attrs = None, renderer = None):
-        response = super().render(name, value, attrs, renderer)
-        flat_attrs = flatatt(attrs)
-        html = '''
-        <textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
-        {% if widget.value %}{{ widget.value }}{% endif %}
-        </textarea>
-       ''' % {'attrs': flat_attrs, 'id': attrs['id'], 'value': value}
+#class MultiTagTextareaWidget(forms.Textarea):
+#    def render(self, name, value, attrs = None, renderer = None):
+#        response = super().render(name, value, attrs, renderer)
+#        flat_attrs = flatatt(attrs)
+#        html = '''
+#        <textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
+#        {% if widget.value %}{{ widget.value }}{% endif %}
+#        </textarea>
+#       ''' % {'attrs': flat_attrs, 'id': attrs['id'], 'value': value}
 
-        return mark_safe(html)
+#        return mark_safe(html)
 
 
 class UploadFileForm(forms.Form):

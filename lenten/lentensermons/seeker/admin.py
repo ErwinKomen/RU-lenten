@@ -3,9 +3,12 @@ from django.contrib.admin.models import LogEntry, DELETION
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
 from django.core.urlresolvers import reverse
+from django.shortcuts import redirect
+
 
 from lentensermons.seeker.models import *
 from lentensermons.seeker.forms import *
+from lentensermons.tagtext.forms import *
 
 class LogEntryAdmin(admin.ModelAdmin):
 
@@ -69,18 +72,6 @@ class FieldChoiceAdmin(admin.ModelAdmin):
                 obj.machine_value= highest_machine_value+1
 
         obj.save()
-
-class TagTextarea(forms.Textarea):
-    template_name = 'seeker/tagtextarea.html'
-
-    def __init__(self, attrs=None):
-        # Use slightly better defaults than HTML's 20x2 box
-        default_attrs = {'cols': '80', 'rows': '2'}
-        if attrs:
-            default_attrs.update(attrs)
-            if 'tclass' in attrs:
-                self.tclass = attrs['tclass'] 
-        super(TagTextarea, self).__init__(default_attrs)
 
 
 class LocationTypeAdmin(admin.ModelAdmin):
@@ -205,11 +196,11 @@ class SermonCollectionAdminForm(forms.ModelForm):
         fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
         widgets = {
             'bibliography':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'liturgical':       TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'liturgical'}),
-            'communicative':    TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'communicative'}),
-            'sources':          TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
-            'exempla':          TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
-            'notes':            TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
+            'liturgical':       TagTextarea(attrs={'class': 'hidden use_tribute', 'tclass': 'liturgical'}),
+            'communicative':    TagTextarea(attrs={'class': 'hidden use_tribute', 'tclass': 'communicative'}),
+            'sources':          TagTextarea(attrs={'class': 'hidden use_tribute', 'tclass': 'notes'}),
+            'exempla':          TagTextarea(attrs={'class': 'hidden use_tribute', 'tclass': 'notes'}),
+            'notes':            TagTextarea(attrs={'class': 'hidden use_tribute', 'tclass': 'notes'}),
             }
 
 
@@ -222,9 +213,6 @@ class SermonCollectionAdmin(admin.ModelAdmin):
     list_filter = ['place', 'authors']
     inlines = [ManuscriptInline, EditionInline]
     filter_horizontal = ('authors',)
-    #formfield_overrides = {
-    #    models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
-    #    }
 
 
 class TagNoteAdmin(admin.ModelAdmin):
@@ -267,16 +255,34 @@ class BookAdmin(admin.ModelAdmin):
         }
 
 
+class SermonAdminForm(forms.ModelForm):
+    class Meta:
+        model = Sermon
+        fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'keywords', 'divisionL', 'divisionE', 'summary', 'note']
+        widgets = {
+            'thema':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'divisionL':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'divisionE':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'Summary':      forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'note':         TagTextarea(attrs={'class': 'hidden use_tribute', 'tclass': 'notes'}),
+            }
+
+
 class SermonAdmin(admin.ModelAdmin):
+    form = SermonAdminForm
+
     list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection']
     search_fields = ['code', 'litday', 'book']
     list_filter = ['litday', 'book']
     fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'keywords', 'divisionL', 'divisionE', 'summary', 'note']
 
     filter_horizontal = ('topics', 'keywords',)
-    formfield_overrides = {
-        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
-        }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('sermon_details', kwargs={'pk': obj.id}))
+        return sUrl
 
 
 class AuthorAdmin(admin.ModelAdmin):
