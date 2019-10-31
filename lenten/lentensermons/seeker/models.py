@@ -737,9 +737,6 @@ class NewsItem(models.Model):
       return response
 
 
-    
-
-
 # ============================= APPLICATION-SPECIFIC CLASSES =====================================
 
 class LocationType(models.Model):
@@ -991,12 +988,16 @@ class SermonCollection(tagtext.models.TagtextModel):
     notetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_notes")
 
     mixed_tag_fields = [
-            {"textfield": "liturgical",     "m2mfield": "liturtags",    "class": TagLiturgical},
-            {"textfield": "communicative",  "m2mfield": "commutags",    "class": TagCommunicative},
-            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagNote},
-            {"textfield": "exempla",        "m2mfield": "exemplatags",  "class": TagNote},
-            {"textfield": "notes",          "m2mfield": "notetags",     "class": TagNote}
+            {"textfield": "liturgical",     "m2mfield": "liturtags",    "class": TagLiturgical,   },
+            {"textfield": "communicative",  "m2mfield": "commutags",    "class": TagCommunicative,},
+            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagNote,         },
+            {"textfield": "exempla",        "m2mfield": "exemplatags",  "class": TagNote,         },
+            {"textfield": "notes",          "m2mfield": "notetags",     "class": TagNote,         }
         ]
+
+    def tagtext_url(self):
+        url = reverse('api_tributes')
+        return url
 
     def first_edition(self):
         """Find the first edition from those linked to me"""
@@ -1107,6 +1108,9 @@ class Sermon(tagtext.models.TagtextModel):
             {"textfield": "note",           "m2mfield": "notetags",     "class": TagNote}
         ]
 
+    def tagtext_url(self):
+        url = reverse('api_tributes')
+        return url
 
     def __str__(self):
         return self.code if self.code else ""

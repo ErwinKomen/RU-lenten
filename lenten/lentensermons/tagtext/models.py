@@ -11,6 +11,7 @@ class TagtextModel(models.Model):
 
     mixed_tag_fields = [ ]
 
+
     def __init__(self, *args, **kwargs):
         # Perform standard initialisations
         response = super(TagtextModel, self).__init__(*args, **kwargs)
@@ -23,6 +24,9 @@ class TagtextModel(models.Model):
 
         # Return our initial response
         return response
+
+    def tagtext_url(self):
+        return "/api/tagtext/"
 
     def process_tags(self, textfield, tagitems, cls):
         """Extract the tags from [sText] and then make sure that the many-to-many field [m2m] only has these tags

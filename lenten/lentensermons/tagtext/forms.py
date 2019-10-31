@@ -8,6 +8,7 @@ import json
 
 class TagTextarea(forms.widgets.Textarea):
     template_name = 'tagtext/tagtextarea.html'
+    remote = '/api/tagtext/'
 
     class Media:
         js = (
@@ -44,6 +45,7 @@ class TagTextarea(forms.widgets.Textarea):
                 else:
                     html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], item['value']))
             showvalue = "".join(html)
+        remote = "" if not self.remote else self.remote
         context['widget'] = {
             'name': name,
             'is_hidden': self.is_hidden,
@@ -51,6 +53,7 @@ class TagTextarea(forms.widgets.Textarea):
             'value': self.format_value(value),
             'showvalue': showvalue,
             'attrs': self.build_attrs(self.attrs, attrs),
+            'remote': remote,
             'template_name': self.template_name,
         }
         return context

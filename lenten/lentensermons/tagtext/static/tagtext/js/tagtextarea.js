@@ -8,8 +8,13 @@
     // Initialize tribute on all elements that need it
     // See: https://github.com/zurb/tribute
     $(".use_tribute").each(function (idx, elThis) {
-      var sTclass = $(elThis).attr("tclass"),
-          loc_tribute = new Tribute({
+      var sTclass = "",       // value of 'tclass' variable
+          sRemote = "",       // Remote URL to call
+          loc_tribute = null;
+
+      sTclass = $(elThis).attr("tclass");
+      sRemote = $(elThis).attr("remote");
+      loc_tribute = new Tribute({
             collection: [
               {
                 trigger: "@",
@@ -21,7 +26,9 @@
                 lookup: 'name',
                 fillAttr: 'name',
                 values: function (text, cb) {
-                  ru.lenten.seeker.get_tribute(text, sTclass, users => cb(users));
+                  // Try to make this more generic. But how???
+                  // ru.lenten.seeker.get_tribute(text, sTclass, users => cb(users));
+                  get_tagtext_tribute(sRemote, text, sTclass, users => cb(users));
                 },
                 menuItemTemplate: function (item) {
                   return item.string;
@@ -90,5 +97,56 @@
     });
 
   });
+
+  /**
+   * get_tribute
+   *    Remotely get tribute informatino
+   *
+   */
+  function get_tagtext_tribute(sRemote, text, sTclass, cb) {
+    var sUrl = "",
+        xhr = new XMLHttpRequest(),
+        base_url = "";
+
+    try {
+      // Do we have a remote?
+      if (sRemote === "") {
+        // Get the base URL
+        base_url = $("#__baseurl__").text();
+        // Get the real URL 
+        sUrl = base_url + 'api/tributes/';
+      } else {
+        sUrl = sRemote;
+      }
+      // Fill in the XHR
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var data = JSON.parse(xhr.responseText);
+            cb(data);
+          } else if (xhr.status === 403) {
+            cb([]);
+          }
+        }
+      };
+      xhr.open("GET", sUrl + "?tclass=" + sTclass + "&q=" + text, true);
+      xhr.send();
+    } catch (ex) {
+      errMsg("get_tagtext_tribute", ex);
+    }
+  }
+
+  function errMsg(sLocation, ex) {
+    var sHtml = "";
+
+    if (ex === undefined) {
+      sHtml = "Error: " + sMsg;
+    } else {
+      sHtml = "Error in [" + sMsg + "]<br>" + ex.message;
+    }
+    console.log(sHtml);
+  }
+
+
   
 })(django.jQuery)
