@@ -57,14 +57,18 @@
       $.each(html, function (idx, elThis) {
         switch (elThis.nodeType) {
           case 1: // is it <span>?
-            if (elThis.nodeName === "SPAN") {
-              arNode.push(
-                {
-                  "type": "tag",
-                  "value": elThis.textContent,
-                  "tagid": elThis.attributes["tagid"].value
-                }
-                );
+            switch (elThis.nodeName) {
+              case "SPAN":
+                arNode.push(
+                  {
+                    "type": "tag",
+                    "value": elThis.textContent,
+                    "tagid": elThis.attributes["tagid"].value
+                  });
+                  break;
+              case "BR":
+                arNode.push({ "type": "text", "value": "\n" });
+                break;
             }
             break;
           case 3: // Text

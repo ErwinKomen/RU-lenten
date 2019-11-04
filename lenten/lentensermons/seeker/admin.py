@@ -214,6 +214,12 @@ class SermonCollectionAdmin(admin.ModelAdmin):
     inlines = [ManuscriptInline, EditionInline]
     filter_horizontal = ('authors',)
 
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('collection_details', kwargs={'pk': obj.id}))
+        return sUrl
+
 
 class TagNoteAdmin(admin.ModelAdmin):
     list_display = ['name']

@@ -41,7 +41,7 @@ from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUr
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, \
-    Sermon, TagCommunicative, TagLiturgical, TagNote
+    Sermon, SermonCollection, TagCommunicative, TagLiturgical, TagNote
 
 # Some constants that can be used
 paginateSize = 20
@@ -1670,7 +1670,7 @@ class LocationRelset(BasicPart):
 
 
 class SermonListView(ListView):
-    """Listview of locations"""
+    """Listview of sermons"""
 
     model = Sermon
     paginate_by = 15
@@ -1746,6 +1746,91 @@ class SermonListView(ListView):
 
         # Calculate the final qs
         qs = Sermon.objects.filter(*lstQ).order_by('code').distinct()
+
+        # Determine the length
+        self.entrycount = len(qs)
+
+        # Return the resulting filtered and sorted queryset
+        return qs
+    
+
+class SermonCollectionListView(ListView):
+    """Listview of sermon collections"""
+
+    model = SermonCollection
+    paginate_by = 15
+    template_name = 'seeker/collection_list.html'
+    entrycount = 0
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(SermonCollectionListView, self).get_context_data(**kwargs)
+
+        # Get parameters
+        initial = self.request.GET
+
+        # Determine the count 
+        context['entrycount'] = self.entrycount # self.get_queryset().count()
+
+        # Set the prefix
+        context['app_prefix'] = APP_PREFIX
+
+        # Get parameters for the search
+        initial = self.request.GET
+        # The searchform is just a list form, but filled with the 'initial' parameters
+        # context['searchform'] = LocationForm(initial)
+
+        # Make sure the paginate-values are available
+        context['paginateValues'] = paginateValues
+
+        if 'paginate_by' in initial:
+            context['paginateSize'] = int(initial['paginate_by'])
+        else:
+            context['paginateSize'] = paginateSize
+
+        # Set the title of the application
+        context['title'] = "SermonCollections"
+
+        # Check if user may upload
+        context['is_authenticated'] = user_is_authenticated(self.request)
+        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Locations", True)
+        context['prevpage'] = get_previous_page(self.request)
+
+        # Return the calculated context
+        return context
+
+    def get_paginate_by(self, queryset):
+        """
+        Paginate by specified value in default class property value.
+        """
+        return self.paginate_by
+  
+    def get_queryset(self):
+        # Get the parameters passed on with the GET or the POST request
+        get = self.request.GET if self.request.method == "GET" else self.request.POST
+        get = get.copy()
+        self.get = get
+
+        lstQ = []
+
+        # Check for liturgical day
+        if 'title' in get and get['title'] != '':
+            val = adapt_search(get['title'])
+            # Search in both the name field
+            lstQ.append(Q(title__iregex=val))
+
+        # Check for the code of the sermon
+        if 'idno' in get and get['idno'] != '':
+            val = get['idno']
+            # Search in both the name field
+            lstQ.append(Q(idno=val))
+
+        # Calculate the final qs
+        qs = SermonCollection.objects.filter(*lstQ).order_by('title').distinct()
 
         # Determine the length
         self.entrycount = len(qs)
@@ -1921,6 +2006,32 @@ class SermonDetailsView(PassimDetails):
             {'type': 'safeline',    'label': "Division (English):", 'value': instance.divisionE.strip()},
             {'type': 'line',        'label': "Summary:", 'value': instance.summary.strip()},
             {'type': 'safeline',    'label': "Note:", 'value': instance.get_note_display.strip()},
+            ]
+        return context
+
+
+class CollectionDetailsView(PassimDetails):
+    model = SermonCollection
+    mForm = None
+    template_name = 'generic_details.html' 
+    prefix = ""
+    title = "CollectionDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        context['mainitems'] = [
+            {'type': 'plain', 'label': "Code:", 'value': instance.idno},
+            {'type': 'bold',  'label': "Title:", 'value': instance.title},
+            {'type': 'plain', 'label': "Authors:", 'value': instance.get_authors()},
+            {'type': 'plain', 'label': "Date of composition:", 'value': "{} ({})".format(instance.datecomp, instance.get_datetype_display()) },
+            {'type': 'plain', 'label': "Place:", 'value': instance.place.name },
+            {'type': 'plain', 'label': "Structure:", 'value': instance.structure },
+            {'type': 'safeline',    'label': "Liturgical relation:", 'value': instance.get_liturgical_display.strip(), 'title': "Relationship with liturgical texts"},
+            {'type': 'safeline',    'label': "Communicative strategy:", 'value': instance.get_communicative_display.strip()},
+            {'type': 'safeline',    'label': "Quoted sources:", 'value': instance.get_sources_display.strip()},
+            {'type': 'safeline',    'label': "Exempla:", 'value': instance.get_exempla_display.strip()},
+            {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()},
             ]
         return context
 

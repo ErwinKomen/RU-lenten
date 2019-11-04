@@ -94,6 +94,7 @@
     <Content Include="lentensermons\seeker\static\seeker\content\ru-form.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-widgets.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\site.css" />
+    <Content Include="lentensermons\seeker\templates\seeker\collection_list.html" />
     <Content Include="lentensermons\tagtext\static\tagtext\css\tagtextarea.css" />
     <Content Include="lentensermons\tagtext\static\tagtext\css\tribute.css" />
     <Content Include="lentensermons\seeker\static\seeker\fonts\glyphicons-halflings-regular.eot" />
