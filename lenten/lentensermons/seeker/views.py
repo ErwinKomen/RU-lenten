@@ -1904,8 +1904,23 @@ class ReportDownload(BasicPart):
 class SermonDetailsView(PassimDetails):
     model = Sermon
     mForm = None
-    template_name = 'seeker/sermon_view.html'
+    template_name = 'generic_details.html'  # 'seeker/sermon_view.html'
     prefix = ""
     title = "SermonDetails"
     rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        context['mainitems'] = [
+            {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title},
+            {'type': 'plain', 'label': "Code:", 'value': instance.code},
+            {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
+            {'type': 'safe',  'label': "Thema:", 'value': instance.thema.strip()},
+            {'type': 'plain', 'label': "Passage:", 'value': instance.get_bibref() },
+            {'type': 'safeline',    'label': "Division (Latin):", 'value': instance.divisionL.strip()},
+            {'type': 'safeline',    'label': "Division (English):", 'value': instance.divisionE.strip()},
+            {'type': 'line',        'label': "Summary:", 'value': instance.summary.strip()},
+            {'type': 'safeline',    'label': "Note:", 'value': instance.get_note_display.strip()},
+            ]
+        return context
 
