@@ -196,11 +196,11 @@ class SermonCollectionAdminForm(forms.ModelForm):
         fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
         widgets = {
             'bibliography':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'liturgical':       TagTextarea(attrs={'tclass': 'liturgical' }),
-            'communicative':    TagTextarea(attrs={'tclass': 'communicative' }),
-            'sources':          TagTextarea(attrs={'tclass': 'notes' }),
-            'exempla':          TagTextarea(attrs={'tclass': 'notes' }),
-            'notes':            TagTextarea(attrs={'tclass': 'notes' }),
+            'liturgical':       TagTextarea(attrs={'remote': '/api/tagtext/?tclass=liturgical' }),
+            'communicative':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=communicative' }),
+            'sources':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'exempla':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'notes':            TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
 
 
@@ -264,7 +264,7 @@ class SermonAdminForm(forms.ModelForm):
             'divisionL':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'divisionE':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'Summary':      forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'note':         TagTextarea(attrs={'tclass': 'notes' }),
+            'note':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
 
 

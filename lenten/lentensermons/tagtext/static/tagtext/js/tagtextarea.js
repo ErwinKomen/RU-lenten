@@ -129,7 +129,17 @@
           }
         }
       };
-      xhr.open("GET", sUrl + "?tclass=" + sTclass + "&q=" + text, true);
+
+      // Adapt the URL
+      if (sUrl.indexOf("?") < 0) {
+        // The URL does not contain additional information yet
+        sUrl = sUrl + "?tclass=" + sTclass + "&q=" + text;
+      } else {
+        // The URL itself already contains subcategorization
+        sUrl = sUrl + "&q=" + text;
+      }
+
+      xhr.open("GET", sUrl , true);
       xhr.send();
     } catch (ex) {
       errMsg("get_tagtext_tribute", ex);

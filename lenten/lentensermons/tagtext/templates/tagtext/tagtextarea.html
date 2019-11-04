@@ -5,7 +5,7 @@
 </textarea>
 <div contenteditable="true" 
      remote="{{widget.remote}}"
-     class="use_tribute panel panel-default" {% include "django/forms/widgets/attrs.html" %} 
+     class="use_tribute panel panel-default {{widget.extra_class}}" {% include "django/forms/widgets/attrs.html" %} 
      spellcheck="false">
   {% if widget.showvalue %}{{ widget.showvalue|safe }}{% endif %}
 </div>

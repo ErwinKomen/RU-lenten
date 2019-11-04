@@ -45,7 +45,13 @@ class TagTextarea(forms.widgets.Textarea):
                 else:
                     html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], item['value']))
             showvalue = "".join(html)
+        # Initialize the remote call
         remote = "" if not self.remote else self.remote
+        # Possibly let user adapt it
+        remote = self.attrs.pop('remote', remote)
+        # Get any additional class values from [self.attrs]
+        extra_class= self.attrs.pop('class', "")
+                
         context['widget'] = {
             'name': name,
             'is_hidden': self.is_hidden,
@@ -53,6 +59,7 @@ class TagTextarea(forms.widgets.Textarea):
             'value': self.format_value(value),
             'showvalue': showvalue,
             'attrs': self.build_attrs(self.attrs, attrs),
+            'extra_class': extra_class,
             'remote': remote,
             'template_name': self.template_name,
         }
