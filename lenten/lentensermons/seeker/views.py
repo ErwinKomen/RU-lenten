@@ -41,7 +41,7 @@ from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUr
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, \
-    Sermon, SermonCollection, TagCommunicative, TagLiturgical, TagNote
+    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote
 
 # Some constants that can be used
 paginateSize = 20
@@ -2034,4 +2034,48 @@ class CollectionDetailsView(PassimDetails):
             {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()},
             ]
         return context
+
+
+class EditionDetailsView(PassimDetails):
+    model = Edition
+    mForm = None
+    template_name = 'generic_details.html'  # 'seeker/sermon_view.html'
+    prefix = ""
+    title = "EditionDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        sLocation = ""
+        if instance.place:
+            sLocation = instance.place.name
+        context['mainitems'] = [
+            {'type': 'bold',  'label': "Year of publication (earliest):", 'value': instance.date},
+            {'type': 'plain', 'label': "Year of publication (latest):", 'value': instance.date_late},
+            {'type': 'plain', 'label': "Date type:", 'value': instance.get_datetype_display()},
+            {'type': 'plain', 'label': "Comment on the date:", 'value': instance.datecomment},
+            {'type': 'plain', 'label': "Place:", 'value': sLocation},
+            {'type': 'plain', 'label': "Passage:", 'value': instance.get_format_display() },
+            {'type': 'plain', 'label': "Folia:", 'value': instance.folia},
+            # MORE INFORMATION SHOULD FOLLOW
+            ]
+        return context
+
+
+class ManuscriptDetailsView(PassimDetails):
+    model = Manuscript
+    mForm = None
+    template_name = 'generic_details.html'  # 'seeker/sermon_view.html'
+    prefix = ""
+    title = "ManuscriptDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        context['mainitems'] = [
+            {'type': 'plain',  'label': "Information:", 'value': instance.info},
+            {'type': 'plain', 'label': "Link (if available):", 'value': instance.link}
+            ]
+        return context
+
 

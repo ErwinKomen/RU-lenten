@@ -78,6 +78,26 @@ class TagtextModel(models.Model):
                     # Must be broken
                     tagitems.remove(obj)
 
+            # Process the *first* in the list
+            if len(arPart) > 0:
+                item = arPart[0]
+                if item['type'] == "text":
+                    sValue = item['value']
+                    sStripped = sValue.lstrip()
+                    if sValue != sStripped:
+                        item['value'] = sStripped
+
+            # Process the *last* in the list if the list is larger
+            if len(arPart) > 1:
+                item = arPart[-1]
+                if item['type'] == "text":
+                    sValue = item['value']
+                    sStripped = sValue.rstrip()
+                    if sValue != sStripped:
+                        item['value'] = sStripped
+                        bChanged = True
+
+
             # Fix the stringified text
             sText = json.dumps(arPart)
 
@@ -134,6 +154,38 @@ class TagtextModel(models.Model):
 
         # Return the saving result
         return response
+
+    #def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+    #    # Make sure some of the JSON-TEXT fields get stripped
+    #    strip_fields = ['liturgical', 'communicative', 'sources', 'exempla', 'notes']
+    #    for field in strip_fields:
+    #        sJson = getattr(self, field)
+    #        oJson = json.loads(sJson)
+    #        bChanged = False
+    #        # Treat first item
+    #        if len(oJson) > 0:
+    #            item = oJson[0]
+    #            if item['type'] == "text":
+    #                sValue = item['value']
+    #                sStripped = sValue.lstrip()
+    #                if sValue != sStripped:
+    #                    item['value'] = sStripped
+    #                    bChanged = True
+    #        if len(oJson) > 1:
+    #            item = oJson[-1]
+    #            if item['type'] == "text":
+    #                sValue = item['value']
+    #                sStripped = sValue.rstrip()
+    #                if sValue != sStripped:
+    #                    item['value'] = sStripped
+    #                    bChanged = True
+    #        if bChanged:
+    #            sJson = json.dumps(oJson)
+    #            setattr(self, field, sJson)
+
+    #    response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
+    #    return response
+
 
     def get_error_message(self):
         arInfo = sys.exc_info()

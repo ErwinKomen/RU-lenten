@@ -355,85 +355,85 @@ def import_data_file(sContents, arErr):
         arErr.DoError("import_data_file error:")
         return {}
 
-def process_tags(sText, tagitems, cls):
-    """Extract the tags from [sText] and then make sure that the many-to-many field [m2m] only has these tags"""
+#def process_tags(sText, tagitems, cls):
+#    """Extract the tags from [sText] and then make sure that the many-to-many field [m2m] only has these tags"""
 
-    oErr = ErrHandle()
-    # OLD sMarker = "_"       # Use the underscore
-    sMarker = "@"       # Use the ampersand to add new tags
-    # sBack = ""
-    try:
-        # Split the string
-        arPart = sText.split(sMarker)
-        # There should be an even number of underscores, so an odd number of parts
-        if len(arPart) % 2 != 0:
-            # Odd number of parts
-            num_tags = (len(arPart) - 1) / 2
-            if num_tags == 0:
-                # Make sure to remove all the tag links
-                for obj in tagitems.all():
-                    # Double check for tagid
-                    if 'tagid="{}"'.format(obj.id) not in sText:
-                        tagitems.remove(obj)
-            else:
-                add_list = []
-                # Create a list of what the tags should be:
-                taglist = []
-                tagnum = 0
-                while tagnum < num_tags:
-                    tagnum += 1
-                    idx = (tagnum-1) * 2 + 1
-                    taglist.append(arPart[idx])
-                # Look for deletions
-                for obj in tagitems.all():
-                    if obj.name not in taglist:
-                        # Must be removed
-                        tagitems.remove(obj)
-                # Get an update of what is in the database
-                db_tags = [x.name for x in tagitems.all()]
-                # Look for needed additions
-                for tag in taglist:
-                    if tag not in db_tags:
-                        obj = cls.objects.filter(name=tag).first()
-                        if obj == None:
-                            # Create and add an item in one go
-                            tagitems.create(name=tag)
-                        else:
-                            # Add the existing item
-                            tagitems.add(obj)
+#    oErr = ErrHandle()
+#    # OLD sMarker = "_"       # Use the underscore
+#    sMarker = "@"       # Use the ampersand to add new tags
+#    # sBack = ""
+#    try:
+#        # Split the string
+#        arPart = sText.split(sMarker)
+#        # There should be an even number of underscores, so an odd number of parts
+#        if len(arPart) % 2 != 0:
+#            # Odd number of parts
+#            num_tags = (len(arPart) - 1) / 2
+#            if num_tags == 0:
+#                # Make sure to remove all the tag links
+#                for obj in tagitems.all():
+#                    # Double check for tagid
+#                    if 'tagid="{}"'.format(obj.id) not in sText:
+#                        tagitems.remove(obj)
+#            else:
+#                add_list = []
+#                # Create a list of what the tags should be:
+#                taglist = []
+#                tagnum = 0
+#                while tagnum < num_tags:
+#                    tagnum += 1
+#                    idx = (tagnum-1) * 2 + 1
+#                    taglist.append(arPart[idx])
+#                # Look for deletions
+#                for obj in tagitems.all():
+#                    if obj.name not in taglist:
+#                        # Must be removed
+#                        tagitems.remove(obj)
+#                # Get an update of what is in the database
+#                db_tags = [x.name for x in tagitems.all()]
+#                # Look for needed additions
+#                for tag in taglist:
+#                    if tag not in db_tags:
+#                        obj = cls.objects.filter(name=tag).first()
+#                        if obj == None:
+#                            # Create and add an item in one go
+#                            tagitems.create(name=tag)
+#                        else:
+#                            # Add the existing item
+#                            tagitems.add(obj)
 
-                # Make sure the arPart and the return string get adapted properly
-                tagnum = 0
-                while tagnum < num_tags:
-                    tagnum += 1
-                    idx = (tagnum-1) * 2 + 1
-                    tagtext = arPart[idx]
-                    obj = cls.objects.filter(name=tagtext).first()
-                    if obj != None:
-                        sReplace = '<span contenteditable="false" tagid="{}">{}</span>'.format(obj.id, tagtext)
-                        arPart[idx] = sReplace
-                sText = "".join(arPart)
-                # Everything is okay (current_tags)
-        else:
-            # Even number of parts: do NOTHING...
-            pass
+#                # Make sure the arPart and the return string get adapted properly
+#                tagnum = 0
+#                while tagnum < num_tags:
+#                    tagnum += 1
+#                    idx = (tagnum-1) * 2 + 1
+#                    tagtext = arPart[idx]
+#                    obj = cls.objects.filter(name=tagtext).first()
+#                    if obj != None:
+#                        sReplace = '<span contenteditable="false" tagid="{}">{}</span>'.format(obj.id, tagtext)
+#                        arPart[idx] = sReplace
+#                sText = "".join(arPart)
+#                # Everything is okay (current_tags)
+#        else:
+#            # Even number of parts: do NOTHING...
+#            pass
 
-        # Now check for all occurrances of [tagid=]
-        tag_list = re.findall(r'(tagid=")(\d+)', sText)
-        for item in tag_list:
-            # The id itself is in [1]
-            tagid = item[1]
-            # Check if it is in tagitems
-            if tagitems.filter(id=tagid).first() == None:
-                obj = cls.objects.filter(id=tagid).first()
-                if obj != None:
-                    tagitems.add(obj)
+#        # Now check for all occurrances of [tagid=]
+#        tag_list = re.findall(r'(tagid=")(\d+)', sText)
+#        for item in tag_list:
+#            # The id itself is in [1]
+#            tagid = item[1]
+#            # Check if it is in tagitems
+#            if tagitems.filter(id=tagid).first() == None:
+#                obj = cls.objects.filter(id=tagid).first()
+#                if obj != None:
+#                    tagitems.add(obj)
         
-        return True, sText
-    except:
-        sMsg = oErr.get_error_message()
-        oErr.DoError("process_tags")
-        return False, sMsg
+#        return True, sText
+#    except:
+#        sMsg = oErr.get_error_message()
+#        oErr.DoError("process_tags")
+#        return False, sMsg
 
 
 # ============= GENERAL CLASSES =================================================================
@@ -1025,36 +1025,36 @@ class SermonCollection(tagtext.models.TagtextModel):
         auth_list = [x.name for x in self.authors.all()]
         return ", ".join(auth_list)
 
-    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
-        # Make sure some of the JSON-TEXT fields get stripped
-        strip_fields = ['liturgical', 'communicative', 'sources', 'exempla', 'notes']
-        for field in strip_fields:
-            sJson = getattr(self, field)
-            oJson = json.loads(sJson)
-            bChanged = False
-            # Treat first item
-            if len(oJson) > 0:
-                item = oJson[0]
-                if item['type'] == "text":
-                    sValue = item['value']
-                    sStripped = sValue.lstrip()
-                    if sValue != sStripped:
-                        item['value'] = sStripped
-                        bChanged = True
-            if len(oJson) > 1:
-                item = oJson[-1]
-                if item['type'] == "text":
-                    sValue = item['value']
-                    sStripped = sValue.rstrip()
-                    if sValue != sStripped:
-                        item['value'] = sStripped
-                        bChanged = True
-            if bChanged:
-                sJson = json.dumps(oJson)
-                setattr(self, field, sJson)
+    #def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+    #    # Make sure some of the JSON-TEXT fields get stripped
+    #    strip_fields = ['liturgical', 'communicative', 'sources', 'exempla', 'notes']
+    #    for field in strip_fields:
+    #        sJson = getattr(self, field)
+    #        oJson = json.loads(sJson)
+    #        bChanged = False
+    #        # Treat first item
+    #        if len(oJson) > 0:
+    #            item = oJson[0]
+    #            if item['type'] == "text":
+    #                sValue = item['value']
+    #                sStripped = sValue.lstrip()
+    #                if sValue != sStripped:
+    #                    item['value'] = sStripped
+    #                    bChanged = True
+    #        if len(oJson) > 1:
+    #            item = oJson[-1]
+    #            if item['type'] == "text":
+    #                sValue = item['value']
+    #                sStripped = sValue.rstrip()
+    #                if sValue != sStripped:
+    #                    item['value'] = sStripped
+    #                    bChanged = True
+    #        if bChanged:
+    #            sJson = json.dumps(oJson)
+    #            setattr(self, field, sJson)
 
-        response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
-        return response
+    #    response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
+    #    return response
 
     def __str__(self):
         # Combine my ID number and the title (which is obligatory)

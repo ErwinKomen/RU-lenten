@@ -161,6 +161,16 @@ class ManuscriptAdmin(admin.ModelAdmin):
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
 
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('manuscript_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('manuscript_list'))
+        return sUrl
+
 
 class ManuscriptInline(admin.StackedInline):
     model = Manuscript
@@ -179,6 +189,16 @@ class EditionAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('edition_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('edition_list'))
+        return sUrl
 
 
 class EditionInline(admin.StackedInline):
@@ -218,6 +238,10 @@ class SermonCollectionAdmin(admin.ModelAdmin):
         """When the user presses [Save], we want to redirect to a view of the model"""
 
         sUrl = redirect(reverse('collection_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('collection_list'))
         return sUrl
 
 
@@ -290,6 +314,10 @@ class SermonAdmin(admin.ModelAdmin):
         sUrl = redirect(reverse('sermon_details', kwargs={'pk': obj.id}))
         return sUrl
 
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('sermon_list'))
+        return sUrl
+
 
 class AuthorAdmin(admin.ModelAdmin):
     fields = ['name', 'info']
@@ -298,6 +326,11 @@ class AuthorAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
         }
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('author_list'))
+        return sUrl
+
 
 
 
