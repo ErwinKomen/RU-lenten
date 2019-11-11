@@ -2008,6 +2008,14 @@ class SermonDetailsView(PassimDetails):
             {'type': 'line',        'label': "Summary:", 'value': instance.summary.strip()},
             {'type': 'safeline',    'label': "Note:", 'value': instance.get_note_display.strip()},
             ]
+
+        # Add link objects: link to the SermonCollection I am part of
+        link_objects = []
+        sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
+        link = dict(name="Sermon collection for this sermon", label="{}".format(instance.collection.title), value=sc )
+        link_objects.append(link)
+        context['link_objects'] = link_objects
+
         return context
 
 
@@ -2195,6 +2203,14 @@ class EditionDetailsView(PassimDetails):
             {'type': 'plain', 'label': "Folia:", 'value': instance.folia},
             # MORE INFORMATION SHOULD FOLLOW
             ]
+
+        # Add link objects: link to the SermonCollection I am part of
+        link_objects = []
+        sc = reverse('collection_details', kwargs={'pk': instance.sermoncollection.id})
+        link = dict(name="Sermon collection for this edition", label="{}".format(instance.sermoncollection.title), value=sc )
+        link_objects.append(link)
+        context['link_objects'] = link_objects
+
         return context
 
 

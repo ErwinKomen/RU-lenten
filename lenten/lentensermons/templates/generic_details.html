@@ -47,6 +47,14 @@
                         </td>
                       </tr>
                     {% endfor %}
+
+                    <!-- add the links here -->
+                    {% for link in link_objects %}
+                      <tr>
+                        <td>{{link.name}}</td>
+                        <td><a href="{{link.value}}">{{link.label}}</a></td>
+                      </tr>
+                    {% endfor %}
                   </tbody>
                 </table>
               </div>

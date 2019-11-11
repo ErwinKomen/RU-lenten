@@ -122,6 +122,15 @@ class ActionAdmin(admin.ModelAdmin):
         }
 
 
+class VisitAdmin(admin.ModelAdmin):
+    """Display and edit Visit moments"""
+
+    list_display = ['user', 'when', 'name', 'path']
+    list_filter = ['user', 'name']
+    search_fields = ['user']
+    fields = ['user', 'when', 'name', 'path']
+
+
 class InformationAdmin(admin.ModelAdmin):
     """Information k/v pairs"""
 
@@ -360,6 +369,7 @@ admin.site.register(Report, ReportAdmin)
 # Logbook of activities
 admin.site.register(LogEntry, LogEntryAdmin)
 admin.site.register(Action, ActionAdmin)
+admin.site.register(Visit, VisitAdmin)
 
 # How to display user information
 admin.site.unregister(User)
