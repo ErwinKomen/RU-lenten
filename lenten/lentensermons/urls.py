@@ -45,7 +45,9 @@ urlpatterns = [
     url(r'^location/edit(?:/(?P<pk>\d+))?/$', LocationEdit.as_view(), name='location_edit'),
     url(r'^location/relset(?:/(?P<pk>\d+))?/$', LocationRelset.as_view(), name='loc_relset'),
 
-    url(r'^author/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/author'), name='author_list'),
+    url(r'^author/list',  AuthorListView.as_view(), name='author_list'),
+    url(r'^author/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/author/add'), name='author_add'),
+    url(r'^author/view(?:/(?P<pk>\d+))?/$', AuthorDetailsView.as_view(), name='author_details'),
 
     url(r'^sermon/list',  SermonListView.as_view(), name='sermon_list'),
     # url(r'^sermon/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon'), name='sermon_list'),

@@ -9,7 +9,6 @@
 
 {% block content %}
 
-    {% if object_list %}
       <div class="panel panel-default">
 
         <!-- Heading and button to add a new author -->
@@ -20,25 +19,15 @@
               <span id="add_author" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
-                    targeturl="{% url 'author_edit' %}"
-                    targetid="author_new"
-                    onclick="ru.lenten.seeker.manu_edit(this, 'new');">
-                  <span class="glyphicon glyphicon-plus"></span>Add an author
+                    href="{% url 'author_add' %}">
+                  <span class="glyphicon glyphicon-plus"></span>Add an Author
                 </a>
               </span>
             {% endif %}
           </h3>
         </form>
 
-        <!-- Room to add a new author -->
-        <div class="row subform">
-          <div class="col-md-offset-1 col-md-10">
-            <div id="author_new">
-              <!-- Room to create a new author instance-->
-            </div>
-          </div>
-        </div>
-
+      {% if object_list %}
         <!-- Top pagination -->
         <div class="row">
             <div class="col-sm-4"><span>Found: </span><span>{{entrycount}}</span></div>
@@ -55,19 +44,28 @@
         <div class="row">
           <div class="col-md-12">
             <table class="table table-hover">
-              <thead><tr><th class="hidden">id</th><th>&nbsp;</th><th>Author name</th><th><!-- Buttons --></th></tr></thead>
+              <thead><tr><th class="hidden">id</th><th>Author name</th><th>Information</th><th><!-- Buttons --></th></tr></thead>
               <tbody>
               {% for author in object_list %}
-                <tr class="dict-entry clickable"
-                    onclick="ru.lenten.seeker.goto_url('{% url 'author_details' author.id %}')">
+                <tr class="dict-entry" >
                   <td class="hidden"> {{ author.id }}</td>
-                  <td class="author-abbr tdnowrap" style="min-width: 100px;">{% if author.abbr %}{{author.abbr}}{% endif %}</td>
-                  <td style="width: 100%;">
+                  <td class="tdnowrap clickable" title="View the details of this author"
+                      onclick="ru.lenten.seeker.goto_url('{% url 'author_details' author.id %}')">
                     <span class="author-name">{{author.name}}</span>
+                  </td>
+                  <td style="width: 100%;">
+                    <span class="author-info">{{author.info}}</span>
                   </td>
 
                   <!-- Short indications for this author-->
                   <td style="min-width: 80px;">
+                    {% if is_lenten_editor %}
+                      <!-- Edit button -->
+                      <a mode="edit" class="view-mode btn btn-xs jumbo-1"
+                         onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_author_change' author.id %}')">
+                        <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
+                      </a>
+                    {% endif %}
                   </td>
                 </tr>
 

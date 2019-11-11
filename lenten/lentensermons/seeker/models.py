@@ -1025,36 +1025,11 @@ class SermonCollection(tagtext.models.TagtextModel):
         auth_list = [x.name for x in self.authors.all()]
         return ", ".join(auth_list)
 
-    #def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
-    #    # Make sure some of the JSON-TEXT fields get stripped
-    #    strip_fields = ['liturgical', 'communicative', 'sources', 'exempla', 'notes']
-    #    for field in strip_fields:
-    #        sJson = getattr(self, field)
-    #        oJson = json.loads(sJson)
-    #        bChanged = False
-    #        # Treat first item
-    #        if len(oJson) > 0:
-    #            item = oJson[0]
-    #            if item['type'] == "text":
-    #                sValue = item['value']
-    #                sStripped = sValue.lstrip()
-    #                if sValue != sStripped:
-    #                    item['value'] = sStripped
-    #                    bChanged = True
-    #        if len(oJson) > 1:
-    #            item = oJson[-1]
-    #            if item['type'] == "text":
-    #                sValue = item['value']
-    #                sStripped = sValue.rstrip()
-    #                if sValue != sStripped:
-    #                    item['value'] = sStripped
-    #                    bChanged = True
-    #        if bChanged:
-    #            sJson = json.dumps(oJson)
-    #            setattr(self, field, sJson)
-
-    #    response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
-    #    return response
+    def get_place(self):
+        place = "-"
+        if self.place != None:
+            place = self.place.name
+        return place
 
     def __str__(self):
         # Combine my ID number and the title (which is obligatory)
