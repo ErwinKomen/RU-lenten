@@ -2020,6 +2020,7 @@ class CollectionDetailsView(PassimDetails):
     mainitems = []
 
     def add_to_context(self, context, instance):
+        # Show the main items of this sermon collection
         context['mainitems'] = [
             {'type': 'plain', 'label': "Code:", 'value': instance.idno},
             {'type': 'bold',  'label': "Title:", 'value': instance.title},
@@ -2033,8 +2034,142 @@ class CollectionDetailsView(PassimDetails):
             {'type': 'safeline',    'label': "Exempla:", 'value': instance.get_exempla_display.strip()},
             {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()},
             ]
+
+        related_objects = []
+
+        # Show the SERMONS of this collection
+        sermons = {'title': 'Sermons that are part of this collection'}
+        # Show the list of sermons that are part of this collection
+        qs = Sermon.objects.filter(collection=instance).order_by('code')
+        rel_list =[]
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.litday})
+            rel_item.append({'value': item.get_bibref()})
+            rel_list.append(rel_item)
+        sermons['rel_list'] = rel_list
+        sermons['columns'] = ['Code', 'Liturgical day', 'Reference']
+        related_objects.append(sermons)
+
+        # Show the MANUSCRIPTS that point to this collection
+        manuscripts = {'title': 'Manuscripts that contain this collection'}
+        # Get the list of manuscripts
+        qs = Manuscript.objects.filter(collection=instance).order_by('info')
+        rel_list = []
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.info, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.link})
+            rel_list.append(rel_item)
+        manuscripts['rel_list'] = rel_list
+        manuscripts['columns'] = ['Information', 'Link']
+        related_objects.append(manuscripts)
+
+        # Show the EDITIONS that point to this collection
+        editions = {'title': 'Editions that contain this collection'}
+        # Get the list of editions
+        qs = Edition.objects.filter(sermoncollection=instance).order_by('code')
+        rel_list = []
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.get_date()})
+            rel_item.append({'value': item.get_place()})
+            rel_list.append(rel_item)
+        editions['rel_list'] = rel_list
+        editions['columns'] = ['Code', 'Date', 'Place']
+        related_objects.append(editions)
+
+        context['related_objects'] = related_objects
+        # Return the context we have made
         return context
 
+
+class EditionListView(ListView):
+    """Listview of sermons"""
+
+    model = Edition
+    paginate_by = 15
+    template_name = 'seeker/edition_list.html'
+    entrycount = 0
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(EditionListView, self).get_context_data(**kwargs)
+
+        # Get parameters
+        initial = self.request.GET
+
+        # Determine the count 
+        context['entrycount'] = self.entrycount # self.get_queryset().count()
+
+        # Set the prefix
+        context['app_prefix'] = APP_PREFIX
+
+        # Get parameters for the search
+        initial = self.request.GET
+        # The searchform is just a list form, but filled with the 'initial' parameters
+        # context['searchform'] = LocationForm(initial)
+
+        # Make sure the paginate-values are available
+        context['paginateValues'] = paginateValues
+
+        if 'paginate_by' in initial:
+            context['paginateSize'] = int(initial['paginate_by'])
+        else:
+            context['paginateSize'] = paginateSize
+
+        # Set the title of the application
+        context['title'] = "Editions"
+
+        # Check if user may upload
+        context['is_authenticated'] = user_is_authenticated(self.request)
+        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Locations", True)
+        context['prevpage'] = get_previous_page(self.request)
+
+        # Return the calculated context
+        return context
+
+    def get_paginate_by(self, queryset):
+        """
+        Paginate by specified value in default class property value.
+        """
+        return self.paginate_by
+  
+    def get_queryset(self):
+        # Get the parameters passed on with the GET or the POST request
+        get = self.request.GET if self.request.method == "GET" else self.request.POST
+        get = get.copy()
+        self.get = get
+
+        lstQ = []
+
+        # Check for liturgical day
+        if 'place' in get and get['place'] != '':
+            val = adapt_search(get['place'])
+            # Search in the name field of the place location
+            lstQ.append(Q(place__name__iregex=val))
+
+        # Check for the code of the sermon
+        if 'code' in get and get['code'] != '':
+            val = get['code']
+            # Search in both the name field
+            lstQ.append(Q(code=val))
+
+        # Calculate the final qs
+        qs = Edition.objects.filter(*lstQ).order_by('code').distinct()
+
+        # Determine the length
+        self.entrycount = len(qs)
+
+        # Return the resulting filtered and sorted queryset
+        return qs
+    
 
 class EditionDetailsView(PassimDetails):
     model = Edition
@@ -2062,6 +2197,91 @@ class EditionDetailsView(PassimDetails):
         return context
 
 
+class ManuscriptListView(ListView):
+    """Listview of manuscripts"""
+
+    model = Manuscript
+    paginate_by = 15
+    template_name = 'seeker/manuscript_list.html'
+    entrycount = 0
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(ManuscriptListView, self).get_context_data(**kwargs)
+
+        # Get parameters
+        initial = self.request.GET
+
+        # Determine the count 
+        context['entrycount'] = self.entrycount # self.get_queryset().count()
+
+        # Set the prefix
+        context['app_prefix'] = APP_PREFIX
+
+        # Get parameters for the search
+        initial = self.request.GET
+        # The searchform is just a list form, but filled with the 'initial' parameters
+        # context['searchform'] = LocationForm(initial)
+
+        # Make sure the paginate-values are available
+        context['paginateValues'] = paginateValues
+
+        if 'paginate_by' in initial:
+            context['paginateSize'] = int(initial['paginate_by'])
+        else:
+            context['paginateSize'] = paginateSize
+
+        # Set the title of the application
+        context['title'] = "Manuscripts"
+
+        # Check if user may upload
+        context['is_authenticated'] = user_is_authenticated(self.request)
+        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Manuscripts", True)
+        context['prevpage'] = get_previous_page(self.request)
+
+        # Return the calculated context
+        return context
+
+    def get_paginate_by(self, queryset):
+        """
+        Paginate by specified value in default class property value.
+        """
+        return self.paginate_by
+  
+    def get_queryset(self):
+        # Get the parameters passed on with the GET or the POST request
+        get = self.request.GET if self.request.method == "GET" else self.request.POST
+        get = get.copy()
+        self.get = get
+
+        lstQ = []
+
+        # Check for manuscript information
+        if 'info' in get and get['info'] != '':
+            val = adapt_search(get['info'])
+            # Search in the info field
+            lstQ.append(Q(info__iregex=val))
+
+        # Check for the link in the manuscript
+        if 'link' in get and get['link'] != '':
+            val = adapt_search(get['link'])
+            # Search in the link field
+            lstQ.append(Q(link__iregex=val))
+
+        # Calculate the final qs
+        qs = Manuscript.objects.filter(*lstQ).order_by('collection__idno').distinct()
+
+        # Determine the length
+        self.entrycount = len(qs)
+
+        # Return the resulting filtered and sorted queryset
+        return qs
+    
+
 class ManuscriptDetailsView(PassimDetails):
     model = Manuscript
     mForm = None
@@ -2076,6 +2296,25 @@ class ManuscriptDetailsView(PassimDetails):
             {'type': 'plain',  'label': "Information:", 'value': instance.info},
             {'type': 'plain', 'label': "Link (if available):", 'value': instance.link}
             ]
+        related_objects = []
+
+        # Show the SERMONS of this manuscript
+        sermons = {'title': 'Sermons that are part of this manuscript'}
+        # Show the list of sermons that are part of this manuscript
+        qs = Sermon.objects.filter(collection=instance.collection).order_by('code')
+        rel_list =[]
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.litday})
+            rel_item.append({'value': item.get_bibref()})
+            rel_list.append(rel_item)
+        sermons['rel_list'] = rel_list
+        sermons['columns'] = ['Code', 'Liturgical day', 'Reference']
+        related_objects.append(sermons)
+
+        context['related_objects'] = related_objects
+        # Return the context we have made
         return context
 
 

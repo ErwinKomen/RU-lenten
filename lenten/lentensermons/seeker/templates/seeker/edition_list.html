@@ -12,16 +12,16 @@
 
       <div class="panel panel-default">
 
-        <!-- Heading and button to add a new sermon -->
+        <!-- Heading and button to add a new edition -->
         <form>
           <h3>
-            <span title="Every sermon belongs to a sermon collection">Sermons</span>
+            <span title="An edition points to a particular sermon collection">Editions</span>
             {% if is_lenten_editor %}
               <span id="add_sermon" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
-                    href="{% url 'sermon_add' %}">
-                  <span class="glyphicon glyphicon-plus"></span>Add a sermon
+                    href="{% url 'edition_add' %}">
+                  <span class="glyphicon glyphicon-plus"></span>Add an edition
                 </a>
               </span>
             {% endif %}
@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <!-- Table that lists all sermons -->
+        <!-- Table that lists all editions -->
         <div class="row">
           <div class="col-md-12">
             <table class="table table-hover">
@@ -51,28 +51,28 @@
                   <th class="hidden">id</th>
                   <th>Code</th>
                   <th>Collection</th>
-                  <th>Liturgical day</th>
-                  <th>Reference</th>
+                  <th>Date</th>
+                  <th>Place</th>
                   <th><!-- Buttons --></th>
                 </tr>
               </thead>
               <tbody>
-              {% for sermon in object_list %}
+              {% for edition in object_list %}
                 <tr class="dict-entry">
-                  <td class="hidden"> {{ sermon.id }}</td>
-                  <td class="clickable" title="View the sermon"
-                      onclick="ru.lenten.seeker.goto_url('{% url 'sermon_details' sermon.id %}')">{% if sermon.code %}{{sermon.code}}{% endif %}</td>
-                  <td class="clickable" title="View the sermon collection"
-                      onclick="ru.lenten.seeker.goto_url('{% url 'collection_details' sermon.collection.id %}')">{{sermon.collection.title}}</td>
-                  <td style="width: 100%;">{{sermon.litday}}</td>
-                  <td class="tdnowrap">{{sermon.get_bibref}}</td>
+                  <td class="hidden"> {{ edition.id }}</td>
+                  <td class="clickable" title="View the edition"
+                      onclick="ru.lenten.seeker.goto_url('{% url 'edition_details' edition.id %}')">{% if edition.code %}{{edition.code}}{% endif %}</td>
+                  <td class="clickable" title="View the sermon collection of this edition"
+                      onclick="ru.lenten.seeker.goto_url('{% url 'collection_details' edition.sermoncollection.id %}')">{{edition.sermoncollection.title}}</td>
+                  <td style="width: 100%;">{{edition.get_date}}</td>
+                  <td class="tdnowrap">{{edition.get_place}}</td>
 
-                  <!-- Short indications for this sermon-->
+                  <!-- Short indications for this edition -->
                   <td style="min-width: 80px;">
                     {% if is_lenten_editor %}
                       <!-- Edit button -->
                       <a mode="edit" class="view-mode btn btn-xs jumbo-1"
-                         onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermon_change' sermon.id %}')">
+                         onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_edition_change' edition.id %}')">
                         <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
                       </a>
                     {% endif %}
@@ -95,7 +95,7 @@
         </div>
 
       {% else %}
-        <p>No sermons have been found.</p>
+        <p>No editions have been found.</p>
       {% endif %}
 
       </div>

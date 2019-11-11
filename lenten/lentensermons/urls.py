@@ -57,11 +57,11 @@ urlpatterns = [
     url(r'^collection/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermoncollection/add'), name='collection_add'),
     url(r'^collection/view(?:/(?P<pk>\d+))?/$', CollectionDetailsView.as_view(), name='collection_details'),
 
-    url(r'^manuscript/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/manuscript'), name='manuscript_list'),
+    url(r'^manuscript/list',  ManuscriptListView.as_view(), name='manuscript_list'),
     url(r'^manuscript/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/manuscript/add'), name='manuscript_add'),
     url(r'^manuscript/view(?:/(?P<pk>\d+))?/$', ManuscriptDetailsView.as_view(), name='manuscript_details'),
 
-    url(r'^edition/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/edition'), name='edition_list'),
+    url(r'^edition/list',  EditionListView.as_view(), name='edition_list'),
     url(r'^edition/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/edition/add'), name='edition_add'),
     url(r'^edition/view(?:/(?P<pk>\d+))?/$', EditionDetailsView.as_view(), name='edition_details'),
 

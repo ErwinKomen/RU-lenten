@@ -1251,6 +1251,29 @@ class Edition(models.Model):
         count = self.sermoncollection.sermons.all().count()
         return count
 
+    def get_date(self):
+        """Combine the date fields into a listview-showable version"""
+
+        date = ""
+        if self.date != None:
+            if self.date_late == None:
+                date = self.date
+            else:
+                date = "{}-{}".format(self.date, self.date_late)
+        elif self.date_late != None:
+            date = "before {}".format(self.date_late)
+        else:
+            date = "-"
+        return date
+
+    def get_place(self):
+        """Combine the place/location fields into a listview-showable version"""
+
+        place = ""
+        if self.place != None:
+            place = self.place.name
+        return place
+
 
 class Consulting(models.Model):
     """An actual copy that the researcher has consulted or has seen"""

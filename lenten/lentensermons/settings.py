@@ -37,8 +37,8 @@ if "d:" in WRITABLE_DIR or "D:" in WRITABLE_DIR or "c:" in WRITABLE_DIR or "C:" 
     admin.site.site_url = '/'
 elif "131.174" in hst:
     # Configuration within the Radboud University environment (AppleJack)
-    APP_PREFIX = "lentensermons/"
-    admin.site.site_url = '/lentensermons'
+    APP_PREFIX = ""
+    admin.site.site_url = '/'
 elif "/var/www" in WRITABLE_DIR:
     # New configuration 
     APP_PREFIX = "lentensermons/"
@@ -62,7 +62,7 @@ SECRET_KEY = '561c5400-4ebf-4e45-a2ec-12d856638e45'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', 'applejack.science.ru.nl', 'lentensermons.science.ru.nl', 'testserver' ]
+ALLOWED_HOSTS = ['localhost', 'applejack.science.ru.nl', 'lentensermons.science.ru.nl', 'lentensermons.cls.ru.nl', 'testserver' ]
 
 
 # Application definition
