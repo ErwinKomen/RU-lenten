@@ -38,7 +38,7 @@ from io import StringIO
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
-    SignUpForm
+    SignUpForm, SermonListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, \
@@ -161,6 +161,176 @@ def has_string_value(field, obj):
 def has_list_value(field, obj):
     response = (field in obj and obj[field] != None and len(obj[field]) > 0)
     return response
+
+def has_obj_value(field, obj):
+    response = (field != None and field in obj and obj[field] != None)
+    return response
+
+def make_search_list(filters, oFields, search_list, qd):
+    """Using the information in oFields and search_list, produce a revised filters array and a lstQ for a Queryset"""
+
+    def enable_filter(filter_id, head_id=None):
+        for item in filters:
+            if filter_id in item['id']:
+                item['enabled'] = True
+                # Break from my loop
+                break
+        # Check if this one has a head
+        if head_id != None and head_id != "":
+            for item in filters:
+                if head_id in item['id']:
+                    item['enabled'] = True
+                    # Break from this sub-loop
+                    break
+        return True
+
+    def get_value(obj, field, default=None):
+        if field in obj:
+            sBack = obj[field]
+        else:
+            sBack = default
+        return sBack
+
+    oErr = ErrHandle()
+
+    try:
+        # (1) Create default lstQ
+        lstQ = []
+
+        # (2) Reset the filters in the list we get
+        for item in filters: item['enabled'] = False
+    
+        # (3) Walk all sections
+        for part in search_list:
+            head_id = get_value(part, 'section')
+
+            # (4) Walk the list of defined searches
+            for search_item in part['filterlist']:
+                keyS = get_value(search_item, "keyS")
+                keyId = get_value(search_item, "keyId")
+                keyFk = get_value(search_item, "keyFk")
+                keyList = get_value(search_item, "keyList")
+                infield = get_value(search_item, "infield")
+                dbfield = get_value(search_item, "dbfield")
+                fkfield = get_value(search_item, "fkfield")
+                filter_type = get_value(search_item, "filter")
+                s_q = ""
+               
+                # Main differentiation: fkfield or dbfield
+                if fkfield:
+                    # We are dealing with a foreign key
+                    # Check for keyS
+                    if has_string_value(keyS, oFields):
+                        # Check for ID field
+                        if has_string_value(keyId, oFields):
+                            val = oFields[keyId]
+                            if not isinstance(val, int): 
+                                try:
+                                    val = val.id
+                                except:
+                                    pass
+                            enable_filter(filter_type, head_id)
+                            s_q = Q(**{"{}__id".format(fkfield): val})
+                        elif has_obj_value(fkfield, oFields):
+                            val = oFields[fkfield]
+                            enable_filter(filter_type, head_id)
+                            s_q = Q(**{fkfield: val})
+                        else:
+                            val = oFields[keyS]
+                            enable_filter(filter_type, head_id)
+                            # we are dealing with a foreign key, so we should use keyFk
+                            if "*" in val:
+                                val = adapt_search(val)
+                                s_q = Q(**{"{}__{}__iregex".format(fkfield, keyFk): val})
+                            else:
+                                s_q = Q(**{"{}__{}__iexact".format(fkfield, keyFk): val})
+                    elif has_obj_value(fkfield, oFields):
+                        val = oFields[fkfield]
+                        enable_filter(filter_type, head_id)
+                        s_q = Q(**{fkfield: val})
+                        external = get_value(search_item, "external")
+                        if has_string_value(external, oFields):
+                            qd[external] = getattr(val, "name")
+                elif dbfield:
+                    # We are dealing with a plain direct field for the model
+                    # OR: it is also possible we are dealing with a m2m field -- that gets the same treatment
+                    # Check for keyS
+                    if has_string_value(keyS, oFields):
+                        # Check for ID field
+                        if has_string_value(keyId, oFields):
+                            val = oFields[keyId]
+                            enable_filter(filter_type, head_id)
+                            s_q = Q(**{"{}__id".format(dbfield): val})
+                        elif has_obj_value(keyFk, oFields):
+                            val = oFields[keyFk]
+                            enable_filter(filter_type, head_id)
+                            s_q = Q(**{dbfield: val})
+                        else:
+                            val = oFields[keyS]
+                            enable_filter(filter_type, head_id)
+                            if isinstance(val, int):
+                                s_q = Q(**{"{}".format(dbfield): val})
+                            elif "*" in val:
+                                val = adapt_search(val)
+                                s_q = Q(**{"{}__iregex".format(dbfield): val})
+                            else:
+                                s_q = Q(**{"{}__iexact".format(dbfield): val})
+
+                # Check for list of specific signatures
+                if has_list_value(keyList, oFields):
+                    enable_filter(filter_type, head_id)
+                    code_list = [getattr(x, infield) for x in oFields[keyList]]
+                    if fkfield:
+                        # Now we need to look at the id's
+                        s_q_lst = Q(**{"{}__{}__in".format(fkfield, infield): code_list})
+                    elif dbfield:
+                        s_q_lst = Q(**{"{}__in".format(infield): code_list})
+                    s_q = s_q_lst if s_q == "" else s_q | s_q_lst
+
+                # Possibly add the result to the list
+                if s_q != "": lstQ.append(s_q)
+    except:
+        msg = oErr.get_error_message()
+        oErr.DoError("make_search_list")
+        lstQ = []
+
+    # Return what we have created
+    return filters, lstQ, qd
+
+def make_ordering(qs, qd, orders, order_cols, order_heads):
+
+    oErr = ErrHandle()
+
+    try:
+        bAscending = True
+        sType = 'str'
+        order = []
+        if 'o' in qd:
+            iOrderCol = int(qd['o'])
+            bAscending = (iOrderCol>0)
+            iOrderCol = abs(iOrderCol)
+            for order_item in order_cols[iOrderCol-1].split(";"):
+                order.append(Lower(order_item))
+            sType = order_heads[iOrderCol-1]['type']
+            if bAscending:
+                order_heads[iOrderCol-1]['order'] = 'o=-{}'.format(iOrderCol)
+            else:
+                # order = "-" + order
+                order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
+        if sType == 'str':
+            qs = qs.order_by(*order)
+        else:
+            qs = qs.order_by(*order)
+        # Possibly reverse the order
+        if not bAscending:
+            qs = qs.reverse()
+    except:
+        msg = oErr.get_error_message()
+        oErr.DoError("make_ordering")
+        lstQ = []
+
+    return qs, order_heads
+
 
 def process_visit(request, name, is_menu, **kwargs):
     """Process one visit and return updated breadcrumbs"""
@@ -1677,13 +1847,42 @@ class SermonListView(ListView):
     paginate_by = 15
     template_name = 'seeker/sermon_list.html'
     entrycount = 0
+    qd = None
+    bFilter = False     # Status of the filter
+    initial = None
+    order_default = ['code', 'collection__title', 'litday', 'book;chapter;verse']
+    order_cols = ['code', 'collection__title', 'litday', 'book;chapter;verse']
+    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
+                   {'name': 'Collection', 'order': 'o=2', 'type': 'str'}, 
+                   {'name': 'Liturgical day', 'order': 'o=3', 'type': 'str'},
+                   {'name': 'Reference', 'order': 'o=4', 'type': 'str'}]
+    filters = [ {"name": "Code",           "id": "filter_code",         "enabled": False},
+                {"name": "Collection",     "id": "filter_collection",   "enabled": False},
+                {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
+                {"name": "Book",           "id": "filter_book",         "enabled": False},
+                {"name": "Keyword",        "id": "filter_keyword",      "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
+            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
+            {'filter': 'litday',    'dbfield': 'litday',    'keyS': 'litday'},
+            {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
+            {'filter': 'keyword',   'fkfield': 'keywords',  'keyS': 'keyword',   'keyFk': 'name', 'keyList': 'kwlist', 'infield': 'name' }]}
+        ]
+    
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
         context = super(SermonListView, self).get_context_data(**kwargs)
 
-        # Get parameters
-        initial = self.request.GET
+        # Get parameters for the search
+        if self.initial == None:
+            initial = self.request.POST if self.request.POST else self.request.GET
+        else:
+            initial = self.initial
+
+        # Need to load the correct form
+        context['sermoForm'] = SermonListForm(initial, prefix='sermo')
 
         # Determine the count 
         context['entrycount'] = self.entrycount # self.get_queryset().count()
@@ -1707,6 +1906,11 @@ class SermonListView(ListView):
         # Set the title of the application
         context['title'] = "Sermons"
 
+        # Make sure we pass on the ordered heads
+        context['order_heads'] = self.order_heads
+        context['has_filter'] = self.bFilter
+        context['filters'] = self.filters
+
         # Check if user may upload
         context['is_authenticated'] = user_is_authenticated(self.request)
         context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
@@ -1729,30 +1933,50 @@ class SermonListView(ListView):
         # Get the parameters passed on with the GET or the POST request
         get = self.request.GET if self.request.method == "GET" else self.request.POST
         get = get.copy()
-        self.get = get
+        self.qd = get
 
-        lstQ = []
+        self.bHasParameters = (len(get) > 0)
 
-        # Check for liturgical day
-        if 'litday' in get and get['litday'] != '':
-            val = adapt_search(get['litday'])
-            # Search in both the name field
-            lstQ.append(Q(litday__iregex=val))
+        if self.bHasParameters:
+            lstQ = []
+            # Indicate we have no filters
+            self.bFilter = False
 
-        # Check for the code of the sermon
-        if 'code' in get and get['code'] != '':
-            val = get['code']
-            # Search in both the name field
-            lstQ.append(Q(code=val))
+            # Read the form with the information
+            sermoForm = SermonListForm(self.qd, prefix="sermo")
 
-        # Calculate the final qs
-        qs = Sermon.objects.filter(*lstQ).order_by('code').distinct()
+            if sermoForm.is_valid():
+                # Process the criteria for this form
+                oFields = sermoForm.cleaned_data
+
+                self.filters, lstQ, self.initial = make_search_list(self.filters, oFields, self.searches, self.qd)
+                # Calculate the final qs
+                if len(lstQ) == 0:
+                    # Just show everything
+                    qs = Sermon.objects.all()
+                else:
+                    # There is a filter, so apply it
+                    qs = Sermon.objects.filter(*lstQ).distinct()
+                    self.bFilter = True
+            else:
+                # Just show everything
+                qs = Sermon.objects.all().distinct()
+
+            # Do the ordering of the results
+            order = self.order_default
+            qs, self.order_heads = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
+        else:
+            # Just show everything
+            qs = Sermon.objects.all().distinct()
 
         # Determine the length
         self.entrycount = len(qs)
 
         # Return the resulting filtered and sorted queryset
         return qs
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
     
 
 class SermonCollectionListView(ListView):

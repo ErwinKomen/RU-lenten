@@ -7,9 +7,165 @@
   </div>
 {% endblock %}
 
+{% block scripts %}
+  {{sermoForm.media.css}}
+{% endblock %}
+
 {% block content %}
 
 
+<div>
+
+    <!-- Buttons for elements that are normally hidden -->
+    <div class="panel panel-none">
+      <div class="row">
+        <div class="col-md-2 col-md-offset-10 text-right">
+          <span class="">
+            <!-- NEW: use filtering instead of 'searching' -->
+            <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_filter" role="button" title="Define your filter(s)...">
+              <span class="glyphicon glyphicon-filter"></span>
+            </a>
+
+            <!-- Allow uploading Lenten Excel files -->
+            {% if is_lenten_uploader %}
+              <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_upload_sermonexcel" 
+                  role="button" title="Upload Excel files" >
+                <span class="glyphicon glyphicon-upload"></span>
+              </a>
+            {% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Define the filter tab -->
+    <form  id="sermons_filter" method='post' action="{% url 'sermon_list' %}" >
+      {% csrf_token %}
+      <!-- entrypoint for search_paged_start -->
+      <div class="hidden search_paged_start">
+        <input name="page" type="text" />
+      </div>
+
+      <!-- Filter tab -->
+      <div class="inert {% if has_filter %}in{% else %}collapse{% endif %}" id="tab_filter">
+        <div class="panel panel-default">
+          <!-- Filter interface -->
+          <div class="row" id="filter_badges">
+            <div class="col-md-2">
+              <h4>Selected filters</h4>
+            </div>
+            <div class="col-md-10">
+              <!-- Main filters -->
+              <div>
+                <h4>
+                {% for filter in filters %}
+                  {% if not filter.head_id %}
+                    <span class="badge filter {% if filter.enabled %} jumbo-3 on {% else %} jumbo-1 {% endif %} " targetid="{{filter.id}}" >{{filter.name}}</span>
+                  {% endif %}
+                {% endfor %}
+                </h4>
+              </div>
+            </div>
+          </div>
+              
+          <div class="row" id="sermon_filter_specs">
+            <!-- The column with the different filter sections -->
+            <div class="col-md-10">
+              <div class="panel panel-default ">
+
+                <!-- Intro -->
+                <div><h5>Sermon filters: </h5></div>
+
+                <!-- One or more codes -->
+                <div id="filter_code" class="{% if not sermoForm.code.value %}hidden{% endif %}">
+                  <table style="width: 100%;">
+                    <tr class="form-row"><td style="min-width: 130px;">Code</td><td style="width: 100%;">{{sermoForm.code}}</td></tr>
+                  </table>
+                </div>
+
+                    <!-- One or more authors -->
+                    <div id="filter_collection" class="{% if not sermoForm.collname.value and not sermoForm.collectionlist.value %}hidden{% endif %}">
+                      <table style="width: 100%;">
+                        <tr class="form-row">
+                          <td style="min-width: 130px;" valign="top">Collection</td>
+                          <td style="width: 100%;">
+                            <span class="collection-key hidden">{{sermoForm.collection}}</span>
+                            <span>{{sermoForm.collname}}</span>
+                            <span> or select: </span>
+                            <span>{{sermoForm.collectionlist}}</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+
+                <!-- One or more litday items -->
+                <div id="filter_litday" class="{% if not sermoForm.litday.value %}hidden{% endif %}">
+                  <table style="width: 100%;">
+                    <tr class="form-row"><td style="min-width: 130px;">Liturgical day</td><td style="width: 100%;">{{sermoForm.litday}}</td></tr>
+                  </table>
+                </div>
+
+                <!-- One or more books -->
+                <div id="filter_book" class="{% if not sermoForm.bookname.value and not sermoForm.booklist.value %}hidden{% endif %}">
+                  <table style="width: 100%;">
+                    <tr class="form-row">
+                      <td style="min-width: 130px;">Book</td>
+                      <td style="width: 100%;">
+                        <span style="min-width: 100px;">{{sermoForm.bookname}}</span>
+                        <span> or select: </span>
+                        <span>{{sermoForm.booklist}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <!-- One or more keywords -->
+                <div id="filter_keyword" class="{% if not sermoForm.keyword.value and not sermoForm.kwlist.value  %}hidden{% endif %}">
+                  <table style="width: 100%;">
+                    <tr class="form-row">
+                      <td style="min-width: 130px;">Keyword</td>
+                      <td style="width: 100%;">
+                        <span style="min-width: 100px;">{{sermoForm.keyword}}</span>
+                        <span> or select: </span>
+                        <span>{{sermoForm.kwlist}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Row with buttons-->
+          <div class="row">
+            <div class="col-md-2 col-md-offset-10 text-right">
+              <!-- Room to reset the search criteria -->
+              <span>
+                <a role="button" class="btn btn-sm jumbo-1" title="Clear search criteria" onclick="ru.lenten.seeker.search_clear(this);" >Clear</a>
+              </span>
+              <!-- Submit the search form -->
+              <span>
+                <a role="button" class="btn btn-sm jumbo-3" title="Start searching..." onclick="ru.lenten.seeker.search_start(this);">Search</a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+
+    <!-- Future extension: uploading -->
+    {% if is_lenten_uploader %}
+      <!-- Uplooad tab for Lenten sermon Excel files -->
+      <div class="inert collapse" id="tab_upload_sermoexcel">
+        <!-- VERDER INVULLEN -->
+      </div>
+    {% endif %}
+
+    <!-- List tab -->
+    <div class="" id="tab_list">
       <div class="panel panel-default">
 
         <!-- Heading and button to add a new sermon -->
@@ -28,77 +184,85 @@
           </h3>
         </form>
 
+        {% if object_list %}
+          <!-- Top pagination -->
+          <div class="row">
+              <div class="col-sm-4"><span>Found: </span><span>{{entrycount}}</span></div>
+              <div class="col-sm-8">
+              <span class="step-links pull-right">
 
-      {% if object_list %}
-        <!-- Top pagination -->
-        <div class="row">
-            <div class="col-sm-4"><span>Found: </span><span>{{entrycount}}</span></div>
-            <div class="col-sm-8">
-            <span class="step-links pull-right">
+              {% include 'pagination.html' %}
 
-            {% include 'pagination.html' %}
-
-            </span>
-            </div>
-        </div>
-
-        <!-- Table that lists all sermons -->
-        <div class="row">
-          <div class="col-md-12">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th class="hidden">id</th>
-                  <th>Code</th>
-                  <th>Collection</th>
-                  <th>Liturgical day</th>
-                  <th>Reference</th>
-                  <th><!-- Buttons --></th>
-                </tr>
-              </thead>
-              <tbody>
-              {% for sermon in object_list %}
-                <tr class="dict-entry">
-                  <td class="hidden"> {{ sermon.id }}</td>
-                  <td class="clickable" title="View the sermon"
-                      onclick="ru.lenten.seeker.goto_url('{% url 'sermon_details' sermon.id %}')">{% if sermon.code %}{{sermon.code}}{% endif %}</td>
-                  <td class="clickable" title="View the sermon collection"
-                      onclick="ru.lenten.seeker.goto_url('{% url 'collection_details' sermon.collection.id %}')">{{sermon.collection.title}}</td>
-                  <td style="width: 100%;">{{sermon.litday}}</td>
-                  <td class="tdnowrap">{{sermon.get_bibref}}</td>
-
-                  <!-- Short indications for this sermon-->
-                  <td style="min-width: 80px;">
-                    {% if is_lenten_editor %}
-                      <!-- Edit button -->
-                      <a mode="edit" class="view-mode btn btn-xs jumbo-1"
-                         onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermon_change' sermon.id %}')">
-                        <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
-                      </a>
-                    {% endif %}
-                  </td>
-                </tr>
-
-              {% endfor %}
-              </tbody>
-            </table>
+              </span>
+              </div>
           </div>
-        </div>
 
-        <!-- Bottom pagination -->
-        <div class="pagination">
-            <span class="step-links">
+          <!-- Table that lists all sermons -->
+          <div class="row">
+            <div class="col-md-12">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th class="hidden">id</th>
+                    {% for hd in order_heads %}
+                      <th class="sortable" scope="col">
+                        <div class="text">
+                          {% if hd.order == "" %}{{hd.name}}
+                          {% else %}
+                          <a href=?{{hd.order}}>{{hd.name}}</a>
+                          {% endif %}
+                        </div>
+                      </th>
+                    {% endfor %}
+                    <th><!-- Buttons --></th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for sermon in object_list %}
+                  <tr class="dict-entry">
+                    <td class="hidden"> {{ sermon.id }}</td>
+                    <td class="clickable" title="View the sermon"
+                        onclick="ru.lenten.seeker.goto_url('{% url 'sermon_details' sermon.id %}')">{% if sermon.code %}{{sermon.code}}{% endif %}</td>
+                    <td class="clickable" title="View the sermon collection"
+                        onclick="ru.lenten.seeker.goto_url('{% url 'collection_details' sermon.collection.id %}')">{{sermon.collection.title}}</td>
+                    <td style="width: 100%;">{{sermon.litday}}</td>
+                    <td class="tdnowrap">{{sermon.get_bibref}}</td>
 
-            {% include 'pagination.html' %}
+                    <!-- Short indications for this sermon-->
+                    <td style="min-width: 80px;">
+                      {% if is_lenten_editor %}
+                        <!-- Edit button -->
+                        <a mode="edit" class="view-mode btn btn-xs jumbo-1"
+                           onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermon_change' sermon.id %}')">
+                          <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
+                        </a>
+                      {% endif %}
+                    </td>
+                  </tr>
 
-            </span>
-        </div>
+                {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-      {% else %}
-        <p>No sermons have been found.</p>
-      {% endif %}
+          <!-- Bottom pagination -->
+          <div class="pagination">
+              <span class="step-links">
 
+              {% include 'pagination.html' %}
+
+              </span>
+          </div>
+
+        {% else %}
+          <p>No sermons have been found.</p>
+        {% endif %}
       </div>
+
+    </div>
+
+  </div>
 
 <script>
   ru.lenten.seeker.init_events();
@@ -106,3 +270,6 @@
 
 {% endblock content %}
 
+{% block endcontent %} 
+  {{sermoForm.media.js }} 
+{% endblock %}

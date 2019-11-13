@@ -162,3 +162,78 @@ class ReportEditForm(forms.ModelForm):
                  }
 
 
+class KeywordWidget(ModelSelect2MultipleWidget):
+    model = Keyword
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Keyword.objects.all().order_by('name').distinct()
+
+
+class BookWidget(ModelSelect2MultipleWidget):
+    model = Book
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Book.objects.all().order_by('name').distinct()
+
+
+class CollectionWidget(ModelSelect2MultipleWidget):
+    model = SermonCollection
+    search_fields = [ 'title__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.title
+
+    def get_queryset(self):
+        return SermonCollection.objects.all().order_by('title').distinct()
+
+
+class SermonListForm(forms.ModelForm):
+    collname = forms.CharField(label=_("Collection"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
+    collectionlist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=CollectionWidget(attrs={'data-placeholder': 'Select multiple collections...', 'style': 'width: 100%;', 'class': 'searching'}))
+    bookname = forms.CharField(label=_("Collection"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
+    booklist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=BookWidget(attrs={'data-placeholder': 'Select multiple books...', 'style': 'width: 100%;', 'class': 'searching'}))
+    keyword = forms.CharField(label=_("Keyword"), required=False,
+                widget=forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Keyword(s)...', 'style': 'width: 100%;'}))
+    kwlist = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=KeywordWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
+
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = Sermon
+        fields = ['code', 'collection', 'litday', 'book', 'chapter', 'verse' ]
+        widgets={'code':        forms.TextInput(attrs={'class': 'typeahead searching codes input-sm', 'placeholder': 'Code...', 'style': 'width: 100%;'}),
+                 'collection':  forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}),
+                 'litday':      forms.TextInput(attrs={'class': 'typeahead searching litdays input-sm', 'placeholder': 'Liturgical day...', 'style': 'width: 100%;'}),
+                 'book':        forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Book...', 'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(SermonListForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['code'].required = False
+        self.fields['collection'].required = False
+        self.fields['litday'].required = False
+        self.fields['book'].required = False
+        self.fields['chapter'].required = False
+        self.fields['verse'].required = False
+        self.fields['kwlist'].queryset = Keyword.objects.all().order_by('name')
+        self.fields['booklist'].queryset = Book.objects.all().order_by('name')
+        self.fields['collectionlist'].queryset = SermonCollection.objects.all().order_by('title')
+
+        # Get the instance
+        if 'instance' in kwargs:
+            instance = kwargs['instance']
