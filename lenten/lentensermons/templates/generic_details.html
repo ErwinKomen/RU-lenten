@@ -61,6 +61,49 @@
 
             </div>
 
+            {% if sections and sections|length > 1 %}
+              <!-- List of buttons for sections -->
+              <div class="row">
+                <div class="col-md-12">
+                {% for section in sections %}
+                  <span>
+                    <a class="btn btn-xs jumbo-1" role="button" targetid="{{section.id}}" title="Show/Hide {{section.name}}"
+                       onclick="ru.lenten.seeker.toggle_click(this);">{{section.name}}</a>
+                  </span>
+                {% endfor %}
+                </div>
+              </div>
+
+              <!-- Room for each section -->
+              {% for section in sections %}
+                <div id="{{section.id}}" class="hidden panel panel-default">
+                  <!-- Show this section in a standard way -->
+                  <h4>{{section.name}}</h4>
+                  <table>
+                    <tbody>
+                      {% for item in section.fields %}
+                        <tr class="form-row">
+                          <td class="tdnowrap" valign="top">{{item.label}}</td>
+                          <td class="hoverable">
+                            {% spaceless %}
+                              {% if item.type == "bold" %}<b>{{item.value}}</b>
+                              {% elif item.type == "line" %}<div style="white-space: pre-line;">{{item.value}}</div>
+                              {% elif item.type == "safe" %}{{item.value|safe}}
+                              {% elif item.type == "safeline" %}<div style="white-space: pre-line;">{{item.value|safe}}</div>
+                              {% else %}{{item.value}}
+                              {% endif %}
+                            {% endspaceless %}
+                          </td>
+                        </tr>
+                      {% endfor %}
+
+                    </tbody>
+                  </table>
+                </div>
+              {% endfor %}
+            {% endif %}
+
+
             <!-- Lists of related items -->
             {% for related in related_objects %}
               <div class="row">

@@ -50,12 +50,10 @@ urlpatterns = [
     url(r'^author/view(?:/(?P<pk>\d+))?/$', AuthorDetailsView.as_view(), name='author_details'),
 
     url(r'^sermon/list',  SermonListView.as_view(), name='sermon_list'),
-    # url(r'^sermon/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon'), name='sermon_list'),
     url(r'^sermon/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon/add'), name='sermon_add'),
     url(r'^sermon/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='sermon_details'),
 
     url(r'^collection/list',  SermonCollectionListView.as_view(), name='collection_list'),
-    # url(r'^collection/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermoncollection'), name='collection_list'),
     url(r'^collection/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermoncollection/add'), name='collection_add'),
     url(r'^collection/view(?:/(?P<pk>\d+))?/$', CollectionDetailsView.as_view(), name='collection_details'),
 
@@ -66,6 +64,10 @@ urlpatterns = [
     url(r'^edition/list',  EditionListView.as_view(), name='edition_list'),
     url(r'^edition/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/edition/add'), name='edition_add'),
     url(r'^edition/view(?:/(?P<pk>\d+))?/$', EditionDetailsView.as_view(), name='edition_details'),
+
+    url(r'^publisher/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='publisher_details'),
+
+    url(r'^consulting/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='consulting_details'),
 
     url(r'^report/list', ReportListView.as_view(), name='report_list'),
     url(r'^report/details(?:/(?P<pk>\d+))?/$', ReportDetailsView.as_view(), name='report_details'),

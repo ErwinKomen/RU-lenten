@@ -355,85 +355,6 @@ def import_data_file(sContents, arErr):
         arErr.DoError("import_data_file error:")
         return {}
 
-#def process_tags(sText, tagitems, cls):
-#    """Extract the tags from [sText] and then make sure that the many-to-many field [m2m] only has these tags"""
-
-#    oErr = ErrHandle()
-#    # OLD sMarker = "_"       # Use the underscore
-#    sMarker = "@"       # Use the ampersand to add new tags
-#    # sBack = ""
-#    try:
-#        # Split the string
-#        arPart = sText.split(sMarker)
-#        # There should be an even number of underscores, so an odd number of parts
-#        if len(arPart) % 2 != 0:
-#            # Odd number of parts
-#            num_tags = (len(arPart) - 1) / 2
-#            if num_tags == 0:
-#                # Make sure to remove all the tag links
-#                for obj in tagitems.all():
-#                    # Double check for tagid
-#                    if 'tagid="{}"'.format(obj.id) not in sText:
-#                        tagitems.remove(obj)
-#            else:
-#                add_list = []
-#                # Create a list of what the tags should be:
-#                taglist = []
-#                tagnum = 0
-#                while tagnum < num_tags:
-#                    tagnum += 1
-#                    idx = (tagnum-1) * 2 + 1
-#                    taglist.append(arPart[idx])
-#                # Look for deletions
-#                for obj in tagitems.all():
-#                    if obj.name not in taglist:
-#                        # Must be removed
-#                        tagitems.remove(obj)
-#                # Get an update of what is in the database
-#                db_tags = [x.name for x in tagitems.all()]
-#                # Look for needed additions
-#                for tag in taglist:
-#                    if tag not in db_tags:
-#                        obj = cls.objects.filter(name=tag).first()
-#                        if obj == None:
-#                            # Create and add an item in one go
-#                            tagitems.create(name=tag)
-#                        else:
-#                            # Add the existing item
-#                            tagitems.add(obj)
-
-#                # Make sure the arPart and the return string get adapted properly
-#                tagnum = 0
-#                while tagnum < num_tags:
-#                    tagnum += 1
-#                    idx = (tagnum-1) * 2 + 1
-#                    tagtext = arPart[idx]
-#                    obj = cls.objects.filter(name=tagtext).first()
-#                    if obj != None:
-#                        sReplace = '<span contenteditable="false" tagid="{}">{}</span>'.format(obj.id, tagtext)
-#                        arPart[idx] = sReplace
-#                sText = "".join(arPart)
-#                # Everything is okay (current_tags)
-#        else:
-#            # Even number of parts: do NOTHING...
-#            pass
-
-#        # Now check for all occurrances of [tagid=]
-#        tag_list = re.findall(r'(tagid=")(\d+)', sText)
-#        for item in tag_list:
-#            # The id itself is in [1]
-#            tagid = item[1]
-#            # Check if it is in tagitems
-#            if tagitems.filter(id=tagid).first() == None:
-#                obj = cls.objects.filter(id=tagid).first()
-#                if obj != None:
-#                    tagitems.add(obj)
-        
-#        return True, sText
-#    except:
-#        sMsg = oErr.get_error_message()
-#        oErr.DoError("process_tags")
-#        return False, sMsg
 
 
 # ============= GENERAL CLASSES =================================================================
@@ -973,6 +894,10 @@ class SermonCollection(tagtext.models.TagtextModel):
     # [0-1] Notes
     notes = models.TextField("Notes", blank=True, null=True)
     
+    # ----------- calculated fields for sorting ----------
+    firstedition = models.IntegerField("First edition date", default=0)
+    numeditions = models.IntegerField("number of editions", default=0)
+
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Author: each sermoncollection may have 1 or more authors
     authors = models.ManyToManyField(Author, blank=True)
@@ -1030,6 +955,36 @@ class SermonCollection(tagtext.models.TagtextModel):
         if self.place != None:
             place = self.place.name
         return place
+
+    def num_editions(self):
+        count = self.editions.all().count()
+        return count
+
+    def first_edition(self):
+        obj = self.editions.all().order_by('date', 'date_late').first()
+        year = "-"
+        if obj != None:
+            year = obj.date
+            if year == None:
+                year = obj.date_late
+        return year
+
+    def adapt_editions(self):
+        """This gets called when an edition changes"""
+
+        bNeedSaving = False
+        firstedition = self.first_edition()
+        numeditions = self.num_editions()
+        if firstedition != self.firstedition:
+            self.firstedition = firstedition
+            bNeedSaving = True
+        if numeditions != self.numeditions:
+            self.numeditions = numeditions
+            bNeedSaving = True
+        # Check if saving is needed
+        if bNeedSaving:
+            self.save()
+        return True
 
     def __str__(self):
         # Combine my ID number and the title (which is obligatory)
@@ -1142,6 +1097,17 @@ class Sermon(tagtext.models.TagtextModel):
                 sRef = sBook
         return sRef
 
+    def get_topics(self):
+        """Get a list of topics"""
+
+        topics = [x.name for x in self.topics.all()]
+        sBack = ", ".join(topics)
+        return sBack
+
+    def get_topics_markdown(self):
+        sBack = markdown(self.get_topics())
+        return sBack
+
 
 class Publisher(models.Model):
     """A publisher is defined by a name"""
@@ -1153,7 +1119,7 @@ class Publisher(models.Model):
         return "-" if self == None else  self.name
 
 
-class Edition(models.Model):
+class Edition(tagtext.models.TagtextModel):
     """An edition belonging to a particular sermon collection"""
 
     # [0-1] Code: first number collection, second edition
@@ -1174,6 +1140,9 @@ class Edition(models.Model):
     format = models.CharField("Format", choices=build_abbr_list(FORMAT_TYPE), max_length=5, blank=True, null=True)
     # [0-1] Number of folia: this may include the text layout 
     folia = models.TextField("Number of folia", blank=True, null=True)
+
+    # [0-1] Notes on this Edition
+    note = models.TextField("Note", null=True, blank=True)
 
     # ----------- PARATEXTUAL ELEMENTS -------------
     # [0-1] Front or title page
@@ -1200,9 +1169,31 @@ class Edition(models.Model):
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Each edition may have any number of publishers
     publishers = models.ManyToManyField(Publisher, related_name="publisher_editions", blank=True)
+    # [0-n] = zero or more notetags in the note field
+    notetags = models.ManyToManyField(TagNote, blank=True, related_name="edition_notetags")
+
+    mixed_tag_fields = [
+            {"textfield": "note",           "m2mfield": "notetags",     "class": TagNote}
+        ]
 
     def __str__(self):
         response = "-" if self.code == None else self.code
+        return response
+
+    def tagtext_url(self):
+        url = reverse('api_tributes')
+        return url
+
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+        response = super(Edition, self).save(force_insert, force_update, using, update_fields)
+        # Adapt the information in sermoncollection
+        self.sermoncollection.adapt_editions()
+        return response
+
+    def delete(self, using = None, keep_parents = False):
+        response = super(Edition, self).delete(using, keep_parents)
+        # Adapt the information in sermoncollection
+        self.sermoncollection.adapt_editions()
         return response
 
     def get_sermons(self):
@@ -1249,6 +1240,20 @@ class Edition(models.Model):
             place = self.place.name
         return place
 
+    def get_editors(self):
+        """Get a list of editors"""
+
+        sBack = ""
+
+        return sBack
+
+    def has_notes(self):
+        """Return asterisk if has notes"""
+
+        sBack = ""
+        if self.note: sBack = "*"
+        return sBack
+
 
 class Consulting(models.Model):
     """An actual copy that the researcher has consulted or has seen"""
@@ -1264,7 +1269,7 @@ class Consulting(models.Model):
     # [0-1] Images
     images = models.TextField("Images", blank=True, null=True)
     # [1] Each consulting pertains to a particular edition
-    edition = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL, related_name="consultings")
+    edition = models.ForeignKey(Edition, blank=True, null=True, on_delete=models.SET_NULL, related_name="consultings")
 
     def __str__(self):
         return "-" if self == None else self.code

@@ -195,6 +195,28 @@ class CollectionWidget(ModelSelect2MultipleWidget):
         return SermonCollection.objects.all().order_by('title').distinct()
 
 
+class AuthorWidget(ModelSelect2MultipleWidget):
+    model = Author
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Author.objects.all().order_by('name').distinct()
+
+
+class LocationWidget(ModelSelect2MultipleWidget):
+    model = Location
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Location.objects.all().order_by('name').distinct()
+
+
 class SermonListForm(forms.ModelForm):
     collname = forms.CharField(label=_("Collection"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
@@ -237,3 +259,78 @@ class SermonListForm(forms.ModelForm):
         # Get the instance
         if 'instance' in kwargs:
             instance = kwargs['instance']
+            
+
+class CollectionListForm(forms.ModelForm):
+    authorname = forms.CharField(label=_("Author"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Author...', 'style': 'width: 100%;'}))
+    authorlist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=AuthorWidget(attrs={'data-placeholder': 'Select multiple authors...', 'style': 'width: 100%;', 'class': 'searching'}))
+    placename = forms.CharField(label=_("Author"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}))
+    placelist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=LocationWidget(attrs={'data-placeholder': 'Select multiple places...', 'style': 'width: 100%;', 'class': 'searching'}))
+    firstedition = forms.CharField(label=_("Date of first edition"), required = False)
+    numeditions = forms.CharField(label=_("Number of editions"), required = False)
+
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = SermonCollection
+        fields = ['idno', 'title', 'datecomp', 'place' ]
+        widgets={'idno':        forms.TextInput(attrs={'class': 'typeahead searching codes input-sm', 'placeholder': 'Identifier...', 'style': 'width: 100%;'}),
+                 'title':       forms.TextInput(attrs={'class': 'typeahead searching titles input-sm', 'placeholder': 'Title...', 'style': 'width: 100%;'}),
+                 'datecomp':    forms.TextInput(attrs={'class': 'typeahead searching litdays input-sm', 'placeholder': 'Year of composition...', 'style': 'width: 100%;'}),
+                 'place':       forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(CollectionListForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['idno'].required = False
+        self.fields['title'].required = False
+        self.fields['datecomp'].required = False
+        self.fields['place'].required = False
+        self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
+        self.fields['placelist'].queryset = Location.objects.all().order_by('name')
+
+        # Get the instance
+        if 'instance' in kwargs:
+            instance = kwargs['instance']
+
+
+class EditionListForm(forms.ModelForm):
+    authorname = forms.CharField(label=_("Author"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Author...', 'style': 'width: 100%;'}))
+    authorlist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=AuthorWidget(attrs={'data-placeholder': 'Select multiple authors...', 'style': 'width: 100%;', 'class': 'searching'}))
+    placename = forms.CharField(label=_("Author"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}))
+    placelist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=LocationWidget(attrs={'data-placeholder': 'Select multiple places...', 'style': 'width: 100%;', 'class': 'searching'}))
+
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = Edition
+        fields = ['code', 'date', 'place' ]
+        widgets={'code':        forms.TextInput(attrs={'class': 'typeahead searching codes input-sm', 'placeholder': 'Code...', 'style': 'width: 100%;'}),
+                 'date':        forms.TextInput(attrs={'class': 'typeahead searching titles input-sm', 'placeholder': 'Year of publicstion...', 'style': 'width: 100%;'}),
+                 'place':       forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(EditionListForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['code'].required = False
+        self.fields['date'].required = False
+        self.fields['place'].required = False
+        self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
+        self.fields['placelist'].queryset = Location.objects.all().order_by('name')
+
+        # Get the instance
+        if 'instance' in kwargs:
+            instance = kwargs['instance']
+

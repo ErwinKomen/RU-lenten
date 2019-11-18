@@ -189,12 +189,42 @@ class ManuscriptInline(admin.StackedInline):
         }
 
 
+class ConsultingInline(admin.StackedInline):
+    model = Consulting
+    fk_name = 'edition'
+    extra = 0                   # Number of rows to show
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+
+class EditionAdminForm(forms.ModelForm):
+    class Meta:
+        model = Edition
+        fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'frontpage', 'prologue', 'dedicatory', 'contents',\
+              'othertexts', 'images', 'fulltitle', 'colophon', 'publishers', 'note']
+        # filter_horizontal = ('publishers',)
+        widgets = {
+            'datecomment':  forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'folia':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'frontpage':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'prologue':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'dedicatory':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'contents':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'othertexts':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'images':       forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'fulltitle':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'colophon':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'note':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            }
+
+
 class EditionAdmin(admin.ModelAdmin):
     """Define an edition""" 
 
+    form = EditionAdminForm
     filter_horizontal = ('publishers',)
-    fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'frontpage', 'prologue', 'dedicatory', 'contents',\
-              'othertexts', 'images', 'fulltitle', 'colophon', 'publishers'] #, 'consultings']
+    inlines = [ConsultingInline]
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
@@ -217,6 +247,44 @@ class EditionInline(admin.StackedInline):
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
+
+
+class ConsultingAdmin(admin.ModelAdmin):
+    """Define the elements of a consulting:"""
+
+    fields = ['location', 'link', 'ownership', 'marginalia', 'images']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('consulting_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('edition_list'))
+        return sUrl
+
+
+class PublisherAdmin(admin.ModelAdmin):
+    """Define the elements of a consulting:"""
+
+    fields = ['name']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('publisher_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('edition_list'))
+        return sUrl
 
 
 class SermonCollectionAdminForm(forms.ModelForm):
@@ -355,6 +423,8 @@ admin.site.register(LocationRelation, LocationRelationAdmin)
 admin.site.register(SermonCollection, SermonCollectionAdmin)
 admin.site.register(Manuscript, ManuscriptAdmin)
 admin.site.register(Edition, EditionAdmin)
+admin.site.register(Consulting, ConsultingAdmin)
+admin.site.register(Publisher, PublisherAdmin)
 admin.site.register(Topic, TopicAdmin)
 admin.site.register(TagCommunicative, TagNoteAdmin)
 admin.site.register(TagNote, TagCommunicativeAdmin)

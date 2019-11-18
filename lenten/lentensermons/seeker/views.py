@@ -38,7 +38,7 @@ from io import StringIO
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
-    SignUpForm, SermonListForm
+    SignUpForm, SermonListForm, CollectionListForm, EditionListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, \
@@ -317,8 +317,12 @@ def make_ordering(qs, qd, orders, order_cols, order_heads):
             else:
                 # order = "-" + order
                 order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
+        else:
+            order.append(Lower(order_cols[0]))
         if sType == 'str':
-            qs = qs.order_by(*order)
+            if len(order) > 0:
+                qs = qs.order_by(*order)
+            # qs = qs.order_by('editions__first__date_late')
         else:
             qs = qs.order_by(*order)
         # Possibly reverse the order
@@ -330,7 +334,6 @@ def make_ordering(qs, qd, orders, order_cols, order_heads):
         lstQ = []
 
     return qs, order_heads
-
 
 def process_visit(request, name, is_menu, **kwargs):
     """Process one visit and return updated breadcrumbs"""
@@ -1621,6 +1624,131 @@ class PassimDetails(DetailView):
         return context
 
 
+class BasicListView(ListView):
+    """Basic listview"""
+
+    paginate_by = 15
+    entrycount = 0
+    qd = None
+    bFilter = False
+    initial = None
+    listform = None
+    plural_name = ""
+    prefix = ""
+    order_default = []
+    order_cols = []
+    order_heads = []
+    filters = []
+    searches = []
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super(BasicListView, self).get_context_data(**kwargs)
+
+        # Get parameters for the search
+        if self.initial == None:
+            initial = self.request.POST if self.request.POST else self.request.GET
+        else:
+            initial = self.initial
+
+        # Need to load the correct form
+        if self.listform:
+            context['{}Form'.format(self.prefix)] = self.listform(initial, prefix=self.prefix)
+
+        # Determine the count 
+        context['entrycount'] = self.entrycount # self.get_queryset().count()
+
+        # Set the prefix
+        context['app_prefix'] = APP_PREFIX
+
+        # Make sure the paginate-values are available
+        context['paginateValues'] = paginateValues
+
+        if 'paginate_by' in initial:
+            context['paginateSize'] = int(initial['paginate_by'])
+        else:
+            context['paginateSize'] = paginateSize
+
+        # Set the title of the application
+        context['title'] = self.plural_name
+
+        # Make sure we pass on the ordered heads
+        context['order_heads'] = self.order_heads
+        context['has_filter'] = self.bFilter
+        context['filters'] = self.filters
+
+        # Check if user may upload
+        context['is_authenticated'] = user_is_authenticated(self.request)
+        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
+        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Editions", True)
+        context['prevpage'] = get_previous_page(self.request)
+
+        # Return the calculated context
+        return context
+
+    def get_paginate_by(self, queryset):
+        """
+        Paginate by specified value in default class property value.
+        """
+        return self.paginate_by
+  
+    def get_queryset(self):
+        # Get the parameters passed on with the GET or the POST request
+        get = self.request.GET if self.request.method == "GET" else self.request.POST
+        get = get.copy()
+        self.qd = get
+
+        self.bHasParameters = (len(get) > 0)
+
+        if self.bHasParameters:
+            lstQ = []
+            # Indicate we have no filters
+            self.bFilter = False
+
+            # Read the form with the information
+            thisForm = self.listform(self.qd, prefix=self.prefix)
+
+            if thisForm.is_valid():
+                # Process the criteria for this form
+                oFields = thisForm.cleaned_data
+
+                self.filters, lstQ, self.initial = make_search_list(self.filters, oFields, self.searches, self.qd)
+                # Calculate the final qs
+                if len(lstQ) == 0:
+                    # Just show everything
+                    qs = self.model.objects.all()
+                else:
+                    # There is a filter, so apply it
+                    qs = self.model.objects.filter(*lstQ).distinct()
+                    self.bFilter = True
+            else:
+                # Just show everything
+                qs = self.model.objects.all().distinct()
+
+            # Do the ordering of the results
+            order = self.order_default
+            qs, self.order_heads = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
+        else:
+            # Just show everything
+            qs = self.model.objects.all().distinct()
+            order = self.order_default
+            qs, tmp_heads = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
+
+        # Determine the length
+        self.entrycount = len(qs)
+
+        # Return the resulting filtered and sorted queryset
+        return qs
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+    
+
+
+
 class LocationListView(ListView):
     """Listview of locations"""
 
@@ -1840,22 +1968,21 @@ class LocationRelset(BasicPart):
         return has_changed
 
 
-class SermonListView(ListView):
+class SermonListView(BasicListView):
     """Listview of sermons"""
 
     model = Sermon
-    paginate_by = 15
+    listform = SermonListForm
+    prefix = "sermo"
     template_name = 'seeker/sermon_list.html'
-    entrycount = 0
-    qd = None
-    bFilter = False     # Status of the filter
-    initial = None
-    order_default = ['code', 'collection__title', 'litday', 'book;chapter;verse']
-    order_cols = ['code', 'collection__title', 'litday', 'book;chapter;verse']
+    order_default = ['code', 'collection__authors__name' 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
+    order_cols = ['code', 'collection__authors__name' 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
     order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
-                   {'name': 'Collection', 'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Liturgical day', 'order': 'o=3', 'type': 'str'},
-                   {'name': 'Reference', 'order': 'o=4', 'type': 'str'}]
+                   {'name': 'Authors', 'order': 'o=2', 'type': 'str'}, 
+                   {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
+                   {'name': 'Liturgical day', 'order': 'o=4', 'type': 'str'},
+                   {'name': 'Thema', 'order': 'o=5', 'type': 'str'},
+                   {'name': 'Main topic', 'order': 'o=6', 'type': 'str'}]
     filters = [ {"name": "Code",           "id": "filter_code",         "enabled": False},
                 {"name": "Collection",     "id": "filter_collection",   "enabled": False},
                 {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
@@ -1871,197 +1998,34 @@ class SermonListView(ListView):
         ]
     
 
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(SermonListView, self).get_context_data(**kwargs)
-
-        # Get parameters for the search
-        if self.initial == None:
-            initial = self.request.POST if self.request.POST else self.request.GET
-        else:
-            initial = self.initial
-
-        # Need to load the correct form
-        context['sermoForm'] = SermonListForm(initial, prefix='sermo')
-
-        # Determine the count 
-        context['entrycount'] = self.entrycount # self.get_queryset().count()
-
-        # Set the prefix
-        context['app_prefix'] = APP_PREFIX
-
-        # Get parameters for the search
-        initial = self.request.GET
-        # The searchform is just a list form, but filled with the 'initial' parameters
-        # context['searchform'] = LocationForm(initial)
-
-        # Make sure the paginate-values are available
-        context['paginateValues'] = paginateValues
-
-        if 'paginate_by' in initial:
-            context['paginateSize'] = int(initial['paginate_by'])
-        else:
-            context['paginateSize'] = paginateSize
-
-        # Set the title of the application
-        context['title'] = "Sermons"
-
-        # Make sure we pass on the ordered heads
-        context['order_heads'] = self.order_heads
-        context['has_filter'] = self.bFilter
-        context['filters'] = self.filters
-
-        # Check if user may upload
-        context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
-
-        # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, "Locations", True)
-        context['prevpage'] = get_previous_page(self.request)
-
-        # Return the calculated context
-        return context
-
-    def get_paginate_by(self, queryset):
-        """
-        Paginate by specified value in default class property value.
-        """
-        return self.paginate_by
-  
-    def get_queryset(self):
-        # Get the parameters passed on with the GET or the POST request
-        get = self.request.GET if self.request.method == "GET" else self.request.POST
-        get = get.copy()
-        self.qd = get
-
-        self.bHasParameters = (len(get) > 0)
-
-        if self.bHasParameters:
-            lstQ = []
-            # Indicate we have no filters
-            self.bFilter = False
-
-            # Read the form with the information
-            sermoForm = SermonListForm(self.qd, prefix="sermo")
-
-            if sermoForm.is_valid():
-                # Process the criteria for this form
-                oFields = sermoForm.cleaned_data
-
-                self.filters, lstQ, self.initial = make_search_list(self.filters, oFields, self.searches, self.qd)
-                # Calculate the final qs
-                if len(lstQ) == 0:
-                    # Just show everything
-                    qs = Sermon.objects.all()
-                else:
-                    # There is a filter, so apply it
-                    qs = Sermon.objects.filter(*lstQ).distinct()
-                    self.bFilter = True
-            else:
-                # Just show everything
-                qs = Sermon.objects.all().distinct()
-
-            # Do the ordering of the results
-            order = self.order_default
-            qs, self.order_heads = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
-        else:
-            # Just show everything
-            qs = Sermon.objects.all().distinct()
-
-        # Determine the length
-        self.entrycount = len(qs)
-
-        # Return the resulting filtered and sorted queryset
-        return qs
-
-    def post(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
-    
-
-class SermonCollectionListView(ListView):
+class SermonCollectionListView(BasicListView):
     """Listview of sermon collections"""
 
     model = SermonCollection
-    paginate_by = 15
+    listform = CollectionListForm
+    prefix = "coll"
     template_name = 'seeker/collection_list.html'
     entrycount = 0
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(SermonCollectionListView, self).get_context_data(**kwargs)
-
-        # Get parameters
-        initial = self.request.GET
-
-        # Determine the count 
-        context['entrycount'] = self.entrycount # self.get_queryset().count()
-
-        # Set the prefix
-        context['app_prefix'] = APP_PREFIX
-
-        # Get parameters for the search
-        initial = self.request.GET
-        # The searchform is just a list form, but filled with the 'initial' parameters
-        # context['searchform'] = LocationForm(initial)
-
-        # Make sure the paginate-values are available
-        context['paginateValues'] = paginateValues
-
-        if 'paginate_by' in initial:
-            context['paginateSize'] = int(initial['paginate_by'])
-        else:
-            context['paginateSize'] = paginateSize
-
-        # Set the title of the application
-        context['title'] = "SermonCollections"
-
-        # Check if user may upload
-        context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
-
-        # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, "Locations", True)
-        context['prevpage'] = get_previous_page(self.request)
-
-        # Return the calculated context
-        return context
-
-    def get_paginate_by(self, queryset):
-        """
-        Paginate by specified value in default class property value.
-        """
-        return self.paginate_by
-  
-    def get_queryset(self):
-        # Get the parameters passed on with the GET or the POST request
-        get = self.request.GET if self.request.method == "GET" else self.request.POST
-        get = get.copy()
-        self.get = get
-
-        lstQ = []
-
-        # Check for liturgical day
-        if 'title' in get and get['title'] != '':
-            val = adapt_search(get['title'])
-            # Search in both the name field
-            lstQ.append(Q(title__iregex=val))
-
-        # Check for the code of the sermon
-        if 'idno' in get and get['idno'] != '':
-            val = get['idno']
-            # Search in both the name field
-            lstQ.append(Q(idno=val))
-
-        # Calculate the final qs
-        qs = SermonCollection.objects.filter(*lstQ).order_by('title').distinct()
-
-        # Determine the length
-        self.entrycount = len(qs)
-
-        # Return the resulting filtered and sorted queryset
-        return qs
+    order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
+    order_cols = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
+    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
+                   {'name': 'Authors', 'order': 'o=2', 'type': 'str'}, 
+                   {'name': 'Title', 'order': 'o=3', 'type': 'str'}, 
+                   {'name': 'Year', 'order': 'o=4', 'type': 'str'},
+                   {'name': 'Place', 'order': 'o=5', 'type': 'str'},
+                   {'name': 'First Edition', 'order': 'o=6', 'type': 'str'},
+                   {'name': 'Editions', 'order': 'o=7', 'type': 'str'}]
+    filters = [ {"name": "Identifier",  "id": "filter_idno",    "enabled": False},
+                {"name": "Author",      "id": "filter_author",  "enabled": False},
+                {"name": "Title",       "id": "filter_title",   "enabled": False},
+                {"name": "Place",       "id": "filter_place",   "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'idno',      'dbfield': 'code',      'keyS': 'code'},
+            {'filter': 'author',    'fkfield': 'authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
+            {'filter': 'title',     'dbfield': 'title',     'keyS': 'title'},
+            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }]}
+        ]
     
 
 class ReportListView(ListView):
@@ -2251,27 +2215,37 @@ class CollectionDetailsView(PassimDetails):
     title = "CollectionDetails"
     rtype = "html"
     mainitems = []
+    sections = []
 
     def add_to_context(self, context, instance):
         # Show the main items of this sermon collection
         context['mainitems'] = [
-            {'type': 'plain', 'label': "Code:", 'value': instance.idno},
+            {'type': 'plain', 'label': "Identifier (Code):", 'value': instance.idno},
             {'type': 'bold',  'label': "Title:", 'value': instance.title},
             {'type': 'plain', 'label': "Authors:", 'value': instance.get_authors()},
             {'type': 'plain', 'label': "Date of composition:", 'value': "{} ({})".format(instance.datecomp, instance.get_datetype_display()) },
-            {'type': 'plain', 'label': "Place:", 'value': instance.place.name },
-            {'type': 'plain', 'label': "Structure:", 'value': instance.structure },
-            {'type': 'safeline',    'label': "Liturgical relation:", 'value': instance.get_liturgical_display.strip(), 'title': "Relationship with liturgical texts"},
-            {'type': 'safeline',    'label': "Communicative strategy:", 'value': instance.get_communicative_display.strip()},
-            {'type': 'safeline',    'label': "Quoted sources:", 'value': instance.get_sources_display.strip()},
-            {'type': 'safeline',    'label': "Exempla:", 'value': instance.get_exempla_display.strip()},
-            {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()},
+            {'type': 'plain', 'label': "Place of composition:", 'value': instance.place.name },
+            {'type': 'plain', 'label': "First edition:", 'value': instance.firstedition },
+            {'type': 'plain', 'label': "Number of editions:", 'value': instance.numeditions }
+
+            ]
+
+        context['sections'] = [
+            {'name': 'Typology / structure', 'id': 'coll_typology', 'fields': [
+                {'type': 'plain', 'label': "Structure:", 'value': instance.structure },
+                {'type': 'safeline',    'label': "Liturgical relation:", 'value': instance.get_liturgical_display.strip(), 'title': "Relationship with liturgical texts"},
+                {'type': 'safeline',    'label': "Communicative strategy:", 'value': instance.get_communicative_display.strip()},
+                ]},
+            {'name': 'General notes', 'id': 'coll_general', 'fields': [
+                {'type': 'safeline',    'label': "Quoted sources:", 'value': instance.get_sources_display.strip()},
+                {'type': 'safeline',    'label': "Exempla:", 'value': instance.get_exempla_display.strip()},
+                {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()}                ]}
             ]
 
         related_objects = []
 
         # Show the SERMONS of this collection
-        sermons = {'title': 'Sermons that are part of this collection'}
+        sermons = {'title': 'Sermons of this collection (based on the year/place edition code)'}
         # Show the list of sermons that are part of this collection
         qs = Sermon.objects.filter(collection=instance).order_by('code')
         rel_list =[]
@@ -2280,9 +2254,10 @@ class CollectionDetailsView(PassimDetails):
             rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
             rel_item.append({'value': item.litday})
             rel_item.append({'value': item.get_bibref()})
+            rel_item.append({'value': item.get_topics()})
             rel_list.append(rel_item)
         sermons['rel_list'] = rel_list
-        sermons['columns'] = ['Code', 'Liturgical day', 'Reference']
+        sermons['columns'] = ['Code', 'Liturgical day', 'Thema', 'Topics']
         related_objects.append(sermons)
 
         # Show the MANUSCRIPTS that point to this collection
@@ -2307,11 +2282,13 @@ class CollectionDetailsView(PassimDetails):
         for item in qs:
             rel_item = []
             rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
-            rel_item.append({'value': item.get_date()})
             rel_item.append({'value': item.get_place()})
+            rel_item.append({'value': item.get_editors()})
+            rel_item.append({'value': item.get_date()})
+            rel_item.append({'value': item.has_notes()})
             rel_list.append(rel_item)
         editions['rel_list'] = rel_list
-        editions['columns'] = ['Code', 'Date', 'Place']
+        editions['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
         related_objects.append(editions)
 
         context['related_objects'] = related_objects
@@ -2319,90 +2296,32 @@ class CollectionDetailsView(PassimDetails):
         return context
 
 
-class EditionListView(ListView):
-    """Listview of sermons"""
+class EditionListView(BasicListView):
+    """Listview of editions"""
 
     model = Edition
-    paginate_by = 15
+    listform = EditionListForm
+    prefix = "edi" 
     template_name = 'seeker/edition_list.html'
-    entrycount = 0
+    order_default = ['code', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'date']
+    order_cols = ['code', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'date']
+    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
+                   {'name': 'Authors', 'order': 'o=2', 'type': 'str'}, 
+                   {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
+                   {'name': 'Place', 'order': 'o=4', 'type': 'str'},
+                   {'name': 'Editors', 'order': 'o=5', 'type': 'str'},
+                   {'name': 'Year', 'order': 'o=6', 'type': 'str'}]
+    filters = [ {"name": "Code",    "id": "filter_code",    "enabled": False},
+                {"name": "Author",  "id": "filter_author",  "enabled": False},
+                {"name": "Place",   "id": "filter_place",   "enabled": False}
+                ]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
+            {'filter': 'author',    'fkfield': 'sermoncollection__authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
+            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }]}
+        ]
 
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(EditionListView, self).get_context_data(**kwargs)
-
-        # Get parameters
-        initial = self.request.GET
-
-        # Determine the count 
-        context['entrycount'] = self.entrycount # self.get_queryset().count()
-
-        # Set the prefix
-        context['app_prefix'] = APP_PREFIX
-
-        # Get parameters for the search
-        initial = self.request.GET
-        # The searchform is just a list form, but filled with the 'initial' parameters
-        # context['searchform'] = LocationForm(initial)
-
-        # Make sure the paginate-values are available
-        context['paginateValues'] = paginateValues
-
-        if 'paginate_by' in initial:
-            context['paginateSize'] = int(initial['paginate_by'])
-        else:
-            context['paginateSize'] = paginateSize
-
-        # Set the title of the application
-        context['title'] = "Editions"
-
-        # Check if user may upload
-        context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
-
-        # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, "Locations", True)
-        context['prevpage'] = get_previous_page(self.request)
-
-        # Return the calculated context
-        return context
-
-    def get_paginate_by(self, queryset):
-        """
-        Paginate by specified value in default class property value.
-        """
-        return self.paginate_by
-  
-    def get_queryset(self):
-        # Get the parameters passed on with the GET or the POST request
-        get = self.request.GET if self.request.method == "GET" else self.request.POST
-        get = get.copy()
-        self.get = get
-
-        lstQ = []
-
-        # Check for liturgical day
-        if 'place' in get and get['place'] != '':
-            val = adapt_search(get['place'])
-            # Search in the name field of the place location
-            lstQ.append(Q(place__name__iregex=val))
-
-        # Check for the code of the sermon
-        if 'code' in get and get['code'] != '':
-            val = get['code']
-            # Search in both the name field
-            lstQ.append(Q(code=val))
-
-        # Calculate the final qs
-        qs = Edition.objects.filter(*lstQ).order_by('code').distinct()
-
-        # Determine the length
-        self.entrycount = len(qs)
-
-        # Return the resulting filtered and sorted queryset
-        return qs
-    
 
 class EditionDetailsView(PassimDetails):
     model = Edition
@@ -2426,6 +2345,22 @@ class EditionDetailsView(PassimDetails):
             {'type': 'plain', 'label': "Passage:", 'value': instance.get_format_display() },
             {'type': 'plain', 'label': "Folia:", 'value': instance.folia},
             # MORE INFORMATION SHOULD FOLLOW
+            ]
+
+
+        context['sections'] = [
+            {'name': 'Paratextual elements', 'id': 'edi_paratextual', 'fields': [
+                {'type': 'safeline', 'label': "Front page:", 'value': instance.frontpage , 'title': 'Front page / Title page' },
+                {'type': 'safeline', 'label': "Prologue:", 'value': instance.prologue},
+                {'type': 'safeline', 'label': "Dedicatory letter:", 'value': instance.dedicatory},
+                {'type': 'safeline', 'label': "Table of contents:", 'value': instance.contents},
+                {'type': 'safeline', 'label': "Other texts:", 'value': instance.othertexts},
+                {'type': 'safeline', 'label': "Images:", 'value': instance.images},
+                {'type': 'safeline', 'label': "Full title:", 'value': instance.fulltitle},
+                {'type': 'safeline', 'label': "Colophon:", 'value': instance.colophon},
+                ]},
+            {'name': 'General notes', 'id': 'coll_general', 'fields': [
+                {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
             ]
 
         # Add link objects: link to the SermonCollection I am part of
