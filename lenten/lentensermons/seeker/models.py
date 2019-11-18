@@ -1097,6 +1097,19 @@ class Sermon(tagtext.models.TagtextModel):
                 sRef = sBook
         return sRef
 
+    def get_keywords(self):
+        kw_list = [x.name for x in self.keywords.all()]
+        return ", ".join(kw_list)
+
+    def get_full_thema(self):
+        sBack = ""
+        if self.thema: 
+            sBack = "_{}_ ({})".format(self.thema, self.get_bibref())
+        else:
+            sBack = self.get_bibref()
+        sBack = markdown(sBack.strip())
+        return sBack
+
     def get_topics(self):
         """Get a list of topics"""
 
@@ -1106,6 +1119,13 @@ class Sermon(tagtext.models.TagtextModel):
 
     def get_topics_markdown(self):
         sBack = markdown(self.get_topics())
+        return sBack
+
+    def get_summary_markdown(self):
+        sBack = ""
+        if self.summary:
+            sBack = markdown(self.summary)
+            sBack = sBack.strip()
         return sBack
 
 

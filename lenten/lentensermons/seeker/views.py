@@ -1747,8 +1747,6 @@ class BasicListView(ListView):
         return self.get(request, *args, **kwargs)
     
 
-
-
 class LocationListView(ListView):
     """Listview of locations"""
 
@@ -2185,24 +2183,34 @@ class SermonDetailsView(PassimDetails):
     mainitems = []
 
     def add_to_context(self, context, instance):
+        # Get the link to the sermon collection
+        sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
         context['mainitems'] = [
-            {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title},
+            {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title, 'link': sc},
             {'type': 'plain', 'label': "Code:", 'value': instance.code},
             {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
-            {'type': 'safe',  'label': "Thema:", 'value': instance.thema.strip()},
-            {'type': 'plain', 'label': "Passage:", 'value': instance.get_bibref() },
-            {'type': 'safeline',    'label': "Division (Latin):", 'value': instance.divisionL.strip()},
-            {'type': 'safeline',    'label': "Division (English):", 'value': instance.divisionE.strip()},
-            {'type': 'line',        'label': "Summary:", 'value': instance.summary.strip()},
-            {'type': 'safeline',    'label': "Note:", 'value': instance.get_note_display.strip()},
+            {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
+            {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
+            {'type': 'line',  'label': "Keywords:", 'value': instance.get_keywords()},
             ]
 
-        # Add link objects: link to the SermonCollection I am part of
-        link_objects = []
-        sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
-        link = dict(name="Sermon collection for this sermon", label="{}".format(instance.collection.title), value=sc )
-        link_objects.append(link)
-        context['link_objects'] = link_objects
+        context['sections'] = [
+            {'name': 'Main division', 'id': 'sermo_division', 'fields': [
+                {'type': 'safeline',    'label': "Division (Latin):", 'value': instance.divisionL.strip()},
+                {'type': 'safeline',    'label': "Division (English):", 'value': instance.divisionE.strip()},
+                ]},
+            {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
+                {'type': 'line',    'label': "Summary:", 'value': instance.get_summary_markdown()}                ]},
+            {'name': 'General notes', 'id': 'sermo_general', 'fields': [
+                {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
+            ]
+
+        ## Add link objects: link to the SermonCollection I am part of
+        #link_objects = []
+        #sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
+        #link = dict(name="Sermon collection for this sermon", label="{}".format(instance.collection.title), value=sc )
+        #link_objects.append(link)
+        #context['link_objects'] = link_objects
 
         return context
 

@@ -132,7 +132,6 @@
     <Content Include="lentensermons\seeker\templates\seeker\location_relset.html" />
     <Content Include="lentensermons\seeker\templates\seeker\report_details.html" />
     <Content Include="lentensermons\seeker\templates\seeker\report_list.html" />
-    <Content Include="lentensermons\seeker\templates\seeker\sermon_view.html" />
     <Content Include="lentensermons\tagtext\templates\tagtext\tagtextarea.html" />
     <Content Include="lentensermons\templates\about.html" />
     <Content Include="lentensermons\templates\admin\base.html" />
