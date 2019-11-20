@@ -305,20 +305,26 @@ def make_ordering(qs, qd, orders, order_cols, order_heads):
         bAscending = True
         sType = 'str'
         order = []
-        if 'o' in qd:
-            iOrderCol = int(qd['o'])
-            bAscending = (iOrderCol>0)
-            iOrderCol = abs(iOrderCol)
-            for order_item in order_cols[iOrderCol-1].split(";"):
-                order.append(Lower(order_item))
-            sType = order_heads[iOrderCol-1]['type']
-            if bAscending:
-                order_heads[iOrderCol-1]['order'] = 'o=-{}'.format(iOrderCol)
-            else:
-                # order = "-" + order
-                order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
+        if 'o' in qd and qd['o'] != "":
+            colnum = qd['o']
+            if '=' in colnum:
+                colnum = colnum.split('=')[1]
+            if colnum != "":
+                order = []
+                iOrderCol = int(colnum)
+                bAscending = (iOrderCol>0)
+                iOrderCol = abs(iOrderCol)
+                for order_item in order_cols[iOrderCol-1].split(";"):
+                    order.append(Lower(order_item))
+                sType = order_heads[iOrderCol-1]['type']
+                if bAscending:
+                    order_heads[iOrderCol-1]['order'] = 'o=-{}'.format(iOrderCol)
+                else:
+                    # order = "-" + order
+                    order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
         else:
-            order.append(Lower(order_cols[0]))
+            for order_item in order_cols[0].split(";"):
+                order.append(Lower(order_item))
         if sType == 'str':
             if len(order) > 0:
                 qs = qs.order_by(*order)
@@ -1631,6 +1637,7 @@ class BasicListView(ListView):
     entrycount = 0
     qd = None
     bFilter = False
+    basketview = False
     initial = None
     listform = None
     plural_name = ""
@@ -1669,6 +1676,18 @@ class BasicListView(ListView):
         else:
             context['paginateSize'] = paginateSize
 
+        # Need to pass on a pagination function
+        if self.page_function:
+            context['page_function'] = self.page_function
+
+        # Set the page number if needed
+        if 'page_obj' in context and 'page' in initial and initial['page'] != "":
+            # context['page_obj'].number = initial['page']
+            page_num = int(initial['page'])
+            context['page_obj'] = context['paginator'].page( page_num)
+            # Make sure to adapt the object_list
+            context['object_list'] = context['page_obj']
+
         # Set the title of the application
         context['title'] = self.plural_name
 
@@ -1686,7 +1705,13 @@ class BasicListView(ListView):
         context['breadcrumbs'] = process_visit(self.request, "Editions", True)
         context['prevpage'] = get_previous_page(self.request)
 
+        # Allow others to add to context
+        context = self.add_to_context(context, initial)
+
         # Return the calculated context
+        return context
+
+    def add_to_context(self, context, initial):
         return context
 
     def get_paginate_by(self, queryset):
@@ -1695,6 +1720,10 @@ class BasicListView(ListView):
         """
         return self.paginate_by
   
+    def get_basketqueryset(self):
+        """User-specific function to get a queryset based on a basket"""
+        return None
+  
     def get_queryset(self):
         # Get the parameters passed on with the GET or the POST request
         get = self.request.GET if self.request.method == "GET" else self.request.POST
@@ -1702,6 +1731,25 @@ class BasicListView(ListView):
         self.qd = get
 
         self.bHasParameters = (len(get) > 0)
+        bHasListFilters = False
+        if self.basketview:
+            self.basketview = True
+            # We should show the contents of the basket
+            # (1) Reset the filters
+            for item in self.filters: item['enabled'] = False
+            # (2) Indicate we have no filters
+            self.bFilter = False
+            # (3) Set the queryset -- this is listview-specific
+            qs = self.get_basketqueryset()
+
+            # Do the ordering of the results
+            order = self.order_default
+            qs, self.order_heads = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
+        elif self.bHasParameters:
+            # y = [x for x in get ]
+            bHasListFilters = len([x for x in get if self.prefix in x and get[x] != ""]) > 0
+            if not bHasListFilters:
+                self.basketview = ("usebasket" in get and get['usebasket'] == "True")
 
         if self.bHasParameters:
             lstQ = []
