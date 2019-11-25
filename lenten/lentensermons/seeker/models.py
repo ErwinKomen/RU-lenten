@@ -1080,11 +1080,14 @@ class Sermon(tagtext.models.TagtextModel):
     topics = models.ManyToManyField(Topic, blank=True)
     # [0-n] Zero or more keywords linked to each Sermon
     keywords = models.ManyToManyField(Keyword, blank=True)
+    # [0-n] = zero or more qsource tags in the summary field
+    summarytags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_summarytags")
     # [0-n] = zero or more notetags in the note field
     notetags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_notetags")
 
     mixed_tag_fields = [
-            {"textfield": "note",           "m2mfield": "notetags",     "class": TagNote}
+            {"textfield": "summary",    "m2mfield": "summarytags",  "class": TagQsource},
+            {"textfield": "note",       "m2mfield": "notetags",     "class": TagNote}
         ]
 
     def tagtext_url(self):

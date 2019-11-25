@@ -2251,7 +2251,7 @@ class SermonDetailsView(PassimDetails):
                 {'type': 'safeline',    'label': "Division (English):", 'value': instance.divisionE.strip()},
                 ]},
             {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
-                {'type': 'line',    'label': "Summary:", 'value': instance.get_summary_markdown()}                ]},
+                {'type': 'line',    'label': "Summary:", 'value': instance.get_summary_display.strip()}                ]},
             {'name': 'General notes', 'id': 'sermo_general', 'fields': [
                 {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
             ]

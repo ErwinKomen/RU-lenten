@@ -376,7 +376,7 @@ class SermonAdminForm(forms.ModelForm):
             'thema':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'divisionL':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'divisionE':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'summary':      forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'summary':      TagTextarea(attrs={'remote': '/api/tagtext/?tclass=qsource' }),
             'note':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
 

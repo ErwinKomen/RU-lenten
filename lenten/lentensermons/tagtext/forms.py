@@ -34,6 +34,9 @@ class TagTextarea(forms.widgets.Textarea):
         # Determine how the stuff will look like
         if value == None:
             showvalue = ""
+        elif value[0] != "[":
+            # Plain text, not something else...
+            showvalue = value
         else:
             part_list = json.loads(value)
             html = []

@@ -1,3 +1,4 @@
+import sys
 from django.db import models
 import json
 
@@ -110,22 +111,29 @@ class TagtextModel(models.Model):
             return False, sMsg
 
     def adapt_display(self, textfield, sText):
-        # Make sure the get_FIELD_display is adapted
-        if sText == None:
-            showvalue = ""
-        else:
-            arPart = json.loads(sText)
-            html = []
-            for item in arPart:
-                if item['type'] == "text":
-                    html.append(item['value'])
-                elif item['type'] == "new":
-                    html.append('@{}@'.format(item['value']))
-                else:
-                    html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], item['value']))
-            showvalue = "".join(html)
-        setattr(self, "get_{}_display".format(textfield), showvalue)
-        return True
+        try:
+            # Make sure the get_FIELD_display is adapted
+            if sText == None or sText == "":
+                showvalue = ""
+            elif sText[0] != "[":
+                # Plain text, not something else...
+                showvalue = sText
+            else:
+                arPart = json.loads(sText)
+                html = []
+                for item in arPart:
+                    if item['type'] == "text":
+                        html.append(item['value'])
+                    elif item['type'] == "new":
+                        html.append('@{}@'.format(item['value']))
+                    else:
+                        html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], item['value']))
+                showvalue = "".join(html)
+            setattr(self, "get_{}_display".format(textfield), showvalue)
+            return True
+        except:
+            sMsg = self.get_error_message()
+            return False
     
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
 
