@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.forms import ModelMultipleChoiceField
 from django.forms.utils import flatatt
 from django.forms.widgets import *
-from django_select2.forms import Select2MultipleWidget, ModelSelect2MultipleWidget, ModelSelect2TagWidget
+from django_select2.forms import Select2MultipleWidget, ModelSelect2MultipleWidget, ModelSelect2TagWidget, Select2Widget
 
 # Application specific
 from lentensermons.seeker.models import *
@@ -273,8 +273,12 @@ class SermonListForm(forms.ModelForm):
 
 
 class KeywordListForm(forms.ModelForm):
+    kwname = forms.CharField(label=_("Keyword"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Keyword...', 'style': 'width: 100%;'}))
     kwlist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=KeywordWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
+    lngname = forms.CharField(label=_("Language"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching languages input-sm', 'placeholder': 'Language...', 'style': 'width: 100%;'}))
     lnglist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=LanguageWidget(attrs={'data-placeholder': 'Select multiple languages...', 'style': 'width: 100%;', 'class': 'searching'}))
 
@@ -283,7 +287,7 @@ class KeywordListForm(forms.ModelForm):
 
         model = Keyword
         fields = ['name', 'language' ]
-        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Identifier...', 'style': 'width: 100%;'}),
+        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Keyword...', 'style': 'width: 100%;'}),
                  'language':    forms.TextInput(attrs={'class': 'typeahead searching languages input-sm', 'placeholder': 'Language...', 'style': 'width: 100%;'})
                  }
 

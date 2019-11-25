@@ -373,6 +373,9 @@ class Status(models.Model):
     # [0-1] Error message (if any)
     msg = models.TextField("Error message", blank=True, null=True)
 
+    class Meta:
+        verbose_name_plural = "Statuses"
+
     def __str__(self):
         # Refresh the DB connection
         self.refresh_from_db()
@@ -464,6 +467,9 @@ class Information(models.Model):
     name = models.CharField("Key name", max_length=255)
     # [0-1] The value for this piece of information
     kvalue = models.TextField("Key value", default = "", null=True, blank=True)
+
+    class Meta:
+        verbose_name_plural = "Information Items"
 
     def __str__(self):
         return "-" if self == None else self.name
@@ -801,6 +807,9 @@ class TagLiturgical(models.Model):
     # [1]
     name = models.CharField("Name", max_length=LONG_STRING)
 
+    class Meta:
+        verbose_name_plural = "Liturgical Tags"
+
     def __str__(self):
         return "-" if self == None else  self.name
 
@@ -810,6 +819,9 @@ class TagCommunicative(models.Model):
 
     # [1]
     name = models.CharField("Name", max_length=LONG_STRING)
+
+    class Meta:
+        verbose_name_plural = "Communicative Tags"
 
     def __str__(self):
         return "-" if self == None else  self.name
@@ -821,6 +833,9 @@ class TagNote(models.Model):
     # [1]
     name = models.CharField("Name", max_length=LONG_STRING)
 
+    class Meta:
+        verbose_name_plural = "Note Tags"
+
     def __str__(self):
         return "-" if self == None else self.name
 
@@ -830,6 +845,9 @@ class TagQsource(models.Model):
 
     # [1]
     name = models.CharField("Name", max_length=LONG_STRING)
+
+    class Meta:
+        verbose_name_plural = "Quoted Source Tags"
 
     def __str__(self):
         return "-" if self == None else  self.name

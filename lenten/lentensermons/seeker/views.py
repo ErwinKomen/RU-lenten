@@ -41,7 +41,7 @@ from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUr
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
-    Location, LocationRelation, Author, Keyword, \
+    Location, LocationRelation, Author, Keyword, FieldChoice, \
     Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource
 
 # Some constants that can be used
@@ -284,7 +284,8 @@ def make_search_list(filters, oFields, search_list, qd):
                         # Now we need to look at the id's
                         s_q_lst = Q(**{"{}__{}__in".format(fkfield, infield): code_list})
                     elif dbfield:
-                        s_q_lst = Q(**{"{}__in".format(infield): code_list})
+                        # s_q_lst = Q(**{"{}__in".format(infield): code_list})
+                        s_q_lst = Q(**{"{}__in".format(dbfield): code_list})
                     s_q = s_q_lst if s_q == "" else s_q | s_q_lst
 
                 # Possibly add the result to the list
@@ -827,24 +828,48 @@ def download_file(url):
     return bResult, sResult
 
 @csrf_exempt
-def get_keywords(request):
+def get_params(request):
     """Get a list of keywords for autocomplete"""
 
     oErr = ErrHandle()
     try:
         data = 'fail'
         if request.is_ajax():
-            # Get the complete code line, which could use semicolon-separation
-            kwline = request.GET.get("name", "")
-            kwlist = kwline.split(";")
-            kw = "" if len(kwlist) == 0 else kwlist[-1].strip()
-            lstQ = []
-            lstQ.append(Q(name__icontains=kw))
-            items = Keyword.objects.filter(*lstQ).order_by("name").distinct()
+            # Initialisations
             results = []
-            for co in items:
-                co_json = {'name': co.name, 'id': co.id }
-                results.append(co_json)
+            lstQ = []
+            fieldQ = None
+            model = None
+
+            # Get the two obligatory parameters
+            field = request.GET.get("field", "")
+            line = request.GET.get("name", "")
+
+            # Get the complete code line, which could use semicolon-separation
+            namelist = line.split(";")
+            name = "" if len(namelist) == 0 else namelist[-1].strip()
+
+            # Find out what type we have
+            if field == "keyword":
+                model = Keyword
+                model_field = "name"
+                fieldQ = Q(name__icontains=name)
+            elif field == "language":
+                model = FieldChoice
+                model_field = "english_name"
+                fieldQ = Q(english_name__icontains=name)
+                lstQ.append(Q(field="seeker.language"))
+
+            # Check if we are okay
+            if fieldQ != None:
+                # Construct the search
+                lstQ.append(fieldQ)
+                items = model.objects.filter(*lstQ).order_by(model_field).distinct()
+                for co in items:
+                    co_json = {'name': getattr(co, model_field), 'id': co.id }
+                    results.append(co_json)
+
+            # Construct the returnable data
             data = json.dumps(results)
         else:
             data = "Request is not ajax"
@@ -853,6 +878,8 @@ def get_keywords(request):
         data = "error: {}".format(msg)
     mimetype = "application/json"
     return HttpResponse(data, mimetype)
+
+
 
 
 class BasicPart(View):
@@ -2093,8 +2120,8 @@ class KeywordListView(BasicListView):
                 {"name": "Language",    "id": "filter_language",  "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'name',      'dbfield': 'name',      'keyS': 'name'},
-            {'filter': 'language',  'dbfield': 'language',  'keyS': 'language'} ]}
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'kwname',   'keyList': 'kwlist', 'infield': 'name'},
+            {'filter': 'language',  'dbfield': 'language',  'keyS': 'lngname',  'keyList': 'lnglist', 'infield': 'abbr'} ]}
         ]
 
 

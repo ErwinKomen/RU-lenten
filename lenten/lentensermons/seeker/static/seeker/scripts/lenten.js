@@ -85,12 +85,14 @@ var ru = (function ($, ru) {
        *    Initialize eent listeners for this module
        */
       init_event_listeners: function () {
-        var bUseTypeahead = false;  // Put this to 'True' to actually use typeahead!!!
+        var bUseTypeahead = true;  // Put this to 'True' to actually use typeahead!!!
 
         // Get the base URL
         base_url = $("#__baseurl__").text();
         
         if (bUseTypeahead) {
+
+          /*
           // Bloodhound: LOCATION
           loc_locations = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.whitespace,
@@ -179,20 +181,17 @@ var ru = (function ($, ru) {
               }
             }
           });
+          */
 
           // Bloodhound: KEYWORD
           loc_keyword = new Bloodhound({
-            datumTokenizer: function (myObj) {
-              return myObj;
-            },
-            queryTokenizer: function (myObj) {
-              return myObj;
-            },
-            // loc_countries will be an array of countries
+            datumTokenizer: function (myObj) {return myObj;},
+            queryTokenizer: function (myObj) {return myObj;},
+            // loc_keyword will be an array of keywords
             local: loc_keywordL,
-            prefetch: { url: base_url + 'api/keywords/', cache: true },
+            prefetch: { url: base_url + 'api/params/?field=keyword', cache: true },
             remote: {
-              url: base_url + 'api/keywords/?name=',
+              url: base_url + 'api/params/?field=keyword&name=',
               replace: function (url, uriEncodedQuery) {
                 url += encodeURIComponent(uriEncodedQuery);
                 return url;
@@ -202,17 +201,13 @@ var ru = (function ($, ru) {
 
           // Bloodhound: LANGUAGE
           loc_language = new Bloodhound({
-            datumTokenizer: function (myObj) {
-              return myObj;
-            },
-            queryTokenizer: function (myObj) {
-              return myObj;
-            },
-            // loc_countries will be an array of countries
+            datumTokenizer: function (myObj) {return myObj;},
+            queryTokenizer: function (myObj) {return myObj;},
+            // loc_language will be an array of languages
             local: loc_languageL,
-            prefetch: { url: base_url + 'api/languages/', cache: true },
+            prefetch: { url: base_url + 'api/params/?field=language', cache: true },
             remote: {
-              url: base_url + 'api/languages/?name=',
+              url: base_url + 'api/params/?field=language&name=',
               replace: function (url, uriEncodedQuery) {
                 url += encodeURIComponent(uriEncodedQuery);
                 return url;
@@ -234,14 +229,17 @@ var ru = (function ($, ru) {
       init_typeahead: function () {
         try {
           // First destroy them
+          /*
           $(".typeahead.locations").typeahead('destroy');
           $(".typeahead.authors").typeahead('destroy');
           $(".typeahead.signatures").typeahead('destroy');
           $(".typeahead.editions").typeahead('destroy');
+          $(".typeahead.manuidnos").typeahead('destroy');
+          */
           $(".typeahead.keywords").typeahead('destroy');
           $(".typeahead.languages").typeahead('destroy');
-          $(".typeahead.manuidnos").typeahead('destroy');
 
+          /*
           // Type-ahead: LOCATION
           $(".form-row:not(.empty-form) .typeahead.locations, .manuscript-details .typeahead.locations").typeahead(
             { hint: true, highlight: true, minLength: 1 },
@@ -304,7 +302,7 @@ var ru = (function ($, ru) {
             }
           ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
             $(this).closest("td").find(".edition-key input").last().val(suggestion.id);
-          });
+          });*/
 
           // Type-ahead: KEYWORD -- NOTE: not in a form-row, but in a normal 'row'
           $(".row .typeahead.keywords, tr .typeahead.keywords").typeahead(
@@ -338,6 +336,7 @@ var ru = (function ($, ru) {
             $(this).closest("td").find(".language-key input").last().val(suggestion.id);
           });
 
+          /*
           // Type-ahead: manuidno -- NOTE: not in a form-row, but in a normal 'row'
           $(".form-row:not(.empty-form) .typeahead.manuidnos, .manuscript-details .typeahead.manuidnos").typeahead(
             { hint: true, highlight: true, minLength: 1 },
@@ -353,6 +352,7 @@ var ru = (function ($, ru) {
           ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
             $(this).closest("td").find(".manuidno-key input").last().val(suggestion.id);
           });
+          */
 
           // Make sure we know which element is pressed in typeahead
           $(".form-row:not(.empty-form) .typeahead").on("keyup",

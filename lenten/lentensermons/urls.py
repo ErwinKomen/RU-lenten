@@ -39,6 +39,7 @@ urlpatterns = [
     url(r'^nlogin', lentensermons.seeker.views.nlogin, name='nlogin'),
 
     url(r'^api/tagtext/', lentensermons.seeker.views.get_tributes, name='api_tributes'),
+    url(r'^api/params/', lentensermons.seeker.views.get_params, name='api_params'),
 
     url(r'^location/list', LocationListView.as_view(), name='location_list'),
     url(r'^location/details(?:/(?P<pk>\d+))?/$', LocationDetailsView.as_view(), name='location_details'),

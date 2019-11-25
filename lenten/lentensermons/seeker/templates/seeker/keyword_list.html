@@ -61,7 +61,7 @@
             </div>
           </div>
               
-          <div class="row" id="sermon_filter_specs">
+          <div class="row" id="keyword_filter_specs">
             <!-- The column with the different filter sections -->
             <div class="col-md-10">
               <div class="panel panel-default ">
@@ -70,12 +70,13 @@
                 <div><h5>Keyword filters: </h5></div>
 
                 <!-- One or more keyword names -->
-                <div id="filter_collection" class="{% if not kwForm.name.value and not kwForm.kwlist.value %}hidden{% endif %}">
+                <div id="filter_name" class="{% if not kwForm.name.value and not kwForm.kwlist.value %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
                       <td style="min-width: 130px;" valign="top">Keyword</td>
                       <td style="width: 100%;">
-                        <span>{{kwForm.name}}</span>
+                        <span class="keyword-key hidden">{{kwform.name}}</span>
+                        <span>{{kwForm.kwname}}</span>
                         <span> or select: </span>
                         <span>{{kwForm.kwlist}}</span>
                       </td>
@@ -84,12 +85,13 @@
                 </div>
 
                 <!-- One or more languages -->
-                <div id="filter_collection" class="{% if not kwForm.language.value and not kwForm.lnglist.value %}hidden{% endif %}">
+                <div id="filter_language" class="{% if not kwForm.language.value and not kwForm.lnglist.value %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
                       <td style="min-width: 130px;" valign="top">Language</td>
                       <td style="width: 100%;">
-                        <span>{{kwForm.language}}</span>
+                        <span class="language-key hidden">{{kwform.language}}</span>
+                        <span>{{kwForm.lngname}}</span>
                         <span> or select: </span>
                         <span>{{kwForm.lnglist}}</span>
                       </td>
@@ -124,10 +126,10 @@
     <div class="" id="tab_list">
       <div class="panel panel-default">
 
-        <!-- Heading and button to add a new sermon -->
+        <!-- Heading and button to add a new keyword -->
         <form>
           <h3>
-            <span title="Every sermon belongs to a sermon collection">Keywords</span>
+            <span title="Every keyword belongs to one or more sermons">Keywords</span>
             {% if is_lenten_editor %}
               <span id="add_keyword" class="pull-right">
                 {% csrf_token %}
@@ -176,7 +178,7 @@
                 <tbody>
                 {% for kw in object_list %}
                   <tr class="dict-entry">
-                    <td class="hidden"> {{ sermon.id }}</td>
+                    <td class="hidden"> {{ kw.id }}</td>
 
                     <!-- Language of this keyword -->
                     <td class="tdnowrap" >{{kw.get_language_display}}</td>
