@@ -295,7 +295,7 @@ class SermonCollectionAdminForm(forms.ModelForm):
             'bibliography':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'liturgical':       TagTextarea(attrs={'remote': '/api/tagtext/?tclass=liturgical' }),
             'communicative':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=communicative' }),
-            'sources':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'sources':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=qsource' }),
             'exempla':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'notes':            TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
@@ -335,6 +335,12 @@ class TagCommunicativeAdmin(admin.ModelAdmin):
 
 
 class TagLiturgicalAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    fields = ['name']
+    search_fields = ['name']
+
+
+class TagQsourceAdmin(admin.ModelAdmin):
     list_display = ['name']
     fields = ['name']
     search_fields = ['name']
@@ -426,8 +432,9 @@ admin.site.register(Edition, EditionAdmin)
 admin.site.register(Consulting, ConsultingAdmin)
 admin.site.register(Publisher, PublisherAdmin)
 admin.site.register(Topic, TopicAdmin)
-admin.site.register(TagCommunicative, TagNoteAdmin)
-admin.site.register(TagNote, TagCommunicativeAdmin)
+admin.site.register(TagCommunicative, TagCommunicativeAdmin)
+admin.site.register(TagNote, TagNoteAdmin)
+admin.site.register(TagQsource, TagQsourceAdmin)
 admin.site.register(TagLiturgical, TagLiturgicalAdmin)
 admin.site.register(Keyword, KeywordAdmin)
 admin.site.register(Sermon, SermonAdmin)

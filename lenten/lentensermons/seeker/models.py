@@ -825,6 +825,16 @@ class TagNote(models.Model):
         return "-" if self == None else self.name
 
 
+class TagQsource(models.Model):
+    """The field 'quoted source' can have [0-n] tag words associated with it"""
+
+    # [1]
+    name = models.CharField("Name", max_length=LONG_STRING)
+
+    def __str__(self):
+        return "-" if self == None else  self.name
+
+
 class Author(models.Model):
     """We have a set of authors that are the 'golden' standard"""
 
@@ -906,7 +916,7 @@ class SermonCollection(tagtext.models.TagtextModel):
     # [n-n] Communicative tags
     commutags = models.ManyToManyField(TagCommunicative, blank=True)
     # [n-n] Tags in the sources
-    sourcetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_sources")
+    sourcetags = models.ManyToManyField(TagQsource, blank=True, related_name="collection_sources")
     # [n-n] Tags in the exempla
     exemplatags = models.ManyToManyField(TagNote, blank=True, related_name="collection_exempla")
     # [n-n] Tags in the notes
@@ -915,7 +925,7 @@ class SermonCollection(tagtext.models.TagtextModel):
     mixed_tag_fields = [
             {"textfield": "liturgical",     "m2mfield": "liturtags",    "class": TagLiturgical,   },
             {"textfield": "communicative",  "m2mfield": "commutags",    "class": TagCommunicative,},
-            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagNote,         },
+            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagQsource,      },
             {"textfield": "exempla",        "m2mfield": "exemplatags",  "class": TagNote,         },
             {"textfield": "notes",          "m2mfield": "notetags",     "class": TagNote,         }
         ]

@@ -42,7 +42,7 @@ from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUr
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, \
-    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote
+    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource
 
 # Some constants that can be used
 paginateSize = 20
@@ -649,6 +649,8 @@ def get_tributes(request):
                     clsThis = TagCommunicative
                 elif sTclass == "liturgical":
                     clsThis = TagLiturgical
+                elif sTclass == "qsource":
+                    clsThis = TagQsource
                 elif sTclass == "notes":
                     clsThis = TagNote
                 if clsThis != None:
@@ -1647,6 +1649,7 @@ class BasicListView(ListView):
     order_heads = []
     filters = []
     searches = []
+    page_function = None
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
