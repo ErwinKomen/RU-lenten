@@ -44,6 +44,8 @@ var ru = (function ($, ru) {
         loc_editionL = [],
         loc_keyword = [],           // Keywords that can belong to a sermongold or a sermondescr
         loc_keywordL = [],
+        loc_language = [],          // Languages 
+        loc_languageL = [],
         loc_elInput = null,
         loc_sWaiting = " <span class=\"glyphicon glyphicon-refresh glyphicon-refresh-animate\"></span>",
         loc_cnrs_manu_url = "http://medium-avance.irht.cnrs.fr/Manuscrits/manuscritforetablissement",
@@ -198,6 +200,26 @@ var ru = (function ($, ru) {
             }
           });
 
+          // Bloodhound: LANGUAGE
+          loc_language = new Bloodhound({
+            datumTokenizer: function (myObj) {
+              return myObj;
+            },
+            queryTokenizer: function (myObj) {
+              return myObj;
+            },
+            // loc_countries will be an array of countries
+            local: loc_languageL,
+            prefetch: { url: base_url + 'api/languages/', cache: true },
+            remote: {
+              url: base_url + 'api/languages/?name=',
+              replace: function (url, uriEncodedQuery) {
+                url += encodeURIComponent(uriEncodedQuery);
+                return url;
+              }
+            }
+          });
+
           // Initialize typeahead
           ru.lenten.init_typeahead();
 
@@ -217,6 +239,7 @@ var ru = (function ($, ru) {
           $(".typeahead.signatures").typeahead('destroy');
           $(".typeahead.editions").typeahead('destroy');
           $(".typeahead.keywords").typeahead('destroy');
+          $(".typeahead.languages").typeahead('destroy');
           $(".typeahead.manuidnos").typeahead('destroy');
 
           // Type-ahead: LOCATION
@@ -297,6 +320,22 @@ var ru = (function ($, ru) {
             }
           ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
             $(this).closest("td").find(".keyword-key input").last().val(suggestion.id);
+          });
+
+          // Type-ahead: LANGUAGE -- NOTE: not in a form-row, but in a normal 'row'
+          $(".row .typeahead.languages, tr .typeahead.languages").typeahead(
+            { hint: true, highlight: true, minLength: 1 },
+            {
+              name: 'languages', source: loc_language, limit: 25, displayKey: "name",
+              templates: {
+                empty: '<p>Use the wildcard * to mark an inexact wording of a language</p>',
+                suggestion: function (item) {
+                  return '<div>' + item.name + '</div>';
+                }
+              }
+            }
+          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
+            $(this).closest("td").find(".language-key input").last().val(suggestion.id);
           });
 
           // Type-ahead: manuidno -- NOTE: not in a form-row, but in a normal 'row'

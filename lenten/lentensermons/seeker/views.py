@@ -38,10 +38,10 @@ from io import StringIO
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
-    SignUpForm, SermonListForm, CollectionListForm, EditionListForm
+    SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
-    Location, LocationRelation, Author, \
+    Location, LocationRelation, Author, Keyword, \
     Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource
 
 # Some constants that can be used
@@ -1705,7 +1705,7 @@ class BasicListView(ListView):
         context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
 
         # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, "Editions", True)
+        context['breadcrumbs'] = process_visit(self.request, self.plural_name, True)
         context['prevpage'] = get_previous_page(self.request)
 
         # Allow others to add to context
@@ -2076,6 +2076,27 @@ class SermonCollectionListView(BasicListView):
             {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }]}
         ]
     
+
+class KeywordListView(BasicListView):
+    """Listview of sermon collections"""
+
+    model = Keyword
+    listform = KeywordListForm
+    prefix = "kw"
+    template_name = 'seeker/keyword_list.html'
+    entrycount = 0
+    order_default = ['name', 'language']
+    order_cols = ['name', 'language']
+    order_heads = [{'name': 'Language', 'order': 'o=2', 'type': 'str'},
+                   {'name': 'Keyword', 'order': 'o=1', 'type': 'str'}]
+    filters = [ {"name": "Keyword",     "id": "filter_name",    "enabled": False},
+                {"name": "Language",    "id": "filter_language",  "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'name'},
+            {'filter': 'language',  'dbfield': 'language',  'keyS': 'language'} ]}
+        ]
+
 
 class ReportListView(ListView):
     """Listview of reports"""
@@ -2545,6 +2566,23 @@ class AuthorDetailsView(PassimDetails):
 
         context['related_objects'] = related_objects
         # Return the context we have made
+        return context
+
+
+class KeywordDetailsView(PassimDetails):
+    model = Keyword
+    mForm = None
+    template_name = 'generic_details.html' 
+    prefix = "kw"
+    title = "KeywordDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        context['mainitems'] = [
+            {'type': 'plain',  'label': "Keyword:", 'value': instance.name},
+            {'type': 'plain', 'label': "Language:", 'value': instance.get_language_display()}
+            ]
         return context
 
 

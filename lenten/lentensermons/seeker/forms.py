@@ -173,6 +173,17 @@ class KeywordWidget(ModelSelect2MultipleWidget):
         return Keyword.objects.all().order_by('name').distinct()
 
 
+class LanguageWidget(ModelSelect2MultipleWidget):
+    model = FieldChoice
+    search_fields = ['english_name__icontains']
+
+    def label_from_instance(self, obj):
+        return obj.english_name
+
+    def get_queryset(self):
+        return FieldChoice.objects.filter(field='seeker.language').order_by('english_name').distinct()
+
+
 class BookWidget(ModelSelect2MultipleWidget):
     model = Book
     search_fields = [ 'name__icontains' ]
@@ -259,6 +270,32 @@ class SermonListForm(forms.ModelForm):
         # Get the instance
         if 'instance' in kwargs:
             instance = kwargs['instance']
+
+
+class KeywordListForm(forms.ModelForm):
+    kwlist = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=KeywordWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
+    lnglist = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=LanguageWidget(attrs={'data-placeholder': 'Select multiple languages...', 'style': 'width: 100%;', 'class': 'searching'}))
+
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = Keyword
+        fields = ['name', 'language' ]
+        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Identifier...', 'style': 'width: 100%;'}),
+                 'language':    forms.TextInput(attrs={'class': 'typeahead searching languages input-sm', 'placeholder': 'Language...', 'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(KeywordListForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['name'].required = False
+        self.fields['language'].required = False
+        self.fields['kwlist'].queryset = Keyword.objects.all().order_by('name')
+        self.fields['lnglist'].queryset = FieldChoice.objects.filter(field='seeker.language').order_by('english_name')
+        
             
 
 class CollectionListForm(forms.ModelForm):

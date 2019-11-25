@@ -65,6 +65,10 @@ urlpatterns = [
     url(r'^edition/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/edition/add'), name='edition_add'),
     url(r'^edition/view(?:/(?P<pk>\d+))?/$', EditionDetailsView.as_view(), name='edition_details'),
 
+    url(r'^keyword/list',  KeywordListView.as_view(), name='keyword_list'),
+    url(r'^keyword/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/keyword/add'), name='keyword_add'),
+    url(r'^keyword/view(?:/(?P<pk>\d+))?/$', KeywordDetailsView.as_view(), name='keyword_details'),
+
     url(r'^publisher/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='publisher_details'),
 
     url(r'^consulting/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='consulting_details'),
