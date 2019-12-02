@@ -32,7 +32,7 @@ class TagTextarea(forms.widgets.Textarea):
         context = {}
 
         # Determine how the stuff will look like
-        if value == None:
+        if value == None or value == "":
             showvalue = ""
         elif value[0] != "[":
             # Plain text, not something else...

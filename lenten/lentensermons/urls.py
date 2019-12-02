@@ -70,6 +70,16 @@ urlpatterns = [
     url(r'^keyword/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/keyword/add'), name='keyword_add'),
     url(r'^keyword/view(?:/(?P<pk>\d+))?/$', KeywordDetailsView.as_view(), name='keyword_details'),
 
+    url(r'^tag/liturgical/list',  TagLiturListView.as_view(), name='taglitur_list'),
+    url(r'^tag/communicative/list',  TagCommListView.as_view(), name='tagcomm_list'),
+    url(r'^tag/qsources/list',  TagQsourceListView.as_view(), name='tagqsource_list'),
+    url(r'^tag/note/list',  TagNoteListView.as_view(), name='tagnote_list'),
+
+    url(r'^tag/liturgical/view(?:/(?P<pk>\d+))?/$', TagLiturDetailView.as_view(), name='taglitu_details'),
+    url(r'^tag/communicative/view(?:/(?P<pk>\d+))?/$', TagCommDetailView.as_view(), name='tagcomm_details'),
+    url(r'^tag/qsources/view(?:/(?P<pk>\d+))?/$', TagQsourceDetailView.as_view(), name='tagqsrc_details'),
+    url(r'^tag/note/view(?:/(?P<pk>\d+))?/$', TagNoteDetailView.as_view(), name='tagnote_details'),
+
     url(r'^publisher/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='publisher_details'),
 
     url(r'^consulting/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='consulting_details'),

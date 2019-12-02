@@ -5,7 +5,7 @@ Definition of views for the SEEKER app.
 from django.contrib import admin
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import Group
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, reverse_lazy
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.db.models import Q
@@ -38,7 +38,8 @@ from io import StringIO
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
-    SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm
+    SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm, \
+    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Keyword, FieldChoice, \
@@ -1792,7 +1793,7 @@ class BasicListView(ListView):
             if thisForm.is_valid():
                 # Process the criteria for this form
                 oFields = thisForm.cleaned_data
-
+                x = Sermon.objects.filter(Q(notetags__id='21'))
                 self.filters, lstQ, self.initial = make_search_list(self.filters, oFields, self.searches, self.qd)
                 # Calculate the final qs
                 if len(lstQ) == 0:
@@ -2070,7 +2071,9 @@ class SermonListView(BasicListView):
             {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
             {'filter': 'litday',    'dbfield': 'litday',    'keyS': 'litday'},
             {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
-            {'filter': 'keyword',   'fkfield': 'keywords',  'keyS': 'keyword',   'keyFk': 'name', 'keyList': 'kwlist', 'infield': 'name' }]}
+            {'filter': 'keyword',   'fkfield': 'keywords',  'keyS': 'keyword',   'keyFk': 'name', 'keyList': 'kwlist', 'infield': 'name' },
+            {'filter': 'tagnoteid',  'fkfield': 'notetags',      'keyS': 'tagnoteid', 'keyFk': 'id' },
+            {'filter': 'tagqsrcid',  'fkfield': 'summarytags',   'keyS': 'tagqsrcid', 'keyFk': 'id' }]}
         ]
     
 
@@ -2100,7 +2103,12 @@ class SermonCollectionListView(BasicListView):
             {'filter': 'idno',      'dbfield': 'code',      'keyS': 'code'},
             {'filter': 'author',    'fkfield': 'authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
             {'filter': 'title',     'dbfield': 'title',     'keyS': 'title'},
-            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }]}
+            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' },
+            {'filter': 'tagnoteid',     'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
+            {'filter': 'taglituid',     'fkfield': 'liturtags',     'keyS': 'taglituid',    'keyFk': 'id' },
+            {'filter': 'tagcommid',     'fkfield': 'commutags',     'keyS': 'tagcommid',    'keyFk': 'id' },
+            {'filter': 'tagqsrcid',     'fkfield': 'sourcetags',    'keyS': 'tagqsrcid',    'keyFk': 'id' },
+            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }]}
         ]
     
 
@@ -2124,6 +2132,94 @@ class KeywordListView(BasicListView):
             {'filter': 'language',  'dbfield': 'language',  'keyS': 'lngname',  'keyList': 'lnglist', 'infield': 'abbr'} ]}
         ]
 
+
+class TagListView(BasicListView):
+    """Listview of tags"""
+
+    model = None
+    listform = None
+    prefix = ""
+    urldef = ""
+    plain_name = ""
+    plain_plural = ""
+    template_name = 'seeker/tag_list.html'
+    entrycount = 0
+    order_default = ['name', 'number']
+    order_cols = ['name', 'number']
+    order_heads = [{'name': 'Tag', 'order': 'o=1', 'type': 'str'},
+                   {'name': 'Usage', 'order': '', 'type': 'str'}]
+    filters = [ {"name": "Tag",     "id": "filter_name",    "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'tagname',   'keyList': 'taglist', 'infield': 'name'} ] }
+        ]
+
+    def add_to_context(self, context, initial):
+        # We need to have the URL to this particular view
+        context['listview'] = reverse(self.urldef)
+        context['plain_name'] = self.plain_name
+        return context
+
+
+class TagLiturListView(TagListView):
+    model = TagLiturgical
+    listform = TagLiturListForm
+    prefix = "tagl"
+    urldef = "taglitur_list"
+    plain_name = "liturgical tag"
+    plain_plural = "Liturgical tags"
+
+
+class TagCommListView(TagListView):
+    model = TagCommunicative
+    listform = TagCommListForm
+    prefix = "tagc"
+    urldef = "tagcomm_list"
+    plain_name = "communicative tag"
+    plain_plural = "Communicative tags"
+
+
+class TagQsourceListView(TagListView):
+    model = TagQsource
+    listform = TagQsourceListForm
+    prefix = "tagq"
+    urldef = "tagqsource_list"
+    plain_name = "source tag"
+    plain_plural = "Source tags"
+
+
+class TagNoteListView(TagListView):
+    model = TagNote
+    listform = TagNoteListForm
+    prefix = "tagn"
+    urldef = "tagnote_list"
+    plain_name = "note tag"
+    plain_plural = "Note tags"
+
+
+class TagLiturDetailView(RedirectView):
+
+    def get_redirect_url(self, *args, **kwargs):
+        url = "{}?id=%(pk)s".format(reverse('taglitur_list'))
+        return response
+
+class TagCommDetailView(RedirectView):
+    def get_redirect_url(self, *args, **kwargs):
+        url = "{}?id=%(pk)s".format(reverse('tagcomm_list'))
+        return response
+    
+
+class TagQsourceDetailView(RedirectView):
+    def get_redirect_url(self, *args, **kwargs):
+        url = "{}?id=%(pk)s".format(reverse('tagqsource_list'))
+        return response
+    
+
+class TagNoteDetailView(RedirectView):
+    def get_redirect_url(self, *args, **kwargs):
+        url = "{}?id=%(pk)s".format(reverse('tagnote_list'))
+        return response
+    
 
 class ReportListView(ListView):
     """Listview of reports"""
@@ -2426,7 +2522,8 @@ class EditionListView(BasicListView):
         {'section': '', 'filterlist': [
             {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
             {'filter': 'author',    'fkfield': 'sermoncollection__authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
-            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }]}
+            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' },
+            {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }]}
         ]
 
 

@@ -173,6 +173,33 @@ class KeywordWidget(ModelSelect2MultipleWidget):
         return Keyword.objects.all().order_by('name').distinct()
 
 
+class TagWidget(ModelSelect2MultipleWidget):
+    model = None
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return self.model.objects.all().order_by('name').distinct()
+
+
+class TagLiturWidget(TagWidget):
+    model = TagLiturgical
+
+
+class TagCommWidget(TagWidget):
+    model = TagCommunicative
+
+
+class TagQsourceWidget(TagWidget):
+    model = TagQsource
+
+
+class TagNoteWidget(TagWidget):
+    model = TagNote
+
+
 class LanguageWidget(ModelSelect2MultipleWidget):
     model = FieldChoice
     search_fields = ['english_name__icontains']
@@ -241,6 +268,8 @@ class SermonListForm(forms.ModelForm):
                 widget=forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Keyword(s)...', 'style': 'width: 100%;'}))
     kwlist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=KeywordWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
+    tagqsrcid = forms.CharField(label=_("Quoted source tag"), required = False)
+    tagnoteid = forms.CharField(label=_("Note tag"), required = False)
 
     class Meta:
         ATTRS_FOR_FORMS = {'class': 'form-control'};
@@ -299,8 +328,73 @@ class KeywordListForm(forms.ModelForm):
         self.fields['language'].required = False
         self.fields['kwlist'].queryset = Keyword.objects.all().order_by('name')
         self.fields['lnglist'].queryset = FieldChoice.objects.filter(field='seeker.language').order_by('english_name')
-        
-            
+
+
+class TagForm(forms.ModelForm):
+    tag_widget = None
+    ta_class = ""
+    plural_name = ""
+    tagname = forms.CharField(label=_("Tag"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching {} input-sm'.format(ta_class), 'placeholder': 'Tag...', 'style': 'width: 100%;'}))
+    taglist = ModelMultipleChoiceField(queryset=None, required=False)
+
+    class Meta:
+        abstract = True
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        # model = super(Meta, self).mymodel # TagLiturgical
+        fields = ['name' ]
+        # ta_class = super(Meta, self).ta_class
+        ta_class = ""
+        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching {} input-sm'.format(ta_class), 'placeholder': 'Tag...', 'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(TagForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['name'].required = False
+        wdg = self.tag_widget(attrs={'data-placeholder': 'Select multiple {}...'.format(self.plural_name), 'style': 'width: 100%;', 'class': 'searching'})
+        self.fields['taglist'].widget = wdg
+        self.fields['taglist'].queryset = self.Meta.model.objects.all().order_by('name')
+
+
+class TagLiturListForm(TagForm):
+    ta_class = "liturtags"
+    plural_name = "liturgical tags"
+    tag_widget = TagLiturWidget
+    class Meta(TagForm.Meta):
+        model = TagLiturgical
+        ta_class = "liturtags"
+
+
+
+class TagCommListForm(TagForm):
+    ta_class = "commtags"
+    plural_name = "communicative tags"
+    tag_widget = TagCommWidget
+    class Meta(TagForm.Meta):
+        model = TagCommunicative
+        ta_class = "commtags"
+
+
+class TagQsourceListForm(TagForm):
+    ta_class = "qsourcetags"
+    plural_name = "source question tags"
+    tag_widget = TagQsourceWidget
+    class Meta(TagForm.Meta):
+        model = TagQsource
+        ta_class = "qsourcetags"
+
+
+class TagNoteListForm(TagForm):
+    ta_class = "notetags"
+    plural_name = "note tags"
+    tag_widget = TagNoteWidget
+    class Meta(TagForm.Meta):
+        model = TagNote
+        ta_class = "notetags"
+
 
 class CollectionListForm(forms.ModelForm):
     authorname = forms.CharField(label=_("Author"), required=False, 
@@ -313,6 +407,11 @@ class CollectionListForm(forms.ModelForm):
                 widget=LocationWidget(attrs={'data-placeholder': 'Select multiple places...', 'style': 'width: 100%;', 'class': 'searching'}))
     firstedition = forms.CharField(label=_("Date of first edition"), required = False)
     numeditions = forms.CharField(label=_("Number of editions"), required = False)
+    taglituid = forms.CharField(label=_("Liturgical tag"), required = False)
+    tagcommid = forms.CharField(label=_("Communicative tag"), required = False)
+    tagnoteid = forms.CharField(label=_("Note tag"), required = False)
+    tagexmpid = forms.CharField(label=_("Exemplar tag"), required = False)
+    tagqsrcid = forms.CharField(label=_("Quoted source tag"), required = False)
 
     class Meta:
         ATTRS_FOR_FORMS = {'class': 'form-control'};
@@ -350,6 +449,7 @@ class EditionListForm(forms.ModelForm):
                 widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}))
     placelist  = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=LocationWidget(attrs={'data-placeholder': 'Select multiple places...', 'style': 'width: 100%;', 'class': 'searching'}))
+    tagnoteid = forms.CharField(label=_("Note tag"), required = False)
 
     class Meta:
         ATTRS_FOR_FORMS = {'class': 'form-control'};

@@ -666,6 +666,8 @@ class NewsItem(models.Model):
 
 # ============================= APPLICATION-SPECIFIC CLASSES =====================================
 
+# ============================= LOCATION related CLASSES =========================================
+
 class LocationType(models.Model):
     """Kind of location and level on the location hierarchy"""
 
@@ -801,6 +803,8 @@ class LocationRelation(models.Model):
     contained = models.ForeignKey(Location, related_name="contained_locrelations")
 
 
+# ============================= Different TAG related CLASSES =====================================
+
 class TagLiturgical(models.Model):
     """The field 'liturgical' can have [0-n] tag words associated with it"""
 
@@ -812,6 +816,20 @@ class TagLiturgical(models.Model):
 
     def __str__(self):
         return "-" if self == None else  self.name
+
+    def get_list(self):
+        """Get a list of type/count items"""
+
+        lst_back = []
+        # Communicative counts
+        count = self.collection_liturtags.all().count()
+        url = reverse("collection_list")
+        params = "coll-taglituid={}".format(self.id)
+        css ="jumbo-1"
+        item = dict(count=count, type="Collection Liturgical tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        return lst_back
 
 
 class TagCommunicative(models.Model):
@@ -826,6 +844,20 @@ class TagCommunicative(models.Model):
     def __str__(self):
         return "-" if self == None else  self.name
 
+    def get_list(self):
+        """Get a list of type/count items"""
+
+        lst_back = []
+        # Communicative counts
+        count = self.collection_commtags.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagcommid={}".format(self.id)
+        css ="jumbo-1"
+        item = dict(count=count, type="Collection Communicative tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        return lst_back
+
 
 class TagNote(models.Model):
     """The field 'notes' can have [0-n] tag words associated with it"""
@@ -838,6 +870,45 @@ class TagNote(models.Model):
 
     def __str__(self):
         return "-" if self == None else self.name
+
+    def get_list(self):
+        """Get a list of type/count items"""
+
+        lst_back = []
+
+        # Communicative counts
+        count = self.collection_exempla.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagexemid={}".format(self.id)
+        css ="jumbo-1"
+        item = dict(count=count, type="Collection Example tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Communicative counts
+        count = self.collection_notes.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagnoteid={}".format(self.id)
+        css ="jumbo-2"
+        item = dict(count=count, type="Collection Notes tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Communicative counts
+        count = self.sermon_notetags.all().count()
+        url = reverse("sermon_list")
+        params = "sermo-tagnoteid={}".format(self.id)
+        css ="jumbo-3"
+        item = dict(count=count, type="Sermon Note tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Communicative counts
+        count = self.edition_notetags.all().count()
+        url = reverse("edition_list")
+        params = "edi-tagnoteid={}".format(self.id)
+        css ="jumbo-4"
+        item = dict(count=count, type="Edition Note tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        return lst_back
 
 
 class TagQsource(models.Model):
@@ -852,6 +923,30 @@ class TagQsource(models.Model):
     def __str__(self):
         return "-" if self == None else  self.name
 
+    def get_list(self):
+        """Get a list of type/count items"""
+
+        lst_back = []
+        # Communicative counts
+        count = self.collection_sources.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagqsrcid={}".format(self.id)
+        css ="jumbo-1"
+        item = dict(count=count, type="Collection quoted-source tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Communicative counts
+        url = reverse("sermon_list")
+        css ="jumbo-2"
+        params = "sermo-tagqsrcid={}".format(self.id)
+        count = self.sermon_summarytags.all().count()
+        item = dict(count=count, type="Sermon Summary quoted-source tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        return lst_back
+
+
+# ============================= Other CLASSES =====================================================
 
 class Author(models.Model):
     """We have a set of authors that are the 'golden' standard"""
@@ -930,9 +1025,9 @@ class SermonCollection(tagtext.models.TagtextModel):
     # [n-n] Author: each sermoncollection may have 1 or more authors
     authors = models.ManyToManyField(Author, blank=True)
     # [n-n] Liturgical tags
-    liturtags = models.ManyToManyField(TagLiturgical, blank=True)
+    liturtags = models.ManyToManyField(TagLiturgical, blank=True, related_name="collection_liturtags")
     # [n-n] Communicative tags
-    commutags = models.ManyToManyField(TagCommunicative, blank=True)
+    commutags = models.ManyToManyField(TagCommunicative, blank=True, related_name="collection_commtags")
     # [n-n] Tags in the sources
     sourcetags = models.ManyToManyField(TagQsource, blank=True, related_name="collection_sources")
     # [n-n] Tags in the exempla
@@ -941,11 +1036,11 @@ class SermonCollection(tagtext.models.TagtextModel):
     notetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_notes")
 
     mixed_tag_fields = [
-            {"textfield": "liturgical",     "m2mfield": "liturtags",    "class": TagLiturgical,   },
-            {"textfield": "communicative",  "m2mfield": "commutags",    "class": TagCommunicative,},
-            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagQsource,      },
-            {"textfield": "exempla",        "m2mfield": "exemplatags",  "class": TagNote,         },
-            {"textfield": "notes",          "m2mfield": "notetags",     "class": TagNote,         }
+            {"textfield": "liturgical",     "m2mfield": "liturtags",    "class": TagLiturgical,   "url": "taglitu_details"},
+            {"textfield": "communicative",  "m2mfield": "commutags",    "class": TagCommunicative,"url": "tagcomm_details"},
+            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagQsource,      "url": "tagqsrc_details"},
+            {"textfield": "exempla",        "m2mfield": "exemplatags",  "class": TagNote,         "url": "tagnote_details"},
+            {"textfield": "notes",          "m2mfield": "notetags",     "class": TagNote,         "url": "tagnote_details"}
         ]
 
     def tagtext_url(self):
@@ -1099,13 +1194,13 @@ class Sermon(tagtext.models.TagtextModel):
     # [0-n] Zero or more keywords linked to each Sermon
     keywords = models.ManyToManyField(Keyword, blank=True)
     # [0-n] = zero or more qsource tags in the summary field
-    summarytags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_summarytags")
+    summarytags = models.ManyToManyField(TagQsource, blank=True, related_name="sermon_summarytags")
     # [0-n] = zero or more notetags in the note field
     notetags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_notetags")
 
     mixed_tag_fields = [
-            {"textfield": "summary",    "m2mfield": "summarytags",  "class": TagQsource},
-            {"textfield": "note",       "m2mfield": "notetags",     "class": TagNote}
+            {"textfield": "summary",    "m2mfield": "summarytags",  "class": TagQsource, "url": "tagqsrc_details"},
+            {"textfield": "note",       "m2mfield": "notetags",     "class": TagNote,    "url": "tagnote_details"}
         ]
 
     def tagtext_url(self):
@@ -1224,7 +1319,7 @@ class Edition(tagtext.models.TagtextModel):
     notetags = models.ManyToManyField(TagNote, blank=True, related_name="edition_notetags")
 
     mixed_tag_fields = [
-            {"textfield": "note",           "m2mfield": "notetags",     "class": TagNote}
+            {"textfield": "note",           "m2mfield": "notetags",     "class": TagNote, "url": "tagnote_details"}
         ]
 
     def __str__(self):
