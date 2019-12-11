@@ -119,8 +119,12 @@ class TagtextModel(models.Model):
             sMsg = self.get_error_message()
             return False, sMsg
 
-    def adapt_display(self, textfield, sText, url=None):
+    def adapt_display(self, textfield, sText, url=None, debug=False):
+        
         try:
+            if debug:
+                self.Status("TagtextModel.adapt_display url={}".format(url))
+
             # Make sure the get_FIELD_display is adapted
             if sText == None or sText == "":
                 showvalue = ""
@@ -186,3 +190,7 @@ class TagtextModel(models.Model):
             return sMsg
         else:
             return ""
+
+    def Status(self, msg):
+        # Just print the message
+        print(msg, file=sys.stderr)

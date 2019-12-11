@@ -70,8 +70,8 @@ urlpatterns = [
     url(r'^keyword/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/keyword/add'), name='keyword_add'),
     url(r'^keyword/view(?:/(?P<pk>\d+))?/$', KeywordDetailsView.as_view(), name='keyword_details'),
 
-    url(r'^tag/liturgical/list',  TagLiturListView.as_view(), name='taglitur_list'),
-    url(r'^tag/communicative/list',  TagCommListView.as_view(), name='tagcomm_list'),
+    url(r'^tag/liturgical/list',  TagLiturListView.as_view(), name='tagliturgical_list'),
+    url(r'^tag/communicative/list',  TagCommListView.as_view(), name='tagcommunicative_list'),
     url(r'^tag/qsources/list',  TagQsourceListView.as_view(), name='tagqsource_list'),
     url(r'^tag/note/list',  TagNoteListView.as_view(), name='tagnote_list'),
 

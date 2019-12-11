@@ -951,7 +951,7 @@ class TagQsource(models.Model):
         """Get a list of type/count items"""
 
         lst_back = []
-        # Communicative counts
+        # Counts in: collection sources
         count = self.collection_sources.all().count()
         url = reverse("collection_list")
         params = "coll-tagqsrcid={}".format(self.id)
@@ -959,7 +959,7 @@ class TagQsource(models.Model):
         item = dict(count=count, type="Collection quoted-source tags", url=url, params=params, css=css)
         lst_back.append(item)
 
-        # Communicative counts
+        # Counts in: sermon summaries
         url = reverse("sermon_list")
         css ="jumbo-2"
         params = "sermo-tagqsrcid={}".format(self.id)
