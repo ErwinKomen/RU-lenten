@@ -1247,3 +1247,16 @@ span[contenteditable=false] {
   padding-left: 1px;
   padding-right: 1px;
 }
+
+table.func-view span[contenteditable=false] {
+  background-color: whitesmoke;
+}
+
+span[contenteditable=false] > a {
+  color: black;
+}
+span[contenteditable=false] > a:hover {
+    background-color: yellow;
+    text-decoration-line: none;
+    cursor: pointer;
+}

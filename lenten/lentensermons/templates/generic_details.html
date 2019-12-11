@@ -35,7 +35,7 @@
                     {% for mainitem in mainitems %}
                       <tr class="view-row">
                         <td class="tdnowrap" valign="top">{{mainitem.label}}</td>
-                        <td class="hoverable">
+                        <td class="hoverable" {% if mainitem.align %}align="{{mainitem.align}}"{% endif %}>
                           {% spaceless %}
                             {% if mainitem.type == "bold" %}{% if mainitem.link == "" %}<b>{{mainitem.value}}</b>{% else %}<a href="{{mainitem.link}}"><b>{{mainitem.value}}</b></a>{% endif %}
                             {% elif mainitem.type == "line" %}<div style="white-space: pre-line;">{{mainitem.value|safe}}</div>
@@ -84,7 +84,7 @@
                       {% for item in section.fields %}
                         <tr class="view-row">
                           <td class="tdnowrap" valign="top">{{item.label}}</td>
-                          <td class="hoverable">
+                          <td class="hoverable" {% if item.align %}align="{{item.align}}"{% endif %}>
                             {% spaceless %}
                               {% if item.type == "bold" %}{% if item.link == "" %}<b>{{item.value}}</b>{% else %}<a href="{{item.link}}"><b>{{item.value}}</b></a>{% endif %}
                               {% elif item.type == "line" %}<div style="white-space: pre-line;">{{item.value|safe}}</div>
@@ -122,7 +122,7 @@
                           <td {% if relcol.title %}title="{{relcol.title}}"{% endif %}
                               {% if relcol.link %}class="clickable" onclick="ru.lenten.seeker.goto_url('{{relcol.link}}')"{% endif %}
                               >
-                            {% if relcol.value %}{{relcol.value}}{% endif %}
+                            {% if relcol.value %}{{relcol.value|safe}}{% endif %}
                           </td>
                         {% endfor %}
                       </tr>

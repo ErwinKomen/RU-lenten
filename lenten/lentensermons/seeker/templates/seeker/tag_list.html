@@ -166,8 +166,8 @@
                     <td class="hidden"> {{ tag.id }}</td>
 
                     <!-- Tag name-->
-                    <td class="clickable" title="View the keyword" style="width: 100%;"
-                        onclick="ru.lenten.seeker.goto_url('{% url 'keyword_details' tag.id %}')">{% if tag.name %}{{tag.name}}{% endif %}</td>
+                    <td class="clickable" title="View how this tag is used" style="width: 100%;"
+                        onclick="ru.lenten.seeker.goto_url('{{tag.get_url_view}}')">{% if tag.name %}{{tag.name}}{% endif %}</td>
 
                     <!-- Number of times this tag is encountered -->
                     <td class="tdnowrap" >
@@ -185,7 +185,7 @@
                       {% if is_lenten_editor %}
                         <!-- Edit button -->
                         <a mode="edit" class="view-mode btn btn-xs jumbo-1"
-                           onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_keyword_change' tag.id %}')">
+                           onclick="ru.lenten.seeker.goto_url('{{tag.get_url_edit}}')">
                           <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
                         </a>
                       {% endif %}

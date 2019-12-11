@@ -831,6 +831,14 @@ class TagLiturgical(models.Model):
 
         return lst_back
 
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tagliturgical_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('taglitu_details', kwargs={'pk': self.id})
+        return url
+
 
 class TagCommunicative(models.Model):
     """The field 'communicative' can have [0-n] tag words associated with it"""
@@ -858,6 +866,14 @@ class TagCommunicative(models.Model):
 
         return lst_back
 
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tagcommunicative_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('tagcomm_details', kwargs={'pk': self.id})
+        return url
+
 
 class TagNote(models.Model):
     """The field 'notes' can have [0-n] tag words associated with it"""
@@ -876,7 +892,7 @@ class TagNote(models.Model):
 
         lst_back = []
 
-        # Communicative counts
+        # Counts in: collection.exempla
         count = self.collection_exempla.all().count()
         url = reverse("collection_list")
         params = "coll-tagexemid={}".format(self.id)
@@ -884,7 +900,7 @@ class TagNote(models.Model):
         item = dict(count=count, type="Collection Example tags", url=url, params=params, css=css)
         lst_back.append(item)
 
-        # Communicative counts
+        # Counts in: collection.notes
         count = self.collection_notes.all().count()
         url = reverse("collection_list")
         params = "coll-tagnoteid={}".format(self.id)
@@ -892,7 +908,7 @@ class TagNote(models.Model):
         item = dict(count=count, type="Collection Notes tags", url=url, params=params, css=css)
         lst_back.append(item)
 
-        # Communicative counts
+        # Counts in: sermon.notes
         count = self.sermon_notetags.all().count()
         url = reverse("sermon_list")
         params = "sermo-tagnoteid={}".format(self.id)
@@ -900,7 +916,7 @@ class TagNote(models.Model):
         item = dict(count=count, type="Sermon Note tags", url=url, params=params, css=css)
         lst_back.append(item)
 
-        # Communicative counts
+        # Counts in: edition.notes
         count = self.edition_notetags.all().count()
         url = reverse("edition_list")
         params = "edi-tagnoteid={}".format(self.id)
@@ -909,6 +925,14 @@ class TagNote(models.Model):
         lst_back.append(item)
 
         return lst_back
+
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tagnote_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('tagnote_details', kwargs={'pk': self.id})
+        return url
 
 
 class TagQsource(models.Model):
@@ -944,6 +968,14 @@ class TagQsource(models.Model):
         lst_back.append(item)
 
         return lst_back
+
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tagqsource_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('tagqsrc_details', kwargs={'pk': self.id})
+        return url
 
 
 # ============================= Other CLASSES =====================================================

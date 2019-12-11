@@ -881,8 +881,6 @@ def get_params(request):
     return HttpResponse(data, mimetype)
 
 
-
-
 class BasicPart(View):
     """This is my own versatile handling view.
 
@@ -2200,26 +2198,119 @@ class TagNoteListView(TagListView):
 class TagLiturDetailView(RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
-        url = "{}?id=%(pk)s".format(reverse('taglitur_list'))
-        return response
+        url = "{}?id={}".format(reverse('taglitur_list'), kwargs['pk'])
+        return url
 
 class TagCommDetailView(RedirectView):
     def get_redirect_url(self, *args, **kwargs):
-        url = "{}?id=%(pk)s".format(reverse('tagcomm_list'))
-        return response
+        url = "{}?id={}".format(reverse('tagcomm_list'), kwargs['pk'])
+        return url
     
 
 class TagQsourceDetailView(RedirectView):
     def get_redirect_url(self, *args, **kwargs):
-        url = "{}?id=%(pk)s".format(reverse('tagqsource_list'))
-        return response
+        url = "{}?id={}".format(reverse('tagqsource_list'), kwargs['pk'])
+        return url
     
 
-class TagNoteDetailView(RedirectView):
-    def get_redirect_url(self, *args, **kwargs):
-        url = "{}?id=%(pk)s".format(reverse('tagnote_list'))
-        return response
-    
+class TagNoteDetailView(PassimDetails):
+    model = TagNote
+    mForm = None
+    template_name = 'generic_details.html'
+    prefix = "tagn"
+    title = "NoteTagDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        # The main item of the view is the name of the tag itself
+        context['mainitems'] = [
+            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""}
+            ]
+        # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
+        lst_count = instance.get_list()
+        for oCount in lst_count:
+            oItem = dict(type='plain', label=oCount['type'], value=oCount['count'], align='right')
+            context['mainitems'].append(oItem)
+
+        # Make sure to show each of the sections in [lst_count] separately
+        related_objects = []
+
+        # This tag in: sermon.notes
+        sermons = {'title': 'Sermons that use this tag in their [Notes]'}
+        # Show the list of sermons that contain this tag
+        qs = instance.sermon_notetags.all().order_by('code')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.litday})
+                rel_item.append({'value': item.get_bibref()})
+                rel_item.append({'value': item.get_note_display})
+                rel_list.append(rel_item)
+            sermons['rel_list'] = rel_list
+            sermons['columns'] = ['Code', 'Liturgical day', 'Thema', 'Note']
+            related_objects.append(sermons)
+
+        # This tag in: collection.notes
+        collections = {'title': 'Collections that use this tag in their [Notes]'}
+        # Show the list of collections that contain this tag
+        qs = instance.collection_notes.all().order_by('idno')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.code, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.title})
+                rel_item.append({'value': item.datecomp})
+                rel_item.append({'value': item.get_place()})
+                rel_item.append({'value': item.get_note_display})
+                rel_list.append(rel_item)
+            collections['rel_list'] = rel_list
+            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Note']
+            related_objects.append(collections)
+
+        # This tag in: collection.exempla
+        exempla = {'title': 'Collections that use this tag in their [Exempla]'}
+        # Show the list of sermons that contain this tag
+        qs = instance.collection_exempla.all().order_by('idno')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.code, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.title})
+                rel_item.append({'value': item.datecomp})
+                rel_item.append({'value': item.get_place()})
+                rel_item.append({'value': item.get_exempla_display})
+                rel_list.append(rel_item)
+            exempla['rel_list'] = rel_list
+            exempla['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Note']
+            related_objects.append(exempla)
+
+        # This tag in: edition.notes
+        editions = {'title': 'Editions that use this tag in their [Notes]'}
+        # Show the list of editions that contain this tag
+        qs = instance.edition_notetags.all().order_by('code')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.get_place()})
+                rel_item.append({'value': item.get_editors()})
+                rel_item.append({'value': item.get_date()})
+                rel_item.append({'value': item.has_notes()})
+                rel_list.append(rel_item)
+            editions['rel_list'] = rel_list
+            editions['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
+            related_objects.append(editions)
+
+        context['related_objects'] = related_objects
+        # Return the resulting context
+        return context
+
 
 class ReportListView(ListView):
     """Listview of reports"""
@@ -2399,13 +2490,6 @@ class SermonDetailsView(PassimDetails):
             {'name': 'General notes', 'id': 'sermo_general', 'fields': [
                 {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
             ]
-
-        ## Add link objects: link to the SermonCollection I am part of
-        #link_objects = []
-        #sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
-        #link = dict(name="Sermon collection for this sermon", label="{}".format(instance.collection.title), value=sc )
-        #link_objects.append(link)
-        #context['link_objects'] = link_objects
 
         return context
 
