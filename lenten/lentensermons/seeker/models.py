@@ -1319,6 +1319,9 @@ class Edition(tagtext.models.TagtextModel):
     # [0-1] Number of folia: this may include the text layout 
     folia = models.TextField("Number of folia", blank=True, null=True)
 
+    # [1] Number of sermons: this is free text
+    numsermons = models.TextField("Number of sermons", default="-")
+
     # [0-1] Notes on this Edition
     note = models.TextField("Note", null=True, blank=True)
 
@@ -1398,16 +1401,29 @@ class Edition(tagtext.models.TagtextModel):
     def get_date(self):
         """Combine the date fields into a listview-showable version"""
 
-        date = ""
+        lCombi = []
+        lCombi.append(self.get_datetype_display())
         if self.date != None:
             if self.date_late == None:
-                date = self.date
+                lCombi.append( self.date)
             else:
-                date = "{}-{}".format(self.date, self.date_late)
+                lCombi.append( "{}-{}".format(self.date, self.date_late))
         elif self.date_late != None:
-            date = "before {}".format(self.date_late)
+            lCombi.append( "{}".format(self.date_late))
         else:
-            date = "-"
+            lCombi.append( "-")
+        date = " ".join(lCombi)
+        return date
+
+    def get_full_date(self):
+        """Combine the date fields including datecomment and so on"""
+
+        lCombi = []
+        lCombi.append(self.get_date())
+        if self.datecomment:
+            lCombi.append("; ")
+            lCombi.append(self.datecomment)
+        date = "".join(lCombi)
         return date
 
     def get_place(self):
@@ -1425,6 +1441,14 @@ class Edition(tagtext.models.TagtextModel):
 
         return sBack
 
+    def get_publisher(self):
+        """Return the publisher(s)"""
+
+        lPublisher = []
+        for obj in self.publishers.all():
+            lPublisher.append(obj.name)
+        return "; ".join(lPublisher)
+
     def has_notes(self):
         """Return asterisk if has notes"""
 
@@ -1437,9 +1461,10 @@ class Consulting(models.Model):
     """An actual copy that the researcher has consulted or has seen"""
 
     # [0-1] Location
-    location = models.TextField("Images", blank=True, null=True)
+    location = models.TextField("Location", blank=True, null=True)
     # [0-1] link
     link = models.URLField("Link to online edition", blank=True, null=True)
+    label = models.CharField("Name for the link", blank=True, null=True, max_length=MEDIUM_LENGTH)
     # [0-1] Ownership
     ownership = models.TextField("Ownership", blank=True, null=True)
     # [0-1] Marginalia
@@ -1450,7 +1475,7 @@ class Consulting(models.Model):
     edition = models.ForeignKey(Edition, blank=True, null=True, on_delete=models.SET_NULL, related_name="consultings")
 
     def __str__(self):
-        return "-" if self == None else self.code
+        return "-" if self == None else self.location
 
 
 class Signature(models.Model):

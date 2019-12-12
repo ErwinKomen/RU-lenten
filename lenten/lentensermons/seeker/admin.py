@@ -201,7 +201,7 @@ class ConsultingInline(admin.StackedInline):
 class EditionAdminForm(forms.ModelForm):
     class Meta:
         model = Edition
-        fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'frontpage', 'prologue', 'dedicatory', 'contents',\
+        fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents',\
               'othertexts', 'images', 'fulltitle', 'colophon', 'publishers', 'note']
         # filter_horizontal = ('publishers',)
         widgets = {
@@ -252,7 +252,7 @@ class EditionInline(admin.StackedInline):
 class ConsultingAdmin(admin.ModelAdmin):
     """Define the elements of a consulting:"""
 
-    fields = ['location', 'link', 'ownership', 'marginalia', 'images']
+    fields = ['location', 'link', 'label', 'ownership', 'marginalia', 'images']
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
@@ -264,7 +264,8 @@ class ConsultingAdmin(admin.ModelAdmin):
         return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
-        sUrl = redirect(reverse('edition_list'))
+        # Return to the Edition details view of the correct one
+        sUrl = redirect(reverse('edition_details', kwargs={'pk': obj.edition.id}))
         return sUrl
 
 
@@ -283,7 +284,7 @@ class PublisherAdmin(admin.ModelAdmin):
         return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
-        sUrl = redirect(reverse('edition_list'))
+        sUrl = redirect(reverse('publisher_list'))
         return sUrl
 
 

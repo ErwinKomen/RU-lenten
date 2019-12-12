@@ -80,9 +80,12 @@ urlpatterns = [
     url(r'^tag/qsources/view(?:/(?P<pk>\d+))?/$', TagQsourceDetailView.as_view(), name='tagqsrc_details'),
     url(r'^tag/note/view(?:/(?P<pk>\d+))?/$', TagNoteDetailView.as_view(), name='tagnote_details'),
 
-    url(r'^publisher/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='publisher_details'),
+    url(r'^publisher/list',  PublisherListView.as_view(), name='publisher_list'),
+    url(r'^publisher/view(?:/(?P<pk>\d+))?/$', PublisherDetailsView.as_view(), name='publisher_details'),
+    url(r'^publisher/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/publisher/add'), name='publisher_add'),
 
-    url(r'^consulting/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='consulting_details'),
+    url(r'^consulting/view(?:/(?P<pk>\d+))?/$', ConsultingDetailsView.as_view(), name='consulting_details'),
+    url(r'^consulting/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/consulting/add'), name='consulting_add'),
 
     url(r'^report/list', ReportListView.as_view(), name='report_list'),
     url(r'^report/details(?:/(?P<pk>\d+))?/$', ReportDetailsView.as_view(), name='report_details'),

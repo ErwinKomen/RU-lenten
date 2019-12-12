@@ -173,6 +173,17 @@ class KeywordWidget(ModelSelect2MultipleWidget):
         return Keyword.objects.all().order_by('name').distinct()
 
 
+class PublisherWidget(ModelSelect2MultipleWidget):
+    model = Publisher
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Publisher.objects.all().order_by('name').distinct()
+
+
 class TagWidget(ModelSelect2MultipleWidget):
     model = None
     search_fields = [ 'name__icontains' ]
@@ -328,6 +339,28 @@ class KeywordListForm(forms.ModelForm):
         self.fields['language'].required = False
         self.fields['kwlist'].queryset = Keyword.objects.all().order_by('name')
         self.fields['lnglist'].queryset = FieldChoice.objects.filter(field='seeker.language').order_by('english_name')
+
+
+class PublisherListForm(forms.ModelForm):
+    pbname = forms.CharField(label=_("Keyword"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching publishers input-sm', 'placeholder': 'Keyword...', 'style': 'width: 100%;'}))
+    pblist = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=PublisherWidget(attrs={'data-placeholder': 'Select multiple publishers...', 'style': 'width: 100%;', 'class': 'searching'}))
+
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = Publisher
+        fields = ['name' ]
+        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching publishers input-sm', 'placeholder': 'Publisher...', 'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(PublisherListForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['name'].required = False
+        self.fields['pblist'].queryset = Publisher.objects.all().order_by('name')
 
 
 class TagForm(forms.ModelForm):

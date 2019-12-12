@@ -13,7 +13,7 @@ import operator
 from functools import reduce
 
 from django.db.models.functions import Lower
-from django.db.models.query import QuerySet 
+from django.db.models.query import QuerySet 2
 from django.forms import formset_factory, modelformset_factory, inlineformset_factory
 from django.forms.models import model_to_dict
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
@@ -39,11 +39,12 @@ from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm, \
-    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm
+    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm, PublisherListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Keyword, FieldChoice, \
-    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource
+    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource, \
+    Publisher, Consulting
 
 # Some constants that can be used
 paginateSize = 20
@@ -2140,6 +2141,24 @@ class KeywordListView(BasicListView):
         ]
 
 
+class PublisherListView(BasicListView):
+    """Listview of sermon collections"""
+
+    model = Publisher
+    listform = PublisherListForm
+    prefix = "pb"
+    template_name = 'seeker/publisher_list.html'
+    entrycount = 0
+    order_default = ['name']
+    order_cols = ['name']
+    order_heads = [{'name': 'Publisher', 'order': 'o=1', 'type': 'str'}]
+    filters = [ {"name": "Publisher",     "id": "filter_name",    "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'pbname',   'keyList': 'pblist', 'infield': 'name'} ]}
+        ]
+
+
 class TagListView(BasicListView):
     """Listview of tags"""
 
@@ -2774,17 +2793,15 @@ class EditionDetailsView(PassimDetails):
         if instance.place:
             sLocation = instance.place.name
         context['mainitems'] = [
-            {'type': 'bold',  'label': "Year of publication (earliest):", 'value': instance.date},
-            {'type': 'plain', 'label': "Year of publication (latest):", 'value': instance.date_late},
-            {'type': 'plain', 'label': "Date type:", 'value': instance.get_datetype_display()},
-            {'type': 'plain', 'label': "Comment on the date:", 'value': instance.datecomment},
+            {'type': 'plain', 'label': "Date:", 'value': instance.get_full_date()},
             {'type': 'plain', 'label': "Place:", 'value': sLocation},
-            {'type': 'plain', 'label': "Passage:", 'value': instance.get_format_display() },
+            {'type': 'plain', 'label': "Publisher:", 'value': instance.get_publisher() },
+            {'type': 'plain', 'label': "Format:", 'value': instance.get_format_display() },
             {'type': 'plain', 'label': "Folia:", 'value': instance.folia},
+            {'type': 'plain', 'label': "Number of sermons:", 'value': instance.numsermons},
             # MORE INFORMATION SHOULD FOLLOW
             ]
-
-
+        
         context['sections'] = [
             {'name': 'Paratextual elements', 'id': 'edi_paratextual', 'fields': [
                 {'type': 'safeline', 'label': "Front page:", 'value': instance.frontpage , 'title': 'Front page / Title page' },
@@ -2807,6 +2824,65 @@ class EditionDetailsView(PassimDetails):
         link_objects.append(link)
         context['link_objects'] = link_objects
 
+        related_objects = []
+
+        # Show the CONSULTINGS of this edition
+        consultings = {'title': 'Consultings of this edition'}
+        # Show the list of sermons that are part of this collection
+        qs = instance.consultings.all().order_by('location')
+        rel_list =[]
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.location, 'location': 'View this consulting', 'link': reverse('consulting_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.ownership})
+            rel_list.append(rel_item)
+        consultings['rel_list'] = rel_list
+        consultings['columns'] = ['Location', 'Ownership']
+        related_objects.append(consultings)
+
+        context['related_objects'] = related_objects
+        return context
+
+
+class ConsultingDetailsView(PassimDetails):
+    model = Consulting
+    mForm = None
+    template_name = 'generic_details.html' 
+    prefix = "cons"
+    title = "ConsultingDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        url_label = "url" if instance.label == None or instance.label == "" else instance.label
+        context['mainitems'] = [
+            {'type': 'plain', 'label': "Location:", 'value': instance.location},
+            {'type': 'bold', 'label': "Link:", 'value': url_label, 'link': instance.link},
+            {'type': 'plain', 'label': "Ownership:", 'value': instance.ownership},
+            {'type': 'plain', 'label': "Marginalia:", 'value': instance.marginalia},
+            {'type': 'plain', 'label': "Images:", 'value': instance.images}
+            ]
+
+        # Adapt the listview to which the user can link: 
+        #    this should be the details view of the *EDITION* to which the consultings belong
+        context['listview'] = reverse('edition_details', kwargs={'pk': instance.edition.id})
+
+        return context
+
+
+class PublisherDetailsView(PassimDetails):
+    model = Publisher
+    mForm = None
+    template_name = 'generic_details.html' 
+    prefix = "publ"
+    title = "PublisherDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        context['mainitems'] = [
+            {'type': 'plain', 'label': "Name:", 'value': instance.name}
+            ]
         return context
 
 
