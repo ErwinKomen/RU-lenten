@@ -13,7 +13,7 @@ import operator
 from functools import reduce
 
 from django.db.models.functions import Lower
-from django.db.models.query import QuerySet 2
+from django.db.models.query import QuerySet
 from django.forms import formset_factory, modelformset_factory, inlineformset_factory
 from django.forms.models import model_to_dict
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
@@ -2651,7 +2651,7 @@ class SermonDetailsView(PassimDetails):
                 {'type': 'safeline',    'label': "Division (English):", 'value': instance.divisionE.strip()},
                 ]},
             {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
-                {'type': 'line',    'label': "Summary:", 'value': instance.get_summary_display.strip()}                ]},
+                {'type': 'line',    'label': "Summary:", 'value': instance.get_summary_markdown()}                ]},
             {'name': 'General notes', 'id': 'sermo_general', 'fields': [
                 {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
             ]

@@ -1282,7 +1282,7 @@ class Sermon(tagtext.models.TagtextModel):
     def get_summary_markdown(self):
         sBack = ""
         if self.summary:
-            sBack = markdown(self.summary)
+            sBack = markdown(self.get_summary_display)
             sBack = sBack.strip()
         return sBack
 
