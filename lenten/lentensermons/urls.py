@@ -38,24 +38,54 @@ urlpatterns = [
     url(r'^short', lentensermons.seeker.views.about, name='short'),
     url(r'^nlogin', lentensermons.seeker.views.nlogin, name='nlogin'),
 
-    url(r'^api/tributes/', lentensermons.seeker.views.get_tributes, name='api_tributes'),
+    url(r'^api/tagtext/', lentensermons.seeker.views.get_tributes, name='api_tributes'),
+    url(r'^api/params/', lentensermons.seeker.views.get_params, name='api_params'),
 
     url(r'^location/list', LocationListView.as_view(), name='location_list'),
     url(r'^location/details(?:/(?P<pk>\d+))?/$', LocationDetailsView.as_view(), name='location_details'),
     url(r'^location/edit(?:/(?P<pk>\d+))?/$', LocationEdit.as_view(), name='location_edit'),
     url(r'^location/relset(?:/(?P<pk>\d+))?/$', LocationRelset.as_view(), name='loc_relset'),
 
-    url(r'^author/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/author'), name='author_list'),
+    url(r'^author/list',  AuthorListView.as_view(), name='author_list'),
+    url(r'^author/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/author/add'), name='author_add'),
+    url(r'^author/view(?:/(?P<pk>\d+))?/$', AuthorDetailsView.as_view(), name='author_details'),
 
     url(r'^sermon/list',  SermonListView.as_view(), name='sermon_list'),
-    # url(r'^sermon/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon'), name='sermon_list'),
     url(r'^sermon/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon/add'), name='sermon_add'),
+    url(r'^sermon/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='sermon_details'),
 
-    url(r'^collection/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermoncollection'), name='collection_list'),
+    url(r'^collection/list',  SermonCollectionListView.as_view(), name='collection_list'),
+    url(r'^collection/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermoncollection/add'), name='collection_add'),
+    url(r'^collection/view(?:/(?P<pk>\d+))?/$', CollectionDetailsView.as_view(), name='collection_details'),
 
-    url(r'^manuscript/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/manuscript'), name='manuscript_list'),
+    url(r'^manuscript/list',  ManuscriptListView.as_view(), name='manuscript_list'),
+    url(r'^manuscript/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/manuscript/add'), name='manuscript_add'),
+    url(r'^manuscript/view(?:/(?P<pk>\d+))?/$', ManuscriptDetailsView.as_view(), name='manuscript_details'),
 
-    url(r'^edition/list',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/edition'), name='edition_list'),
+    url(r'^edition/list',  EditionListView.as_view(), name='edition_list'),
+    url(r'^edition/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/edition/add'), name='edition_add'),
+    url(r'^edition/view(?:/(?P<pk>\d+))?/$', EditionDetailsView.as_view(), name='edition_details'),
+
+    url(r'^keyword/list',  KeywordListView.as_view(), name='keyword_list'),
+    url(r'^keyword/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/keyword/add'), name='keyword_add'),
+    url(r'^keyword/view(?:/(?P<pk>\d+))?/$', KeywordDetailsView.as_view(), name='keyword_details'),
+
+    url(r'^tag/liturgical/list',  TagLiturListView.as_view(), name='tagliturgical_list'),
+    url(r'^tag/communicative/list',  TagCommListView.as_view(), name='tagcommunicative_list'),
+    url(r'^tag/qsources/list',  TagQsourceListView.as_view(), name='tagqsource_list'),
+    url(r'^tag/note/list',  TagNoteListView.as_view(), name='tagnote_list'),
+
+    url(r'^tag/liturgical/view(?:/(?P<pk>\d+))?/$', TagLiturDetailView.as_view(), name='taglitu_details'),
+    url(r'^tag/communicative/view(?:/(?P<pk>\d+))?/$', TagCommDetailView.as_view(), name='tagcomm_details'),
+    url(r'^tag/qsources/view(?:/(?P<pk>\d+))?/$', TagQsourceDetailView.as_view(), name='tagqsrc_details'),
+    url(r'^tag/note/view(?:/(?P<pk>\d+))?/$', TagNoteDetailView.as_view(), name='tagnote_details'),
+
+    url(r'^publisher/list',  PublisherListView.as_view(), name='publisher_list'),
+    url(r'^publisher/view(?:/(?P<pk>\d+))?/$', PublisherDetailsView.as_view(), name='publisher_details'),
+    url(r'^publisher/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/publisher/add'), name='publisher_add'),
+
+    url(r'^consulting/view(?:/(?P<pk>\d+))?/$', ConsultingDetailsView.as_view(), name='consulting_details'),
+    url(r'^consulting/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/consulting/add'), name='consulting_add'),
 
     url(r'^report/list', ReportListView.as_view(), name='report_list'),
     url(r'^report/details(?:/(?P<pk>\d+))?/$', ReportDetailsView.as_view(), name='report_details'),

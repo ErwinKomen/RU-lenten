@@ -14,6 +14,7 @@ from datetime import datetime
 from markdown import markdown
 from lentensermons.utils import *
 from lentensermons.settings import APP_PREFIX, WRITABLE_DIR
+from lentensermons import tagtext
 import sys, os, io, re
 import copy
 import json
@@ -354,59 +355,6 @@ def import_data_file(sContents, arErr):
         arErr.DoError("import_data_file error:")
         return {}
 
-def process_tags(sText, tagitems, cls):
-    """Extract the tags from [sText] and then make sure that the many-to-many field [m2m] only has these tags"""
-
-    oErr = ErrHandle()
-    sMarker = "_"       # Use the underscore
-    try:
-        # Split the string
-        arPart = sText.split("_")
-        # There should be an even number of underscores, so an odd number of parts
-        if len(arPart) % 2 != 0:
-            # Odd number of parts
-            num_tags = (len(arPart) - 1) / 2
-            if num_tags == 0:
-                # Make sure to remove all tags
-                tagitems.all().delete()
-            else:
-                add_list = []
-                # Create a list of what the tags should be:
-                taglist = []
-                tagnum = 0
-                while tagnum < num_tags:
-                    tagnum += 1
-                    idx = (tagnum-1) * 2 + 1
-                    taglist.append(arPart[idx])
-                # Look for deletions
-                for obj in tagitems.all():
-                    if obj.name not in taglist:
-                        # Must be removed
-                        tagitems.remove(obj)
-                # Get an update of what is in the database
-                db_tags = [x.name for x in tagitems.all()]
-                # Look for needed additions
-                for tag in taglist:
-                    if tag not in db_tags:
-                        obj = cls.objects.filter(name=tag).first()
-                        if obj == None:
-                            # Create and add an item in one go
-                            tagitems.create(name=tag)
-                        else:
-                            # Add the existing item
-                            tagitems.add(obj)
-
-
-                # Everything is okay (current_tags)
-        else:
-            # Even number of parts: do NOTHING...
-            pass
-        
-        return True, ""
-    except:
-        sMsg = oErr.get_error_message()
-        oErr.DoError("process_tags")
-        return False, sMsg
 
 
 # ============= GENERAL CLASSES =================================================================
@@ -424,6 +372,9 @@ class Status(models.Model):
     user = models.CharField("User", max_length=255, default="")
     # [0-1] Error message (if any)
     msg = models.TextField("Error message", blank=True, null=True)
+
+    class Meta:
+        verbose_name_plural = "Statuses"
 
     def __str__(self):
         # Refresh the DB connection
@@ -516,6 +467,9 @@ class Information(models.Model):
     name = models.CharField("Key name", max_length=255)
     # [0-1] The value for this piece of information
     kvalue = models.TextField("Key value", default = "", null=True, blank=True)
+
+    class Meta:
+        verbose_name_plural = "Information Items"
 
     def __str__(self):
         return "-" if self == None else self.name
@@ -712,6 +666,8 @@ class NewsItem(models.Model):
 
 # ============================= APPLICATION-SPECIFIC CLASSES =====================================
 
+# ============================= LOCATION related CLASSES =========================================
+
 class LocationType(models.Model):
     """Kind of location and level on the location hierarchy"""
 
@@ -847,14 +803,41 @@ class LocationRelation(models.Model):
     contained = models.ForeignKey(Location, related_name="contained_locrelations")
 
 
+# ============================= Different TAG related CLASSES =====================================
+
 class TagLiturgical(models.Model):
     """The field 'liturgical' can have [0-n] tag words associated with it"""
 
     # [1]
     name = models.CharField("Name", max_length=LONG_STRING)
 
+    class Meta:
+        verbose_name_plural = "Liturgical Tags"
+
     def __str__(self):
         return "-" if self == None else  self.name
+
+    def get_list(self):
+        """Get a list of type/count items"""
+
+        lst_back = []
+        # Communicative counts
+        count = self.collection_liturtags.all().count()
+        url = reverse("collection_list")
+        params = "coll-taglituid={}".format(self.id)
+        css ="jumbo-1"
+        item = dict(count=count, type="Collection Liturgical tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        return lst_back
+
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tagliturgical_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('taglitu_details', kwargs={'pk': self.id})
+        return url
 
 
 class TagCommunicative(models.Model):
@@ -863,8 +846,33 @@ class TagCommunicative(models.Model):
     # [1]
     name = models.CharField("Name", max_length=LONG_STRING)
 
+    class Meta:
+        verbose_name_plural = "Communicative Tags"
+
     def __str__(self):
         return "-" if self == None else  self.name
+
+    def get_list(self):
+        """Get a list of type/count items"""
+
+        lst_back = []
+        # Communicative counts
+        count = self.collection_commtags.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagcommid={}".format(self.id)
+        css ="jumbo-1"
+        item = dict(count=count, type="Collection Communicative tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        return lst_back
+
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tagcommunicative_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('tagcomm_details', kwargs={'pk': self.id})
+        return url
 
 
 class TagNote(models.Model):
@@ -873,9 +881,104 @@ class TagNote(models.Model):
     # [1]
     name = models.CharField("Name", max_length=LONG_STRING)
 
+    class Meta:
+        verbose_name_plural = "Note Tags"
+
     def __str__(self):
         return "-" if self == None else self.name
 
+    def get_list(self):
+        """Get a list of type/count items"""
+
+        lst_back = []
+
+        # Counts in: collection.exempla
+        count = self.collection_exempla.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagexemid={}".format(self.id)
+        css ="jumbo-1"
+        item = dict(count=count, type="Collection Example tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Counts in: collection.notes
+        count = self.collection_notes.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagnoteid={}".format(self.id)
+        css ="jumbo-2"
+        item = dict(count=count, type="Collection Notes tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Counts in: sermon.notes
+        count = self.sermon_notetags.all().count()
+        url = reverse("sermon_list")
+        params = "sermo-tagnoteid={}".format(self.id)
+        css ="jumbo-3"
+        item = dict(count=count, type="Sermon Note tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Counts in: edition.notes
+        count = self.edition_notetags.all().count()
+        url = reverse("edition_list")
+        params = "edi-tagnoteid={}".format(self.id)
+        css ="jumbo-4"
+        item = dict(count=count, type="Edition Note tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        return lst_back
+
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tagnote_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('tagnote_details', kwargs={'pk': self.id})
+        return url
+
+
+class TagQsource(models.Model):
+    """The field 'quoted source' can have [0-n] tag words associated with it"""
+
+    # [1]
+    name = models.CharField("Name", max_length=LONG_STRING)
+
+    class Meta:
+        verbose_name_plural = "Quoted Source Tags"
+
+    def __str__(self):
+        return "-" if self == None else  self.name
+
+    def get_list(self):
+        """Get a list of type/count items"""
+
+        lst_back = []
+        # Counts in: collection sources
+        count = self.collection_sources.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagqsrcid={}".format(self.id)
+        css ="jumbo-1"
+        item = dict(count=count, type="Collection quoted-source tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Counts in: sermon summaries
+        url = reverse("sermon_list")
+        css ="jumbo-2"
+        params = "sermo-tagqsrcid={}".format(self.id)
+        count = self.sermon_summarytags.all().count()
+        item = dict(count=count, type="Sermon Summary quoted-source tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        return lst_back
+
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tagqsource_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('tagqsrc_details', kwargs={'pk': self.id})
+        return url
+
+
+# ============================= Other CLASSES =====================================================
 
 class Author(models.Model):
     """We have a set of authors that are the 'golden' standard"""
@@ -910,7 +1013,7 @@ class Author(models.Model):
         return hit
 
 
-class SermonCollection(models.Model):
+class SermonCollection(tagtext.models.TagtextModel):
 
     # [0-1] Identification number assigned by the researcher
     idno = models.CharField("Identification", max_length=MEDIUM_LENGTH, blank=True, null=True)
@@ -946,32 +1049,35 @@ class SermonCollection(models.Model):
     # [0-1] Notes
     notes = models.TextField("Notes", blank=True, null=True)
     
+    # ----------- calculated fields for sorting ----------
+    firstedition = models.IntegerField("First edition date", default=0)
+    numeditions = models.IntegerField("number of editions", default=0)
+
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Author: each sermoncollection may have 1 or more authors
     authors = models.ManyToManyField(Author, blank=True)
     # [n-n] Liturgical tags
-    liturtags = models.ManyToManyField(TagLiturgical, blank=True)
+    liturtags = models.ManyToManyField(TagLiturgical, blank=True, related_name="collection_liturtags")
     # [n-n] Communicative tags
-    commutags = models.ManyToManyField(TagCommunicative, blank=True)
+    commutags = models.ManyToManyField(TagCommunicative, blank=True, related_name="collection_commtags")
+    # [n-n] Tags in the sources
+    sourcetags = models.ManyToManyField(TagQsource, blank=True, related_name="collection_sources")
+    # [n-n] Tags in the exempla
+    exemplatags = models.ManyToManyField(TagNote, blank=True, related_name="collection_exempla")
     # [n-n] Tags in the notes
-    notetags = models.ManyToManyField(TagNote, blank=True)
+    notetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_notes")
 
+    mixed_tag_fields = [
+            {"textfield": "liturgical",     "m2mfield": "liturtags",    "class": TagLiturgical,   "url": "taglitu_details"},
+            {"textfield": "communicative",  "m2mfield": "commutags",    "class": TagCommunicative,"url": "tagcomm_details"},
+            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagQsource,      "url": "tagqsrc_details"},
+            {"textfield": "exempla",        "m2mfield": "exemplatags",  "class": TagNote,         "url": "tagnote_details"},
+            {"textfield": "notes",          "m2mfield": "notetags",     "class": TagNote,         "url": "tagnote_details"}
+        ]
 
-    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
-        # Perform the actual saving
-        response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
-
-        # (1) Check and correct the liturgical tags
-        process_tags(self.liturgical, self.liturtags, TagLiturgical)
-
-        # (2) Check and correct the communicative tags
-        process_tags(self.communicative, self.commutags, TagCommunicative)
-
-        # (3) Check and correct the notes tags
-        process_tags(self.notes, self.notetags, TagNote)
-
-        # Return the saving result
-        return response
+    def tagtext_url(self):
+        url = reverse('api_tributes')
+        return url
 
     def first_edition(self):
         """Find the first edition from those linked to me"""
@@ -990,6 +1096,50 @@ class SermonCollection(models.Model):
         lst_author = [x.id for x in self.authors.all()]
         qs = Author.objects.filter(id__in=lst_author)
         return qs
+
+    def get_firstauthor(self):
+        f = self.authors.all().first()
+        return f.name
+
+    def get_authors(self):
+        auth_list = [x.name for x in self.authors.all()]
+        return ", ".join(auth_list)
+
+    def get_place(self):
+        place = "-"
+        if self.place != None:
+            place = self.place.name
+        return place
+
+    def num_editions(self):
+        count = self.editions.all().count()
+        return count
+
+    def first_edition(self):
+        obj = self.editions.all().order_by('date', 'date_late').first()
+        year = "-"
+        if obj != None:
+            year = obj.date
+            if year == None:
+                year = obj.date_late
+        return year
+
+    def adapt_editions(self):
+        """This gets called when an edition changes"""
+
+        bNeedSaving = False
+        firstedition = self.first_edition()
+        numeditions = self.num_editions()
+        if firstedition != self.firstedition:
+            self.firstedition = firstedition
+            bNeedSaving = True
+        if numeditions != self.numeditions:
+            self.numeditions = numeditions
+            bNeedSaving = True
+        # Check if saving is needed
+        if bNeedSaving:
+            self.save()
+        return True
 
     def __str__(self):
         # Combine my ID number and the title (which is obligatory)
@@ -1045,7 +1195,7 @@ class Keyword(models.Model):
         return combi
 
 
-class Sermon(models.Model):
+class Sermon(tagtext.models.TagtextModel):
     """The layout of one particular sermon (level three)"""
 
     # [0-1] Each sermon must be recognizable by a particular code
@@ -1075,9 +1225,22 @@ class Sermon(models.Model):
     topics = models.ManyToManyField(Topic, blank=True)
     # [0-n] Zero or more keywords linked to each Sermon
     keywords = models.ManyToManyField(Keyword, blank=True)
+    # [0-n] = zero or more qsource tags in the summary field
+    summarytags = models.ManyToManyField(TagQsource, blank=True, related_name="sermon_summarytags")
+    # [0-n] = zero or more notetags in the note field
+    notetags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_notetags")
+
+    mixed_tag_fields = [
+            {"textfield": "summary",    "m2mfield": "summarytags",  "class": TagQsource, "url": "tagqsrc_details"},
+            {"textfield": "note",       "m2mfield": "notetags",     "class": TagNote,    "url": "tagnote_details"}
+        ]
+
+    def tagtext_url(self):
+        url = reverse('api_tributes')
+        return url
 
     def __str__(self):
-        return self.code
+        return self.code if self.code else ""
 
     def get_bibref(self):
         sRef = "-"
@@ -1092,6 +1255,37 @@ class Sermon(models.Model):
                 sRef = sBook
         return sRef
 
+    def get_keywords(self):
+        kw_list = [x.name for x in self.keywords.all()]
+        return ", ".join(kw_list)
+
+    def get_full_thema(self):
+        sBack = ""
+        if self.thema: 
+            sBack = "_{}_ ({})".format(self.thema, self.get_bibref())
+        else:
+            sBack = self.get_bibref()
+        sBack = markdown(sBack.strip())
+        return sBack
+
+    def get_topics(self):
+        """Get a list of topics"""
+
+        topics = [x.name for x in self.topics.all()]
+        sBack = ", ".join(topics)
+        return sBack
+
+    def get_topics_markdown(self):
+        sBack = markdown(self.get_topics())
+        return sBack
+
+    def get_summary_markdown(self):
+        sBack = ""
+        if self.summary:
+            sBack = markdown(self.get_summary_display)
+            sBack = sBack.strip()
+        return sBack
+
 
 class Publisher(models.Model):
     """A publisher is defined by a name"""
@@ -1103,7 +1297,7 @@ class Publisher(models.Model):
         return "-" if self == None else  self.name
 
 
-class Edition(models.Model):
+class Edition(tagtext.models.TagtextModel):
     """An edition belonging to a particular sermon collection"""
 
     # [0-1] Code: first number collection, second edition
@@ -1124,6 +1318,12 @@ class Edition(models.Model):
     format = models.CharField("Format", choices=build_abbr_list(FORMAT_TYPE), max_length=5, blank=True, null=True)
     # [0-1] Number of folia: this may include the text layout 
     folia = models.TextField("Number of folia", blank=True, null=True)
+
+    # [1] Number of sermons: this is free text
+    numsermons = models.TextField("Number of sermons", default="-")
+
+    # [0-1] Notes on this Edition
+    note = models.TextField("Note", null=True, blank=True)
 
     # ----------- PARATEXTUAL ELEMENTS -------------
     # [0-1] Front or title page
@@ -1150,9 +1350,31 @@ class Edition(models.Model):
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Each edition may have any number of publishers
     publishers = models.ManyToManyField(Publisher, related_name="publisher_editions", blank=True)
+    # [0-n] = zero or more notetags in the note field
+    notetags = models.ManyToManyField(TagNote, blank=True, related_name="edition_notetags")
+
+    mixed_tag_fields = [
+            {"textfield": "note",           "m2mfield": "notetags",     "class": TagNote, "url": "tagnote_details"}
+        ]
 
     def __str__(self):
         response = "-" if self.code == None else self.code
+        return response
+
+    def tagtext_url(self):
+        url = reverse('api_tributes')
+        return url
+
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+        response = super(Edition, self).save(force_insert, force_update, using, update_fields)
+        # Adapt the information in sermoncollection
+        self.sermoncollection.adapt_editions()
+        return response
+
+    def delete(self, using = None, keep_parents = False):
+        response = super(Edition, self).delete(using, keep_parents)
+        # Adapt the information in sermoncollection
+        self.sermoncollection.adapt_editions()
         return response
 
     def get_sermons(self):
@@ -1176,14 +1398,73 @@ class Edition(models.Model):
         count = self.sermoncollection.sermons.all().count()
         return count
 
+    def get_date(self):
+        """Combine the date fields into a listview-showable version"""
+
+        lCombi = []
+        lCombi.append(self.get_datetype_display())
+        if self.date != None:
+            if self.date_late == None:
+                lCombi.append( self.date)
+            else:
+                lCombi.append( "{}-{}".format(self.date, self.date_late))
+        elif self.date_late != None:
+            lCombi.append( "{}".format(self.date_late))
+        else:
+            lCombi.append( "-")
+        date = " ".join(lCombi)
+        return date
+
+    def get_full_date(self):
+        """Combine the date fields including datecomment and so on"""
+
+        lCombi = []
+        lCombi.append(self.get_date())
+        if self.datecomment:
+            lCombi.append("; ")
+            lCombi.append(self.datecomment)
+        date = "".join(lCombi)
+        return date
+
+    def get_place(self):
+        """Combine the place/location fields into a listview-showable version"""
+
+        place = ""
+        if self.place != None:
+            place = self.place.name
+        return place
+
+    def get_editors(self):
+        """Get a list of editors"""
+
+        sBack = ""
+
+        return sBack
+
+    def get_publisher(self):
+        """Return the publisher(s)"""
+
+        lPublisher = []
+        for obj in self.publishers.all():
+            lPublisher.append(obj.name)
+        return "; ".join(lPublisher)
+
+    def has_notes(self):
+        """Return asterisk if has notes"""
+
+        sBack = ""
+        if self.note: sBack = "*"
+        return sBack
+
 
 class Consulting(models.Model):
     """An actual copy that the researcher has consulted or has seen"""
 
     # [0-1] Location
-    location = models.TextField("Images", blank=True, null=True)
+    location = models.TextField("Location", blank=True, null=True)
     # [0-1] link
     link = models.URLField("Link to online edition", blank=True, null=True)
+    label = models.CharField("Name for the link", blank=True, null=True, max_length=MEDIUM_LENGTH)
     # [0-1] Ownership
     ownership = models.TextField("Ownership", blank=True, null=True)
     # [0-1] Marginalia
@@ -1191,10 +1472,10 @@ class Consulting(models.Model):
     # [0-1] Images
     images = models.TextField("Images", blank=True, null=True)
     # [1] Each consulting pertains to a particular edition
-    edition = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL, related_name="consultings")
+    edition = models.ForeignKey(Edition, blank=True, null=True, on_delete=models.SET_NULL, related_name="consultings")
 
     def __str__(self):
-        return "-" if self == None else self.code
+        return "-" if self == None else self.location
 
 
 class Signature(models.Model):

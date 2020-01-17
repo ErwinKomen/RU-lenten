@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block scripts %}
-  {{sermoForm.media.css}}
+  {{pbForm.media.css}}
 {% endblock %}
 
 {% block content %}
@@ -26,20 +26,13 @@
               <span class="glyphicon glyphicon-search"></span>
             </a>
 
-            <!-- Allow uploading Lenten Excel files -->
-            {% if is_lenten_uploader %}
-              <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_upload_sermonexcel" 
-                  role="button" title="Upload Excel files" >
-                <span class="glyphicon glyphicon-upload"></span>
-              </a>
-            {% endif %}
           </span>
         </div>
       </div>
     </div>
 
     <!-- Define the filter tab -->
-    <form  id="sermons_filter" method='post' action="{% url 'sermon_list' %}" >
+    <form  id="publisher_filter" method='post' action="{% url 'publisher_list' %}" >
       {% csrf_token %}
       <!-- entrypoint for search_paged_start -->
       <div class="hidden search_paged_start">
@@ -68,66 +61,24 @@
             </div>
           </div>
               
-          <div class="row" id="sermon_filter_specs">
+          <div class="row" id="publisher_filter_specs">
             <!-- The column with the different filter sections -->
             <div class="col-md-10">
               <div class="panel panel-default ">
 
                 <!-- Intro -->
-                <div><h5>Sermon filters: </h5></div>
+                <div><h5>Publisher filters: </h5></div>
 
-                <!-- One or more codes -->
-                <div id="filter_code" class="{% if not sermoForm.code.value %}hidden{% endif %}">
-                  <table style="width: 100%;">
-                    <tr class="form-row"><td style="min-width: 130px;">Code</td><td style="width: 100%;">{{sermoForm.code}}</td></tr>
-                  </table>
-                </div>
-
-                    <!-- One or more authors -->
-                    <div id="filter_collection" class="{% if not sermoForm.collname.value and not sermoForm.collectionlist.value %}hidden{% endif %}">
-                      <table style="width: 100%;">
-                        <tr class="form-row">
-                          <td style="min-width: 130px;" valign="top">Collection</td>
-                          <td style="width: 100%;">
-                            <span class="collection-key hidden">{{sermoForm.collection}}</span>
-                            <span>{{sermoForm.collname}}</span>
-                            <span> or select: </span>
-                            <span>{{sermoForm.collectionlist}}</span>
-                          </td>
-                        </tr>
-                      </table>
-                    </div>
-
-                <!-- One or more litday items -->
-                <div id="filter_litday" class="{% if not sermoForm.litday.value %}hidden{% endif %}">
-                  <table style="width: 100%;">
-                    <tr class="form-row"><td style="min-width: 130px;">Liturgical day</td><td style="width: 100%;">{{sermoForm.litday}}</td></tr>
-                  </table>
-                </div>
-
-                <!-- One or more books -->
-                <div id="filter_book" class="{% if not sermoForm.bookname.value and not sermoForm.booklist.value %}hidden{% endif %}">
+                <!-- One or more publisher names -->
+                <div id="filter_name" class="{% if not pbForm.name.value and not pbForm.pblist.value %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
-                      <td style="min-width: 130px;">Book</td>
+                      <td style="min-width: 130px;" valign="top">Publisher</td>
                       <td style="width: 100%;">
-                        <span style="min-width: 100px;">{{sermoForm.bookname}}</span>
+                        <span class="keyword-key hidden">{{pbForm.name}}</span>
+                        <span>{{pbForm.pbname}}</span>
                         <span> or select: </span>
-                        <span>{{sermoForm.booklist}}</span>
-                      </td>
-                    </tr>
-                  </table>
-                </div>
-
-                <!-- One or more keywords -->
-                <div id="filter_keyword" class="{% if not sermoForm.keyword.value and not sermoForm.kwlist.value  %}hidden{% endif %}">
-                  <table style="width: 100%;">
-                    <tr class="form-row">
-                      <td style="min-width: 130px;">Keyword</td>
-                      <td style="width: 100%;">
-                        <span style="min-width: 100px;">{{sermoForm.keyword}}</span>
-                        <span> or select: </span>
-                        <span>{{sermoForm.kwlist}}</span>
+                        <span>{{pbForm.pblist}}</span>
                       </td>
                     </tr>
                   </table>
@@ -156,28 +107,20 @@
 
     </form>
 
-    <!-- Future extension: uploading -->
-    {% if is_lenten_uploader %}
-      <!-- Uplooad tab for Lenten sermon Excel files -->
-      <div class="inert collapse" id="tab_upload_sermoexcel">
-        <!-- VERDER INVULLEN -->
-      </div>
-    {% endif %}
-
     <!-- List tab -->
     <div class="" id="tab_list">
       <div class="panel panel-default">
 
-        <!-- Heading and button to add a new sermon -->
+        <!-- Heading and button to add a new publisher -->
         <form>
           <h3>
-            <span title="Every sermon belongs to a sermon collection">Sermons</span>
+            <span title="Every publisher belongs to one or more editions">Publishers</span>
             {% if is_lenten_editor %}
-              <span id="add_sermon" class="pull-right">
+              <span id="add_publisher" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
-                    href="{% url 'sermon_add' %}">
-                  <span class="glyphicon glyphicon-plus"></span>Add a sermon
+                    href="{% url 'publisher_add' %}">
+                  <span class="glyphicon glyphicon-plus"></span>Add a publisher
                 </a>
               </span>
             {% endif %}
@@ -218,36 +161,20 @@
                   </tr>
                 </thead>
                 <tbody>
-                {% for sermon in object_list %}
+                {% for pb in object_list %}
                   <tr class="dict-entry">
-                    <td class="hidden"> {{ sermon.id }}</td>
+                    <td class="hidden"> {{ pb.id }}</td>
 
-                    <!-- Sermon code -->
-                    <td class="clickable" title="View the sermon"
-                        onclick="ru.lenten.seeker.goto_url('{% url 'sermon_details' sermon.id %}')">{% if sermon.code %}{{sermon.code}}{% endif %}</td>
+                    <!-- Publisher name-->
+                    <td class="clickable" title="View the publisher" style="width: 100%;"
+                        onclick="ru.lenten.seeker.goto_url('{% url 'publisher_details' pb.id %}')">{% if pb.name %}{{pb.name}}{% endif %}</td>
 
-                    <!-- Authors of this sermon -->
-                    <td class="tdnowrap" title="{{sermon.collection.get_authors}}" >{{sermon.collection.get_firstauthor}}</td>
-
-                    <!-- Collection to which the sermon belongs -->
-                    <td class="clickable" title="View the sermon collection"
-                        onclick="ru.lenten.seeker.goto_url('{% url 'collection_details' sermon.collection.id %}')">{{sermon.collection.title}}</td>
-
-                    <!-- Liturgical day -->
-                    <td style="width: 100%;">{{sermon.litday}}</td>
-
-                    <!-- Thema = biblical reference -->
-                    <td class="tdnowrap">{{sermon.get_bibref}}</td>
-
-                    <!-- Main topics -->
-                    <td class="tdnowrap" title="{{sermon.get_topics}}">{{sermon.get_topics_markdown|safe}}</td>
-
-                    <!-- Short indications for this sermon-->
+                    <!-- Button(s) for this publisher-->
                     <td style="min-width: 80px;">
                       {% if is_lenten_editor %}
                         <!-- Edit button -->
                         <a mode="edit" class="view-mode btn btn-xs jumbo-1"
-                           onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermon_change' sermon.id %}')">
+                           onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_publisher_change' pb.id %}')">
                           <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
                         </a>
                       {% endif %}
@@ -270,7 +197,7 @@
           </div>
 
         {% else %}
-          <p>No sermons have been found.</p>
+          <p>No publishers have been found.</p>
         {% endif %}
       </div>
 
@@ -285,5 +212,5 @@
 {% endblock content %}
 
 {% block endcontent %} 
-  {{sermoForm.media.js }} 
+  {{pbForm.media.js }} 
 {% endblock %}

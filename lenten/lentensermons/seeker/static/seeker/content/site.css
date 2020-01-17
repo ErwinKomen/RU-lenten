@@ -207,6 +207,14 @@ p {
     padding: 0;
     line-height: 140%;
 }
+/*
+.view-row p {
+  line-height: 100%;
+  padding: 0;
+}*/
+.view-row p {
+  margin: 0 0 0 0;
+}
 
 /* Extra small pagination */
 .pagination {
@@ -471,14 +479,6 @@ svg g.lithium-node:hover > text {
 .mytextarea {
   /* font-family: monospace; */
   color: darkblue;
-}
-
-span[contenteditable] {
-  background-color: lightgray;
-  border-radius: 2px;
-  padding: 1px;
-  padding-left: 4px;
-  padding-right: 4px;
 }
 
 .arg-type select {
@@ -1238,3 +1238,25 @@ input:checked + .slider:before {
 .slider.round {   border-radius: 34px; }
 
 .slider.round:before {   border-radius: 50%; }
+
+
+span[contenteditable=false] {
+  background-color: lightgray;
+  border-radius: 2px;
+  padding: 1px;
+  padding-left: 1px;
+  padding-right: 1px;
+}
+
+table.func-view span[contenteditable=false] {
+  background-color: whitesmoke;
+}
+
+span[contenteditable=false] > a {
+  color: black;
+}
+span[contenteditable=false] > a:hover {
+    background-color: yellow;
+    text-decoration-line: none;
+    cursor: pointer;
+}

@@ -3,9 +3,12 @@ from django.contrib.admin.models import LogEntry, DELETION
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
 from django.core.urlresolvers import reverse
+from django.shortcuts import redirect
+
 
 from lentensermons.seeker.models import *
 from lentensermons.seeker.forms import *
+from lentensermons.tagtext.forms import *
 
 class LogEntryAdmin(admin.ModelAdmin):
 
@@ -70,18 +73,6 @@ class FieldChoiceAdmin(admin.ModelAdmin):
 
         obj.save()
 
-class TagTextarea(forms.Textarea):
-    template_name = 'seeker/tagtextarea.html'
-
-    def __init__(self, attrs=None):
-        # Use slightly better defaults than HTML's 20x2 box
-        default_attrs = {'cols': '80', 'rows': '2'}
-        if attrs:
-            default_attrs.update(attrs)
-            if 'tclass' in attrs:
-                self.tclass = attrs['tclass'] 
-        super(TagTextarea, self).__init__(default_attrs)
-
 
 class LocationTypeAdmin(admin.ModelAdmin):
     """Definition of each location type"""
@@ -131,6 +122,15 @@ class ActionAdmin(admin.ModelAdmin):
         }
 
 
+class VisitAdmin(admin.ModelAdmin):
+    """Display and edit Visit moments"""
+
+    list_display = ['user', 'when', 'name', 'path']
+    list_filter = ['user', 'name']
+    search_fields = ['user']
+    fields = ['user', 'when', 'name', 'path']
+
+
 class InformationAdmin(admin.ModelAdmin):
     """Information k/v pairs"""
 
@@ -170,6 +170,16 @@ class ManuscriptAdmin(admin.ModelAdmin):
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
 
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('manuscript_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('manuscript_list'))
+        return sUrl
+
 
 class ManuscriptInline(admin.StackedInline):
     model = Manuscript
@@ -179,15 +189,55 @@ class ManuscriptInline(admin.StackedInline):
         }
 
 
-class EditionAdmin(admin.ModelAdmin):
-    """Define an edition""" 
-
-    filter_horizontal = ('publishers',)
-    fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'frontpage', 'prologue', 'dedicatory', 'contents',\
-              'othertexts', 'images', 'fulltitle', 'colophon', 'publishers'] #, 'consultings']
+class ConsultingInline(admin.StackedInline):
+    model = Consulting
+    fk_name = 'edition'
+    extra = 0                   # Number of rows to show
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
+
+
+class EditionAdminForm(forms.ModelForm):
+    class Meta:
+        model = Edition
+        fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents',\
+              'othertexts', 'images', 'fulltitle', 'colophon', 'publishers', 'note']
+        # filter_horizontal = ('publishers',)
+        widgets = {
+            'datecomment':  forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'folia':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'frontpage':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'prologue':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'dedicatory':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'contents':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'othertexts':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'images':       forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'fulltitle':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'colophon':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'note':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            }
+
+
+class EditionAdmin(admin.ModelAdmin):
+    """Define an edition""" 
+
+    form = EditionAdminForm
+    filter_horizontal = ('publishers',)
+    inlines = [ConsultingInline]
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('edition_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('edition_list'))
+        return sUrl
 
 
 class EditionInline(admin.StackedInline):
@@ -199,17 +249,56 @@ class EditionInline(admin.StackedInline):
         }
 
 
+class ConsultingAdmin(admin.ModelAdmin):
+    """Define the elements of a consulting:"""
+
+    fields = ['location', 'link', 'label', 'ownership', 'marginalia', 'images']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('consulting_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        # Return to the Edition details view of the correct one
+        sUrl = redirect(reverse('edition_details', kwargs={'pk': obj.edition.id}))
+        return sUrl
+
+
+class PublisherAdmin(admin.ModelAdmin):
+    """Define the elements of a consulting:"""
+
+    fields = ['name']
+    formfield_overrides = {
+        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
+        }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('publisher_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('publisher_list'))
+        return sUrl
+
+
 class SermonCollectionAdminForm(forms.ModelForm):
     class Meta:
         model = SermonCollection
         fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
         widgets = {
             'bibliography':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'liturgical':       TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'liturgical'}),
-            'communicative':    TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'communicative'}),
-            'sources':          TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
-            'exempla':          TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
-            'notes':            TagTextarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea use_tribute', 'tclass': 'note'}),
+            'liturgical':       TagTextarea(attrs={'remote': '/api/tagtext/?tclass=liturgical' }),
+            'communicative':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=communicative' }),
+            'sources':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=qsource' }),
+            'exempla':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'notes':            TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
 
 
@@ -222,9 +311,16 @@ class SermonCollectionAdmin(admin.ModelAdmin):
     list_filter = ['place', 'authors']
     inlines = [ManuscriptInline, EditionInline]
     filter_horizontal = ('authors',)
-    #formfield_overrides = {
-    #    models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
-    #    }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('collection_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('collection_list'))
+        return sUrl
 
 
 class TagNoteAdmin(admin.ModelAdmin):
@@ -240,6 +336,12 @@ class TagCommunicativeAdmin(admin.ModelAdmin):
 
 
 class TagLiturgicalAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    fields = ['name']
+    search_fields = ['name']
+
+
+class TagQsourceAdmin(admin.ModelAdmin):
     list_display = ['name']
     fields = ['name']
     search_fields = ['name']
@@ -267,16 +369,38 @@ class BookAdmin(admin.ModelAdmin):
         }
 
 
+class SermonAdminForm(forms.ModelForm):
+    class Meta:
+        model = Sermon
+        fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'keywords', 'divisionL', 'divisionE', 'summary', 'note']
+        widgets = {
+            'thema':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'divisionL':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'divisionE':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'summary':      TagTextarea(attrs={'remote': '/api/tagtext/?tclass=qsource' }),
+            'note':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            }
+
+
 class SermonAdmin(admin.ModelAdmin):
+    form = SermonAdminForm
+
     list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection']
     search_fields = ['code', 'litday', 'book']
     list_filter = ['litday', 'book']
     fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'keywords', 'divisionL', 'divisionE', 'summary', 'note']
 
     filter_horizontal = ('topics', 'keywords',)
-    formfield_overrides = {
-        models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
-        }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('sermon_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('sermon_list'))
+        return sUrl
 
 
 class AuthorAdmin(admin.ModelAdmin):
@@ -286,6 +410,11 @@ class AuthorAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
         }
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('author_list'))
+        return sUrl
+
 
 
 
@@ -301,9 +430,12 @@ admin.site.register(LocationRelation, LocationRelationAdmin)
 admin.site.register(SermonCollection, SermonCollectionAdmin)
 admin.site.register(Manuscript, ManuscriptAdmin)
 admin.site.register(Edition, EditionAdmin)
+admin.site.register(Consulting, ConsultingAdmin)
+admin.site.register(Publisher, PublisherAdmin)
 admin.site.register(Topic, TopicAdmin)
-admin.site.register(TagCommunicative, TagNoteAdmin)
-admin.site.register(TagNote, TagCommunicativeAdmin)
+admin.site.register(TagCommunicative, TagCommunicativeAdmin)
+admin.site.register(TagNote, TagNoteAdmin)
+admin.site.register(TagQsource, TagQsourceAdmin)
 admin.site.register(TagLiturgical, TagLiturgicalAdmin)
 admin.site.register(Keyword, KeywordAdmin)
 admin.site.register(Sermon, SermonAdmin)
@@ -315,6 +447,7 @@ admin.site.register(Report, ReportAdmin)
 # Logbook of activities
 admin.site.register(LogEntry, LogEntryAdmin)
 admin.site.register(Action, ActionAdmin)
+admin.site.register(Visit, VisitAdmin)
 
 # How to display user information
 admin.site.unregister(User)

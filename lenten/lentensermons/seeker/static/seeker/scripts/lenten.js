@@ -44,10 +44,16 @@ var ru = (function ($, ru) {
         loc_editionL = [],
         loc_keyword = [],           // Keywords that can belong to a sermongold or a sermondescr
         loc_keywordL = [],
+        loc_language = [],          // Languages 
+        loc_languageL = [],
         loc_elInput = null,
         loc_sWaiting = " <span class=\"glyphicon glyphicon-refresh glyphicon-refresh-animate\"></span>",
         loc_cnrs_manu_url = "http://medium-avance.irht.cnrs.fr/Manuscrits/manuscritforetablissement",
         base_url = "",
+        KEYS = {
+          BACKSPACE: 8, TAB: 9, ENTER: 13, SHIFT: 16, CTRL: 17, ALT: 18, ESC: 27, SPACE: 32, PAGE_UP: 33, PAGE_DOWN: 34,
+          END: 35, HOME: 36, LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, DELETE: 46
+        },
         oSyncTimer = null;
 
 
@@ -79,12 +85,14 @@ var ru = (function ($, ru) {
        *    Initialize eent listeners for this module
        */
       init_event_listeners: function () {
-        var bUseTypeahead = false;  // Put this to 'True' to actually use typeahead!!!
+        var bUseTypeahead = true;  // Put this to 'True' to actually use typeahead!!!
 
         // Get the base URL
         base_url = $("#__baseurl__").text();
         
         if (bUseTypeahead) {
+
+          /*
           // Bloodhound: LOCATION
           loc_locations = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.whitespace,
@@ -173,20 +181,33 @@ var ru = (function ($, ru) {
               }
             }
           });
+          */
 
           // Bloodhound: KEYWORD
           loc_keyword = new Bloodhound({
-            datumTokenizer: function (myObj) {
-              return myObj;
-            },
-            queryTokenizer: function (myObj) {
-              return myObj;
-            },
-            // loc_countries will be an array of countries
+            datumTokenizer: function (myObj) {return myObj;},
+            queryTokenizer: function (myObj) {return myObj;},
+            // loc_keyword will be an array of keywords
             local: loc_keywordL,
-            prefetch: { url: base_url + 'api/keywords/', cache: true },
+            prefetch: { url: base_url + 'api/params/?field=keyword', cache: true },
             remote: {
-              url: base_url + 'api/keywords/?name=',
+              url: base_url + 'api/params/?field=keyword&name=',
+              replace: function (url, uriEncodedQuery) {
+                url += encodeURIComponent(uriEncodedQuery);
+                return url;
+              }
+            }
+          });
+
+          // Bloodhound: LANGUAGE
+          loc_language = new Bloodhound({
+            datumTokenizer: function (myObj) {return myObj;},
+            queryTokenizer: function (myObj) {return myObj;},
+            // loc_language will be an array of languages
+            local: loc_languageL,
+            prefetch: { url: base_url + 'api/params/?field=language', cache: true },
+            remote: {
+              url: base_url + 'api/params/?field=language&name=',
               replace: function (url, uriEncodedQuery) {
                 url += encodeURIComponent(uriEncodedQuery);
                 return url;
@@ -208,13 +229,17 @@ var ru = (function ($, ru) {
       init_typeahead: function () {
         try {
           // First destroy them
+          /*
           $(".typeahead.locations").typeahead('destroy');
           $(".typeahead.authors").typeahead('destroy');
           $(".typeahead.signatures").typeahead('destroy');
           $(".typeahead.editions").typeahead('destroy');
-          $(".typeahead.keywords").typeahead('destroy');
           $(".typeahead.manuidnos").typeahead('destroy');
+          */
+          $(".typeahead.keywords").typeahead('destroy');
+          $(".typeahead.languages").typeahead('destroy');
 
+          /*
           // Type-ahead: LOCATION
           $(".form-row:not(.empty-form) .typeahead.locations, .manuscript-details .typeahead.locations").typeahead(
             { hint: true, highlight: true, minLength: 1 },
@@ -277,7 +302,7 @@ var ru = (function ($, ru) {
             }
           ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
             $(this).closest("td").find(".edition-key input").last().val(suggestion.id);
-          });
+          });*/
 
           // Type-ahead: KEYWORD -- NOTE: not in a form-row, but in a normal 'row'
           $(".row .typeahead.keywords, tr .typeahead.keywords").typeahead(
@@ -295,6 +320,23 @@ var ru = (function ($, ru) {
             $(this).closest("td").find(".keyword-key input").last().val(suggestion.id);
           });
 
+          // Type-ahead: LANGUAGE -- NOTE: not in a form-row, but in a normal 'row'
+          $(".row .typeahead.languages, tr .typeahead.languages").typeahead(
+            { hint: true, highlight: true, minLength: 1 },
+            {
+              name: 'languages', source: loc_language, limit: 25, displayKey: "name",
+              templates: {
+                empty: '<p>Use the wildcard * to mark an inexact wording of a language</p>',
+                suggestion: function (item) {
+                  return '<div>' + item.name + '</div>';
+                }
+              }
+            }
+          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
+            $(this).closest("td").find(".language-key input").last().val(suggestion.id);
+          });
+
+          /*
           // Type-ahead: manuidno -- NOTE: not in a form-row, but in a normal 'row'
           $(".form-row:not(.empty-form) .typeahead.manuidnos, .manuscript-details .typeahead.manuidnos").typeahead(
             { hint: true, highlight: true, minLength: 1 },
@@ -310,11 +352,32 @@ var ru = (function ($, ru) {
           ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
             $(this).closest("td").find(".manuidno-key input").last().val(suggestion.id);
           });
+          */
 
           // Make sure we know which element is pressed in typeahead
           $(".form-row:not(.empty-form) .typeahead").on("keyup",
             function () {
               loc_elInput = $(this);
+            });
+
+          // Allow "Search on ENTER" from typeahead fields
+          $(".form-row:not(.empty-form) .searching").on("keypress",
+            function (evt) {
+              var key = evt.which,  // Get the KEY information
+                  start = null,
+                  button = null;
+
+              // Look for ENTER
+              if (key === KEYS.ENTER) {
+                // Find the 'Search' button
+                button = $(this).closest("form").find("a[role=button]").last();
+                // Check for the inner text
+                if ($(button)[0].innerText === "Search") {
+                  // Found it
+                  $(button).click();
+                  evt.preventDefault();
+                }
+              }
             });
 
           // Make sure the twitter typeahead spans are maximized

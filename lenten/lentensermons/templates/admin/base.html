@@ -5,7 +5,6 @@
 <title>{% block title %}{% endblock %}</title>
 <link rel="stylesheet" type="text/css" href="{% block stylesheet %}{% static "admin/css/base.css" %}{% endblock %}" />
 <link rel="stylesheet" type="text/css" href="{% static 'seeker/content/ru-admin.css' %}" />
-<link rel="stylesheet" type="text/css" href="{% static 'seeker/content/tribute.css' %}" />
 {% block extrastyle %}{% endblock %}
 {% if LANGUAGE_BIDI %}<link rel="stylesheet" type="text/css" href="{% block stylesheet_rtl %}{% static "admin/css/rtl.css" %}{% endblock %}" />{% endif %}
 {% block extrahead %}{% endblock %}
@@ -19,7 +18,6 @@
     <script src="{% static 'seeker/scripts/bootstrap.js' %}"></script>
     <script src="{% static 'seeker/scripts/modernizr-2.6.2.js' %}"></script>
     <script src="{% static 'seeker/scripts/typeahead.bundle.js' %}"></script>
-    <script src="{% static 'seeker/scripts/tribute.js' %}"></script>
 
     <script src="{% static 'seeker/scripts/lenten.js' %}"></script>
     <script src="{% static 'seeker/scripts/lenten.seeker.js' %}"></script>

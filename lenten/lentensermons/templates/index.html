@@ -16,45 +16,54 @@
         </span>
       </h1>
       <p class="lead">
-        <span>The LentenSermons web application provides search facilities YYY sermons.</span>
-        
+        <span>The LentenSermons web application provides search facilities to the main late medieval Lenten sermon collections.</span>
+        <span class="pull-right" style="color: red;"><i>under construction</i></span>
       </p>
   </div>
 
   <div class="row">
       <div class="col-md-6 bgimg">
-        <h2>Summary</h2>
-        <p>Currently the web application hosts XXX sermons, that are part of YYY manuscripts. 
-          <h2>Latest news</h2>
-          {% if newsitem_list %}
-            {% for item in newsitem_list %}
-              <div class="panel-news panel-default">
-                <div class="panel-heading collapsed" data-toggle="collapse" data-target="#news-item-{{item.id}}">
-                  <span>{{item.title}}</span>
-                  <span class="pull-right" style="font-size: smaller;">
-                    {% if item.saved %}
-                      <i>{{item.saved|date:"j/b/o"}}</i>
-                    {% else %}
-                      <i>{{item.created|date:"j/b/o"}}</i>
-                    {% endif %}
-                  </span>
-                </div>
-                <div class="collapse newsitem" id="news-item-{{item.id}}">
-                  {{item.msg|safe}}
-                </div>
+        <h2>Project</h2>
+        <p>The “Lenten sermon bestsellers” project, led by Dr. P. Delcorno <a href="">[link to web-page]</a>, 
+        aims to map and provide several tools to navigate to the most popular Lenten sermon collections circulating in late medieval Europe. 
+        Lenten preaching played a vital role in process of mass-communication and identity formation as an intensified form of religious instruction. 
+        The web-application aims to facilitate the identification and analysis of the conceptual and textual ‘infrastructure’ that supported this widespread socio-religious practice. 
+        </p>
+        <p>
+          In its first phase, the project will map the Lenten sermon collections printed before the Reformation (1470-1520), 
+          considering these normative texts as pocket-sized encyclopaedias that reflected and produced the shared (religious) grammar of the time. 
+        </p>
+        <p><a href="">Link to video/page</a></p>
+
+        <h2>Summary and news</h2>
+        <p>The web application currently hosts XXX sermons, that are part of YYY collections.</p>
+        {% if newsitem_list %}
+          {% for item in newsitem_list %}
+            <div class="panel-news panel-default">
+              <div class="panel-heading collapsed" data-toggle="collapse" data-target="#news-item-{{item.id}}">
+                <span>{{item.title}}</span>
+                <span class="pull-right" style="font-size: smaller;">
+                  {% if item.saved %}
+                    <i>{{item.saved|date:"j/b/o"}}</i>
+                  {% else %}
+                    <i>{{item.created|date:"j/b/o"}}</i>
+                  {% endif %}
+                </span>
               </div>
-            {% endfor %}
-          {% else %}
-            <p><i>(There is no news yet)</i></p>
-          {% endif %}
+              <div class="collapse newsitem" id="news-item-{{item.id}}">
+                {{item.msg|safe}}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p><i>(There is no news yet)</i></p>
+        {% endif %}
       </div>
       <div class="col-md-6">
-        <h2>Project</h2>
-        <p>See the LentenSermons <a href="https://applejack.science.ru.nl/passimproject" target="_blank">project page</a> for more information.</p>
 
         <h2>Getting started</h2>
         <p>
-          The passim application has been designed by the Technical Service Group of the Humanities Lab at the Radboud University Nijmegen.
+          The LentenSermon application has been designed by the Technical Service Group of the Humanities Lab at the Radboud University Nijmegen.
           Any researcher is invited to register (via <a role="button" class="btn btn-default btn-xs" href="{% url 'signup' %}">sign up</a>).
           Regular researchers are able to read and search through the information that is provided.
         </p>
@@ -63,6 +72,13 @@
           (See the <b>Extra</b> menu for logout and other options)
           {% endif %}
         </p>
+        <p>TODO: acknowledgements to the Gerda Henkel Stiftung and to NWO</p>
+
+        <h2>Start your research</h2>
+        <p>Here we may consider how to make immediately visible the key tools to start the research</p>
+
+        <h2>Get involved</h2>
+        <p>Here – or above (beside developers) we might think to add an invitation to get involved, inviting scholars who work on Lenten sermons to collaborate – or to send correction or addition to what I indicate.</p>
       </div>
   </div>
 </div>

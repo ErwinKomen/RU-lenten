@@ -9,23 +9,25 @@
 
 {% block content %}
 
+
       <div class="panel panel-default">
 
-        <!-- Heading and button to add a new author -->
+        <!-- Heading and button to add a new manuscript -->
         <form>
           <h3>
-            <span title="These are 'gold standard' authors">Authors</span>
+            <span title="One manuscript belongs to a sermon collection">Manuscripts</span>
             {% if is_lenten_editor %}
-              <span id="add_author" class="pull-right">
+              <span id="add_sermon" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
-                    href="{% url 'author_add' %}">
-                  <span class="glyphicon glyphicon-plus"></span>Add an Author
+                    href="{% url 'manuscript_add' %}">
+                  <span class="glyphicon glyphicon-plus"></span>Add a manuscript
                 </a>
               </span>
             {% endif %}
           </h3>
         </form>
+
 
       {% if object_list %}
         <!-- Top pagination -->
@@ -40,29 +42,37 @@
             </div>
         </div>
 
-        <!-- Table that lists all authors -->
+        <!-- Table that lists all manuscript -->
         <div class="row">
           <div class="col-md-12">
             <table class="table table-hover">
-              <thead><tr><th class="hidden">id</th><th>Author name</th><th>Information</th><th><!-- Buttons --></th></tr></thead>
+              <thead>
+                <tr>
+                  <th class="hidden">id</th>
+                  <th>Collection</th>
+                  <th>Information</th>
+                  <th>Link</th>
+                  <th><!-- Buttons --></th>
+                </tr>
+              </thead>
               <tbody>
-              {% for author in object_list %}
-                <tr class="dict-entry" >
-                  <td class="hidden"> {{ author.id }}</td>
-                  <td class="tdnowrap clickable" title="View the details of this author"
-                      onclick="ru.lenten.seeker.goto_url('{% url 'author_details' author.id %}')">
-                    <span class="author-name">{{author.name}}</span>
+              {% for manuscript in object_list %}
+                <tr class="dict-entry">
+                  <td class="hidden"> {{ manuscript.id }}</td>
+                  <td class="clickable" title="View the sermon collection of this manuscript"
+                      onclick="ru.lenten.seeker.goto_url('{% url 'collection_details' manuscript.collection.id %}')">{{manuscript.collection.title}}</td>
+                  <td class="clickable" style="width: 100%;" title="View the details of this manuscript"
+                      onclick="ru.lenten.seeker.goto_url('{% url 'manuscript_details' manuscript.id %}')">
+                    {{manuscript.info}}
                   </td>
-                  <td style="width: 100%;">
-                    <span class="author-info">{{author.info}}</span>
-                  </td>
+                  <td class="tdnowrap">{{manuscript.link}}</td>
 
-                  <!-- Short indications for this author-->
+                  <!-- Short indications for this edition -->
                   <td style="min-width: 80px;">
                     {% if is_lenten_editor %}
                       <!-- Edit button -->
                       <a mode="edit" class="view-mode btn btn-xs jumbo-1"
-                         onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_author_change' author.id %}')">
+                         onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_manuscript_change' manuscript.id %}')">
                         <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
                       </a>
                     {% endif %}
@@ -85,7 +95,7 @@
         </div>
 
       {% else %}
-        <p>No authors have been found.</p>
+        <p>No manuscripts have been found.</p>
       {% endif %}
 
       </div>
