@@ -601,32 +601,36 @@ def sync_progress(request):
 def signup(request):
     """Provide basic sign up and validation of it """
 
-    if request.method == 'POST':
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            # Save the form
-            form.save()
-            # Create the user
-            username = form.cleaned_data.get('username')
-            raw_password = form.cleaned_data.get('password1')
-            # also make sure that the user gets into the STAFF,
-            #      otherwise he/she may not see the admin pages
-            user = authenticate(username=username, 
-                                password=raw_password,
-                                is_staff=True)
-            user.is_staff = True
-            user.save()
-            # Add user to the "passim_user" group
-            gQs = Group.objects.filter(name="passim_user")
-            if gQs.count() > 0:
-                g = gQs[0]
-                g.user_set.add(user)
-            # Log in as the user
-            login(request, user)
-            return redirect('home')
+    allow_signup = False # Do not allow signup yet
+    if allow_signup:
+        if request.method == 'POST':
+            form = SignUpForm(request.POST)
+            if form.is_valid():
+                # Save the form
+                form.save()
+                # Create the user
+                username = form.cleaned_data.get('username')
+                raw_password = form.cleaned_data.get('password1')
+                # also make sure that the user gets into the STAFF,
+                #      otherwise he/she may not see the admin pages
+                user = authenticate(username=username, 
+                                    password=raw_password,
+                                    is_staff=True)
+                user.is_staff = True
+                user.save()
+                # Add user to the "passim_user" group
+                gQs = Group.objects.filter(name="passim_user")
+                if gQs.count() > 0:
+                    g = gQs[0]
+                    g.user_set.add(user)
+                # Log in as the user
+                login(request, user)
+                return redirect('home')
+        else:
+            form = SignUpForm()
+        return render(request, 'signup.html', {'form': form})
     else:
-        form = SignUpForm()
-    return render(request, 'signup.html', {'form': form})
+        return redirect('home')
 
 @csrf_exempt
 def get_tributes(request):
@@ -3115,25 +3119,27 @@ class ManuscriptDetailsView(PassimDetails):
 
     def add_to_context(self, context, instance):
         context['mainitems'] = [
-            {'type': 'plain',  'label': "Information:", 'value': instance.info},
-            {'type': 'plain', 'label': "Link (if available):", 'value': instance.link}
+            {'type': 'bold',  'label': "Collection:",  'value': instance.collection.title, 'link': reverse('collection_details', kwargs={'pk': instance.collection.id})},
+            {'type': 'plain', 'label': "Information:", 'value': instance.info},
+            {'type': 'safe',  'label': "Link name (if available):", 'value': instance.get_link_markdown(), 'link': instance.url},
+            {'type': 'safe',  'label': "Author[s] (collection):", 'value': instance.collection.authorbadges()}
             ]
         related_objects = []
 
-        # Show the SERMONS of this manuscript
-        sermons = {'title': 'Sermons that are part of this manuscript'}
-        # Show the list of sermons that are part of this manuscript
-        qs = Sermon.objects.filter(collection=instance.collection).order_by('code')
-        rel_list =[]
-        for item in qs:
-            rel_item = []
-            rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
-            rel_item.append({'value': item.litday})
-            rel_item.append({'value': item.get_bibref()})
-            rel_list.append(rel_item)
-        sermons['rel_list'] = rel_list
-        sermons['columns'] = ['Code', 'Liturgical day', 'Reference']
-        related_objects.append(sermons)
+        ## Show the SERMONS of this manuscript
+        #sermons = {'title': 'Sermons that are part of this manuscript'}
+        ## Show the list of sermons that are part of this manuscript
+        #qs = Sermon.objects.filter(collection=instance.collection).order_by('code')
+        #rel_list =[]
+        #for item in qs:
+        #    rel_item = []
+        #    rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+        #    rel_item.append({'value': item.litday})
+        #    rel_item.append({'value': item.get_bibref()})
+        #    rel_list.append(rel_item)
+        #sermons['rel_list'] = rel_list
+        #sermons['columns'] = ['Code', 'Liturgical day', 'Reference']
+        #related_objects.append(sermons)
 
         context['related_objects'] = related_objects
         # Return the context we have made

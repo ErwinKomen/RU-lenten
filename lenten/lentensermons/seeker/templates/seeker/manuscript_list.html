@@ -65,7 +65,10 @@
                       onclick="ru.lenten.seeker.goto_url('{% url 'manuscript_details' manuscript.id %}')">
                     {{manuscript.info}}
                   </td>
-                  <td class="tdnowrap">{{manuscript.link}}</td>
+                  <td class="tdnowrap">
+                    {% if manuscript.url and manuscript.url != "" %}<a href="{{manuscript.url}}">{{manuscript.get_link_markdown|safe}}</a> 
+                    {% else %}{{manuscript.get_link_markdown|safe}}{% endif %}
+                  </td>
 
                   <!-- Short indications for this edition -->
                   <td style="min-width: 80px;">

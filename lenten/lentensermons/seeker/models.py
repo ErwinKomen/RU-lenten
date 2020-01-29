@@ -1097,6 +1097,17 @@ class SermonCollection(tagtext.models.TagtextModel):
         qs = Author.objects.filter(id__in=lst_author)
         return qs
 
+    def authorbadges(self):
+        """Get HTML code for a series of badges with author names"""
+
+        lHtml = []
+        qs = self.authors.all()
+        for obj in qs:
+            sBadge = "<span class='badge jumbo-1'>{}</span>".format(obj.name)
+            lHtml.append(sBadge)
+
+        return "\n".join(lHtml)
+
     def get_firstauthor(self):
         f = self.authors.all().first()
         return f.name
@@ -1154,8 +1165,20 @@ class Manuscript(models.Model):
     info = models.TextField("Info on manuscripts", default="-")
     # [0-1] Possibly provide a link to the manuscript online
     link = models.TextField("Link (if available)", blank=True, null=True)
+    # [0-1] And the associated URL for this link
+    url = models.URLField("URL of this link", blank=True, null=True)
     # [1] Each Manuscript belongs to a collection
     collection = models.ForeignKey(SermonCollection, related_name="manuscripts", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.info
+
+    def get_link_markdown(self):
+        sBack = ""
+        if self.link:
+            sBack = markdown(self.link)
+            sBack = sBack.strip()
+        return sBack
 
 
 class Book(models.Model):
