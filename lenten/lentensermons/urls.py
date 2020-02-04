@@ -84,6 +84,10 @@ urlpatterns = [
     url(r'^publisher/view(?:/(?P<pk>\d+))?/$', PublisherDetailsView.as_view(), name='publisher_details'),
     url(r'^publisher/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/publisher/add'), name='publisher_add'),
 
+    url(r'^news/list',  NewsListView.as_view(), name='newsitem_list'),
+    url(r'^news/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/newsitem/add'), name='newsitem_add'),
+    url(r'^news/view(?:/(?P<pk>\d+))?/$', NewsDetailsView.as_view(), name='newsitem_details'),
+
     url(r'^consulting/view(?:/(?P<pk>\d+))?/$', ConsultingDetailsView.as_view(), name='consulting_details'),
     url(r'^consulting/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/consulting/add'), name='consulting_add'),
 

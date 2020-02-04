@@ -663,6 +663,19 @@ class NewsItem(models.Model):
       response = super(NewsItem, self).save(force_insert, force_update, using, update_fields)
       return response
 
+    def check_until():
+        """Check all news items for the until date and emend status where needed"""
+
+        # Get current time
+        now = timezone.now()
+        for obj in NewsItem.objects.all():
+            if obj.until and obj.until < now:
+                # This should be set invalid
+                obj.status = "ext"
+                obj.save()
+        # Return valid
+        return True
+
 
 # ============================= APPLICATION-SPECIFIC CLASSES =====================================
 

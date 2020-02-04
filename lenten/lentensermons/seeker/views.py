@@ -39,7 +39,7 @@ from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm, \
-    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm, PublisherListForm
+    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm, PublisherListForm, NewsForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Keyword, FieldChoice, \
@@ -407,6 +407,8 @@ def home(request):
     # context['breadcrumbs'] = process_visit(request, "Home", True)
     context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}]
 
+    # Check the newsitems for validity
+    NewsItem.check_until()
     # Create the list of news-items
     lstQ = []
     lstQ.append(Q(status='val'))
@@ -3146,3 +3148,49 @@ class ManuscriptDetailsView(PassimDetails):
         return context
 
 
+class NewsListView(BasicListView):
+    """Allow user to view news items"""
+
+    model = NewsItem
+    listform = NewsForm
+    prefix = "news"
+    template_name = 'seeker/news_list.html'
+    entrycount = 0
+    order_default = ['status', '-saved', 'title']
+    order_cols = ['title', 'util', 'status', 'created', 'saved']
+    order_heads = [{'name': 'Title',     'order': 'o=1', 'type': 'str'},
+                   {'name': 'Remove at', 'order': 'o=2', 'type': 'str'},
+                   {'name': 'Status',    'order': 'o=3', 'type': 'str'},
+                   {'name': 'Created',   'order': 'o=4', 'type': 'str'},
+                   {'name': 'Saved',     'order': 'o=5', 'type': 'str'}]
+    filters = [ {"name": "Title",  "id": "filter_title",    "enabled": False},
+                {"name": "Status", "id": "filter_status",   "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'title',  'dbfield': 'title',   'keyS': 'title'},
+            {'filter': 'status', 'dbfield': 'status',  'keyS': 'status'} ]}
+        ]
+
+
+class NewsDetailsView(PassimDetails):
+    model = NewsItem
+    mForm = NewsForm
+    template_name = 'generic_details.html'
+    prefix = "news"
+    title = "NewsDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        context['mainitems'] = [
+            {'type': 'bold',  'label': "Title:",  'value': instance.title, 'link': reverse('newsitem_details', kwargs={'pk': instance.id})},
+            {'type': 'plain', 'label': "Status:", 'value': instance.get_status_display()},
+            {'type': 'safe',  'label': "Created:", 'value': instance.created},
+            {'type': 'safe',  'label': "Savid:", 'value': instance.saved},
+            {'type': 'safe',  'label': "Valid until:", 'value': instance.until}
+            ]
+        related_objects = []
+
+        context['related_objects'] = related_objects
+        # Return the context we have made
+        return context

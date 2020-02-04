@@ -161,6 +161,16 @@ class NewsItemAdmin(admin.ModelAdmin):
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
         }
 
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('newsitem_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('newsitem_list'))
+        return sUrl
+
 
 class ManuscriptAdmin(admin.ModelAdmin):
     """Define a Manuscript"""
