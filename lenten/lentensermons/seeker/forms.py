@@ -260,8 +260,9 @@ class NewsForm(forms.ModelForm):
 
     class Meta:
         model = NewsItem
-        fields = ['title', 'status', 'created', 'saved', 'until']
+        fields = ['title', 'msg', 'status', 'created', 'saved', 'until']
         widgets={'title':     forms.TextInput(attrs={'style': 'width: 100%;', 'class': "searching"}),
+                 'msg':       forms.Textarea(attrs={'rows': 2, 'cols': 60, 'style': 'height: 70px; width: 100%;'}),
                  'status':    forms.Select(attrs={'style': 'width: 100%;'}),
                  'created':   forms.TextInput(attrs={'style': 'width: 100%;'}),
                  'saved':     forms.TextInput(attrs={'style': 'width: 100%;'}),
@@ -352,6 +353,24 @@ class KeywordListForm(forms.ModelForm):
         self.fields['language'].required = False
         self.fields['kwlist'].queryset = Keyword.objects.all().order_by('name')
         self.fields['lnglist'].queryset = FieldChoice.objects.filter(field='seeker.language').order_by('english_name')
+
+
+class LitrefForm(forms.ModelForm):
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = Litref
+        fields = ['full', 'short' ]
+        widgets={'full':    forms.Textarea(attrs={'rows': 1, 'cols': 60, 'class': 'searching input-sm', 'placeholder': 'Full reference...', 'style': 'height: 40px; width: 100%;'}),
+                 'short':   forms.Textarea(attrs={'rows': 1, 'cols': 60, 'class': 'searching input-sm', 'placeholder': 'Short reference...', 'style': 'height: 40px; width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(LitrefForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['full'].required = False
+        self.fields['short'].required = False
 
 
 class PublisherListForm(forms.ModelForm):

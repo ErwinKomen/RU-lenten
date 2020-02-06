@@ -88,6 +88,10 @@ urlpatterns = [
     url(r'^news/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/newsitem/add'), name='newsitem_add'),
     url(r'^news/view(?:/(?P<pk>\d+))?/$', NewsDetailsView.as_view(), name='newsitem_details'),
 
+    url(r'^reference/list',  LitrefListView.as_view(), name='litref_list'),
+    url(r'^reference/view(?:/(?P<pk>\d+))?/$', LitrefDetailsView.as_view(), name='litref_details'),
+    url(r'^reference/edit(?:/(?P<pk>\d+))?/$', LitrefEditView.as_view(), name='litref_edit'),
+
     url(r'^consulting/view(?:/(?P<pk>\d+))?/$', ConsultingDetailsView.as_view(), name='consulting_details'),
     url(r'^consulting/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/consulting/add'), name='consulting_add'),
 

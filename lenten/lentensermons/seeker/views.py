@@ -39,12 +39,14 @@ from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm, \
-    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm, PublisherListForm, NewsForm
+    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm, PublisherListForm, NewsForm, \
+    LitrefForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Keyword, FieldChoice, \
     Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource, \
-    Publisher, Consulting
+    Publisher, Consulting, Litref
+from lentensermons.basic.views import BasicList, BasicDetails
 
 # Some constants that can be used
 paginateSize = 20
@@ -388,6 +390,13 @@ def get_previous_page(request):
         prevpage = request.META.get('HTTP_REFERER') 
     # Return the path
     return prevpage
+
+def get_date_display(dtThis):
+    if dtThis == None:
+        result = "-"
+    else:
+        result = dtThis.strftime("%d/%b/%Y %H:%M")
+    return result
 
 def home(request):
     """Renders the home page."""
@@ -3184,13 +3193,67 @@ class NewsDetailsView(PassimDetails):
     def add_to_context(self, context, instance):
         context['mainitems'] = [
             {'type': 'bold',  'label': "Title:",  'value': instance.title, 'link': reverse('newsitem_details', kwargs={'pk': instance.id})},
+            {'type': 'safe',  'label': "Message:", 'value': instance.msg},
             {'type': 'plain', 'label': "Status:", 'value': instance.get_status_display()},
-            {'type': 'safe',  'label': "Created:", 'value': instance.created},
-            {'type': 'safe',  'label': "Savid:", 'value': instance.saved},
-            {'type': 'safe',  'label': "Valid until:", 'value': instance.until}
+            {'type': 'safe',  'label': "Created:", 'value': get_date_display( instance.created)},
+            {'type': 'safe',  'label': "Savid:", 'value': get_date_display(instance.saved)},
+            {'type': 'safe',  'label': "Valid until:", 'value': get_date_display(instance.until)}
             ]
         related_objects = []
 
         context['related_objects'] = related_objects
         # Return the context we have made
         return context
+
+
+class LitrefListView(BasicList):
+    model = Litref
+    listform = LitrefForm
+    prefix = "lit"
+    plural_name = "References"
+    sg_name = "Reference"
+    order_cols = ['short', 'full']
+    order_default = ['full', 'short']
+    order_heads = [{'name': 'Short',          'order': 'o=1', 'type': 'str', 'custom': 'short', 'default': "-", 'linkdetails': True},
+                   {'name': 'Full reference', 'order': 'o=2', 'type': 'str', 'custom': 'full',  'main': True}]
+    filters = [ {"name": "Reference", "id": "filter_reference",     "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'reference',   'dbfield': 'full', 'keyS': 'full' }]}
+        ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "short":
+            html.append(instance.get_short_markdown())
+        elif custom == "full":
+            html.append(instance.get_full_markdown())
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+
+class LitrefEditView(BasicDetails):
+    model = Litref
+    mForm = LitrefForm
+    prefix = "lit"
+    titlesg = "Reference"
+    title = "Reference Edit"
+    mainitems = []
+    
+    def add_to_context(self, context, instance):
+        """Add to the existing context"""
+
+        # Define the main items to show and edit
+        context['mainitems'] = [
+            {'type': 'safe', 'label': "Full reference:", 'value': instance.get_full_markdown(), 'field_key': 'full'},
+            {'type': 'safe', 'label': "Short reference:", 'value': instance.get_short_markdown(), 'field_key': 'short'}
+            ]
+        # Return the context we have made
+        return context
+
+
+class LitrefDetailsView(LitrefEditView):
+    rtype = "html"
