@@ -1,4 +1,4 @@
-﻿var django = {
+var django = {
   "jQuery": jQuery.noConflict(true)
 };
 var jQuery = django.jQuery;
