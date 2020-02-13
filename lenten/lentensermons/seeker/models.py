@@ -1462,8 +1462,8 @@ class Edition(tagtext.models.TagtextModel):
         lCombi = []
         lCombi.append(self.get_datetype_display())
         if self.date != None:
-            if self.date_late == None:
-                lCombi.append( self.date)
+            if self.date_late == None or self.date == self.date_late:
+                lCombi.append("{}".format(self.date))
             else:
                 lCombi.append( "{}-{}".format(self.date, self.date_late))
         elif self.date_late != None:
