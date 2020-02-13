@@ -663,6 +663,19 @@ class NewsItem(models.Model):
       response = super(NewsItem, self).save(force_insert, force_update, using, update_fields)
       return response
 
+    def check_until():
+        """Check all news items for the until date and emend status where needed"""
+
+        # Get current time
+        now = timezone.now()
+        for obj in NewsItem.objects.all():
+            if obj.until and obj.until < now:
+                # This should be set invalid
+                obj.status = "ext"
+                obj.save()
+        # Return valid
+        return True
+
 
 # ============================= APPLICATION-SPECIFIC CLASSES =====================================
 
@@ -980,6 +993,28 @@ class TagQsource(models.Model):
 
 # ============================= Other CLASSES =====================================================
 
+class Litref(models.Model):
+    """One reference from literature"""
+
+    # [0-1] The full reference, including possible markdown symbols
+    full = models.TextField("Full reference", blank=False, null=False)
+    # [0-1] A short reference: including possible markdown symbols
+    short = models.TextField("Short reference", blank=True, default="")
+
+    def __str__(self):
+        return self.full
+
+    def get_full_markdown(self):
+        """Get the full text in markdown"""
+
+        return adapt_markdown(self.full, lowercase=False)
+
+    def get_short_markdown(self):
+        """Get the short text in markdown"""
+
+        return adapt_markdown(self.short, lowercase=False)
+
+
 class Author(models.Model):
     """We have a set of authors that are the 'golden' standard"""
 
@@ -1097,6 +1132,17 @@ class SermonCollection(tagtext.models.TagtextModel):
         qs = Author.objects.filter(id__in=lst_author)
         return qs
 
+    def authorbadges(self):
+        """Get HTML code for a series of badges with author names"""
+
+        lHtml = []
+        qs = self.authors.all()
+        for obj in qs:
+            sBadge = "<span class='badge jumbo-1'>{}</span>".format(obj.name)
+            lHtml.append(sBadge)
+
+        return "\n".join(lHtml)
+
     def get_firstauthor(self):
         f = self.authors.all().first()
         return f.name
@@ -1154,8 +1200,20 @@ class Manuscript(models.Model):
     info = models.TextField("Info on manuscripts", default="-")
     # [0-1] Possibly provide a link to the manuscript online
     link = models.TextField("Link (if available)", blank=True, null=True)
+    # [0-1] And the associated URL for this link
+    url = models.URLField("URL of this link", blank=True, null=True)
     # [1] Each Manuscript belongs to a collection
     collection = models.ForeignKey(SermonCollection, related_name="manuscripts", on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.info
+
+    def get_link_markdown(self):
+        sBack = ""
+        if self.link:
+            sBack = markdown(self.link)
+            sBack = sBack.strip()
+        return sBack
 
 
 class Book(models.Model):

@@ -22,6 +22,121 @@ def init_choices(obj, sFieldName, sSet, maybe_empty=False, bUseAbbr=False):
         obj.fields[sFieldName].help_text = get_help(sSet)
 
 
+# ===================== WIDGETS ======================================
+class LocationWidget(ModelSelect2MultipleWidget):
+    model = Location
+    search_fields = [ 'name__icontains']
+
+    def label_from_instance(self, obj):
+        sLabel = "{} ({})".format(obj.name, obj.loctype)
+        return sLabel
+
+
+class KeywordWidget(ModelSelect2MultipleWidget):
+    model = Keyword
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Keyword.objects.all().order_by('name').distinct()
+
+
+class PublisherWidget(ModelSelect2MultipleWidget):
+    model = Publisher
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Publisher.objects.all().order_by('name').distinct()
+
+
+class TagWidget(ModelSelect2MultipleWidget):
+    model = None
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return self.model.objects.all().order_by('name').distinct()
+
+
+class LanguageWidget(ModelSelect2MultipleWidget):
+    model = FieldChoice
+    search_fields = ['english_name__icontains']
+
+    def label_from_instance(self, obj):
+        return obj.english_name
+
+    def get_queryset(self):
+        return FieldChoice.objects.filter(field='seeker.language').order_by('english_name').distinct()
+
+
+class BookWidget(ModelSelect2MultipleWidget):
+    model = Book
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Book.objects.all().order_by('name').distinct()
+
+
+class CollectionWidget(ModelSelect2MultipleWidget):
+    model = SermonCollection
+    search_fields = [ 'title__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.title
+
+    def get_queryset(self):
+        return SermonCollection.objects.all().order_by('title').distinct()
+
+
+class AuthorWidget(ModelSelect2MultipleWidget):
+    model = Author
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Author.objects.all().order_by('name').distinct()
+
+
+class LocationWidget(ModelSelect2MultipleWidget):
+    model = Location
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Location.objects.all().order_by('name').distinct()
+
+
+class TagLiturWidget(TagWidget):
+    model = TagLiturgical
+
+
+class TagCommWidget(TagWidget):
+    model = TagCommunicative
+
+
+class TagQsourceWidget(TagWidget):
+    model = TagQsource
+
+
+class TagNoteWidget(TagWidget):
+    model = TagNote
+
+
+# ===================== STANDARD FORMS ================================
 class BootstrapAuthenticationForm(AuthenticationForm):
     """Authentication form which uses boostrap CSS."""
     username = forms.CharField(max_length=254,
@@ -44,19 +159,6 @@ class SignUpForm(UserCreationForm):
         fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2', )
 
 
-#class MultiTagTextareaWidget(forms.Textarea):
-#    def render(self, name, value, attrs = None, renderer = None):
-#        response = super().render(name, value, attrs, renderer)
-#        flat_attrs = flatatt(attrs)
-#        html = '''
-#        <textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %}>
-#        {% if widget.value %}{{ widget.value }}{% endif %}
-#        </textarea>
-#       ''' % {'attrs': flat_attrs, 'id': attrs['id'], 'value': value}
-
-#        return mark_safe(html)
-
-
 class UploadFileForm(forms.Form):
     """This is for uploading just one file"""
 
@@ -77,15 +179,7 @@ class SearchUrlForm(forms.Form):
                                 widget=forms.URLInput(attrs={'placeholder': 'Enter the search URL...', 'style': 'width: 100%;'}))
 
 
-class LocationWidget(ModelSelect2MultipleWidget):
-    model = Location
-    search_fields = [ 'name__icontains']
-
-    def label_from_instance(self, obj):
-        sLabel = "{} ({})".format(obj.name, obj.loctype)
-        return sLabel
-
-
+# ====================== APPLICATION MODEL FORMS =============================
 class LocationForm(forms.ModelForm):
 
     locationlist = ModelMultipleChoiceField(queryset=None, required=False,
@@ -160,111 +254,31 @@ class ReportEditForm(forms.ModelForm):
                  'reptype':      forms.TextInput(attrs={'style': 'width: 100%;'}),
                  'contents':     forms.Textarea(attrs={'rows': 1, 'cols': 40, 'style': 'height: 40px; width: 100%;'})
                  }
+        
 
+class NewsForm(forms.ModelForm):
 
-class KeywordWidget(ModelSelect2MultipleWidget):
-    model = Keyword
-    search_fields = [ 'name__icontains' ]
+    class Meta:
+        model = NewsItem
+        fields = ['title', 'msg', 'status', 'created', 'saved', 'until']
+        widgets={'title':     forms.TextInput(attrs={'style': 'width: 100%;', 'class': "searching"}),
+                 'msg':       forms.Textarea(attrs={'rows': 2, 'cols': 60, 'style': 'height: 70px; width: 100%;'}),
+                 'status':    forms.Select(attrs={'style': 'width: 100%;'}),
+                 'created':   forms.TextInput(attrs={'style': 'width: 100%;'}),
+                 'saved':     forms.TextInput(attrs={'style': 'width: 100%;'}),
+                 'until':     forms.TextInput(attrs={'style': 'width: 100%;'})
+                 }
 
-    def label_from_instance(self, obj):
-        return obj.name
-
-    def get_queryset(self):
-        return Keyword.objects.all().order_by('name').distinct()
-
-
-class PublisherWidget(ModelSelect2MultipleWidget):
-    model = Publisher
-    search_fields = [ 'name__icontains' ]
-
-    def label_from_instance(self, obj):
-        return obj.name
-
-    def get_queryset(self):
-        return Publisher.objects.all().order_by('name').distinct()
-
-
-class TagWidget(ModelSelect2MultipleWidget):
-    model = None
-    search_fields = [ 'name__icontains' ]
-
-    def label_from_instance(self, obj):
-        return obj.name
-
-    def get_queryset(self):
-        return self.model.objects.all().order_by('name').distinct()
-
-
-class TagLiturWidget(TagWidget):
-    model = TagLiturgical
-
-
-class TagCommWidget(TagWidget):
-    model = TagCommunicative
-
-
-class TagQsourceWidget(TagWidget):
-    model = TagQsource
-
-
-class TagNoteWidget(TagWidget):
-    model = TagNote
-
-
-class LanguageWidget(ModelSelect2MultipleWidget):
-    model = FieldChoice
-    search_fields = ['english_name__icontains']
-
-    def label_from_instance(self, obj):
-        return obj.english_name
-
-    def get_queryset(self):
-        return FieldChoice.objects.filter(field='seeker.language').order_by('english_name').distinct()
-
-
-class BookWidget(ModelSelect2MultipleWidget):
-    model = Book
-    search_fields = [ 'name__icontains' ]
-
-    def label_from_instance(self, obj):
-        return obj.name
-
-    def get_queryset(self):
-        return Book.objects.all().order_by('name').distinct()
-
-
-class CollectionWidget(ModelSelect2MultipleWidget):
-    model = SermonCollection
-    search_fields = [ 'title__icontains' ]
-
-    def label_from_instance(self, obj):
-        return obj.title
-
-    def get_queryset(self):
-        return SermonCollection.objects.all().order_by('title').distinct()
-
-
-class AuthorWidget(ModelSelect2MultipleWidget):
-    model = Author
-    search_fields = [ 'name__icontains' ]
-
-    def label_from_instance(self, obj):
-        return obj.name
-
-    def get_queryset(self):
-        return Author.objects.all().order_by('name').distinct()
-
-
-class LocationWidget(ModelSelect2MultipleWidget):
-    model = Location
-    search_fields = [ 'name__icontains' ]
-
-    def label_from_instance(self, obj):
-        return obj.name
-
-    def get_queryset(self):
-        return Location.objects.all().order_by('name').distinct()
-
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(NewsForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['title'].required = False
+        self.fields['status'].required = False
+        self.fields['created'].required = False
+        self.fields['saved'].required = False
+        self.fields['until'].required = False
+    
 
 class SermonListForm(forms.ModelForm):
     collname = forms.CharField(label=_("Collection"), required=False, 
@@ -341,6 +355,24 @@ class KeywordListForm(forms.ModelForm):
         self.fields['lnglist'].queryset = FieldChoice.objects.filter(field='seeker.language').order_by('english_name')
 
 
+class LitrefForm(forms.ModelForm):
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = Litref
+        fields = ['full', 'short' ]
+        widgets={'full':    forms.Textarea(attrs={'rows': 1, 'cols': 60, 'class': 'searching input-sm', 'placeholder': 'Full reference...', 'style': 'height: 40px; width: 100%;'}),
+                 'short':   forms.Textarea(attrs={'rows': 1, 'cols': 60, 'class': 'searching input-sm', 'placeholder': 'Short reference...', 'style': 'height: 40px; width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(LitrefForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['full'].required = False
+        self.fields['short'].required = False
+
+
 class PublisherListForm(forms.ModelForm):
     pbname = forms.CharField(label=_("Keyword"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching publishers input-sm', 'placeholder': 'Keyword...', 'style': 'width: 100%;'}))
@@ -390,43 +422,6 @@ class TagForm(forms.ModelForm):
         wdg = self.tag_widget(attrs={'data-placeholder': 'Select multiple {}...'.format(self.plural_name), 'style': 'width: 100%;', 'class': 'searching'})
         self.fields['taglist'].widget = wdg
         self.fields['taglist'].queryset = self.Meta.model.objects.all().order_by('name')
-
-
-class TagLiturListForm(TagForm):
-    ta_class = "liturtags"
-    plural_name = "liturgical tags"
-    tag_widget = TagLiturWidget
-    class Meta(TagForm.Meta):
-        model = TagLiturgical
-        ta_class = "liturtags"
-
-
-
-class TagCommListForm(TagForm):
-    ta_class = "commtags"
-    plural_name = "communicative tags"
-    tag_widget = TagCommWidget
-    class Meta(TagForm.Meta):
-        model = TagCommunicative
-        ta_class = "commtags"
-
-
-class TagQsourceListForm(TagForm):
-    ta_class = "qsourcetags"
-    plural_name = "source question tags"
-    tag_widget = TagQsourceWidget
-    class Meta(TagForm.Meta):
-        model = TagQsource
-        ta_class = "qsourcetags"
-
-
-class TagNoteListForm(TagForm):
-    ta_class = "notetags"
-    plural_name = "note tags"
-    tag_widget = TagNoteWidget
-    class Meta(TagForm.Meta):
-        model = TagNote
-        ta_class = "notetags"
 
 
 class CollectionListForm(forms.ModelForm):
@@ -507,4 +502,42 @@ class EditionListForm(forms.ModelForm):
         # Get the instance
         if 'instance' in kwargs:
             instance = kwargs['instance']
+
+
+# ====================== APPLICATION TAG FORMS =============================
+class TagLiturListForm(TagForm):
+    ta_class = "liturtags"
+    plural_name = "liturgical tags"
+    tag_widget = TagLiturWidget
+    class Meta(TagForm.Meta):
+        model = TagLiturgical
+        ta_class = "liturtags"
+        
+
+class TagCommListForm(TagForm):
+    ta_class = "commtags"
+    plural_name = "communicative tags"
+    tag_widget = TagCommWidget
+    class Meta(TagForm.Meta):
+        model = TagCommunicative
+        ta_class = "commtags"
+
+
+class TagQsourceListForm(TagForm):
+    ta_class = "qsourcetags"
+    plural_name = "source question tags"
+    tag_widget = TagQsourceWidget
+    class Meta(TagForm.Meta):
+        model = TagQsource
+        ta_class = "qsourcetags"
+
+
+class TagNoteListForm(TagForm):
+    ta_class = "notetags"
+    plural_name = "note tags"
+    tag_widget = TagNoteWidget
+    class Meta(TagForm.Meta):
+        model = TagNote
+        ta_class = "notetags"
+
 

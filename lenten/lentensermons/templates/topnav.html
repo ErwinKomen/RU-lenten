@@ -39,6 +39,7 @@
                        <ul class="dropdown-menu">
                           <li><a href="{% url 'keyword_list' %}">Keywords</a></li>
                           <li><a href="{% url 'publisher_list' %}">Publisher</a></li>
+                          <li><a href="{% url 'litref_list' %}">Reference</a></li>
                           <li><a href="{% url 'tagliturgical_list' %}">Tags: liturgical</a></li>
                           <li><a href="{% url 'tagcommunicative_list' %}">Tags: communicative</a></li>
                           <li><a href="{% url 'tagqsource_list' %}">Tags: source</a></li>
@@ -46,6 +47,7 @@
                           {% if is_lenten_editor %}
                             <li><a href="{% url 'location_list' %}" title="List of source information">Locations</a></li>
                             <li><a href="{% url 'report_list' %}" title="List reports of uploading etc.">Reports</a></li>
+                            <li><a href="{% url 'newsitem_list' %}" title="List news items.">News items</a></li>
                           {% endif %}
                         </ul>
                       </li>

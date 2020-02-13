@@ -39,12 +39,14 @@ from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm, \
-    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm, PublisherListForm
+    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm, PublisherListForm, NewsForm, \
+    LitrefForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Keyword, FieldChoice, \
     Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource, \
-    Publisher, Consulting
+    Publisher, Consulting, Litref
+from lentensermons.basic.views import BasicList, BasicDetails
 
 # Some constants that can be used
 paginateSize = 20
@@ -389,6 +391,13 @@ def get_previous_page(request):
     # Return the path
     return prevpage
 
+def get_date_display(dtThis):
+    if dtThis == None:
+        result = "-"
+    else:
+        result = dtThis.strftime("%d/%b/%Y %H:%M")
+    return result
+
 def home(request):
     """Renders the home page."""
 
@@ -407,6 +416,8 @@ def home(request):
     # context['breadcrumbs'] = process_visit(request, "Home", True)
     context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}]
 
+    # Check the newsitems for validity
+    NewsItem.check_until()
     # Create the list of news-items
     lstQ = []
     lstQ.append(Q(status='val'))
@@ -601,32 +612,36 @@ def sync_progress(request):
 def signup(request):
     """Provide basic sign up and validation of it """
 
-    if request.method == 'POST':
-        form = SignUpForm(request.POST)
-        if form.is_valid():
-            # Save the form
-            form.save()
-            # Create the user
-            username = form.cleaned_data.get('username')
-            raw_password = form.cleaned_data.get('password1')
-            # also make sure that the user gets into the STAFF,
-            #      otherwise he/she may not see the admin pages
-            user = authenticate(username=username, 
-                                password=raw_password,
-                                is_staff=True)
-            user.is_staff = True
-            user.save()
-            # Add user to the "passim_user" group
-            gQs = Group.objects.filter(name="passim_user")
-            if gQs.count() > 0:
-                g = gQs[0]
-                g.user_set.add(user)
-            # Log in as the user
-            login(request, user)
-            return redirect('home')
+    allow_signup = False # Do not allow signup yet
+    if allow_signup:
+        if request.method == 'POST':
+            form = SignUpForm(request.POST)
+            if form.is_valid():
+                # Save the form
+                form.save()
+                # Create the user
+                username = form.cleaned_data.get('username')
+                raw_password = form.cleaned_data.get('password1')
+                # also make sure that the user gets into the STAFF,
+                #      otherwise he/she may not see the admin pages
+                user = authenticate(username=username, 
+                                    password=raw_password,
+                                    is_staff=True)
+                user.is_staff = True
+                user.save()
+                # Add user to the "passim_user" group
+                gQs = Group.objects.filter(name="passim_user")
+                if gQs.count() > 0:
+                    g = gQs[0]
+                    g.user_set.add(user)
+                # Log in as the user
+                login(request, user)
+                return redirect('home')
+        else:
+            form = SignUpForm()
+        return render(request, 'signup.html', {'form': form})
     else:
-        form = SignUpForm()
-    return render(request, 'signup.html', {'form': form})
+        return redirect('home')
 
 @csrf_exempt
 def get_tributes(request):
@@ -3117,28 +3132,130 @@ class ManuscriptDetailsView(PassimDetails):
 
     def add_to_context(self, context, instance):
         context['mainitems'] = [
-            {'type': 'plain',  'label': "Information:", 'value': instance.info},
-            {'type': 'plain', 'label': "Link (if available):", 'value': instance.link}
+            {'type': 'bold',  'label': "Collection:",  'value': instance.collection.title, 'link': reverse('collection_details', kwargs={'pk': instance.collection.id})},
+            {'type': 'plain', 'label': "Information:", 'value': instance.info},
+            {'type': 'safe',  'label': "Link name (if available):", 'value': instance.get_link_markdown(), 'link': instance.url},
+            {'type': 'safe',  'label': "Author[s] (collection):", 'value': instance.collection.authorbadges()}
             ]
         related_objects = []
 
-        # Show the SERMONS of this manuscript
-        sermons = {'title': 'Sermons that are part of this manuscript'}
-        # Show the list of sermons that are part of this manuscript
-        qs = Sermon.objects.filter(collection=instance.collection).order_by('code')
-        rel_list =[]
-        for item in qs:
-            rel_item = []
-            rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
-            rel_item.append({'value': item.litday})
-            rel_item.append({'value': item.get_bibref()})
-            rel_list.append(rel_item)
-        sermons['rel_list'] = rel_list
-        sermons['columns'] = ['Code', 'Liturgical day', 'Reference']
-        related_objects.append(sermons)
+        ## Show the SERMONS of this manuscript
+        #sermons = {'title': 'Sermons that are part of this manuscript'}
+        ## Show the list of sermons that are part of this manuscript
+        #qs = Sermon.objects.filter(collection=instance.collection).order_by('code')
+        #rel_list =[]
+        #for item in qs:
+        #    rel_item = []
+        #    rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+        #    rel_item.append({'value': item.litday})
+        #    rel_item.append({'value': item.get_bibref()})
+        #    rel_list.append(rel_item)
+        #sermons['rel_list'] = rel_list
+        #sermons['columns'] = ['Code', 'Liturgical day', 'Reference']
+        #related_objects.append(sermons)
 
         context['related_objects'] = related_objects
         # Return the context we have made
         return context
 
 
+class NewsListView(BasicListView):
+    """Allow user to view news items"""
+
+    model = NewsItem
+    listform = NewsForm
+    prefix = "news"
+    template_name = 'seeker/news_list.html'
+    entrycount = 0
+    order_default = ['status', '-saved', 'title']
+    order_cols = ['title', 'util', 'status', 'created', 'saved']
+    order_heads = [{'name': 'Title',     'order': 'o=1', 'type': 'str'},
+                   {'name': 'Remove at', 'order': 'o=2', 'type': 'str'},
+                   {'name': 'Status',    'order': 'o=3', 'type': 'str'},
+                   {'name': 'Created',   'order': 'o=4', 'type': 'str'},
+                   {'name': 'Saved',     'order': 'o=5', 'type': 'str'}]
+    filters = [ {"name": "Title",  "id": "filter_title",    "enabled": False},
+                {"name": "Status", "id": "filter_status",   "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'title',  'dbfield': 'title',   'keyS': 'title'},
+            {'filter': 'status', 'dbfield': 'status',  'keyS': 'status'} ]}
+        ]
+
+
+class NewsDetailsView(PassimDetails):
+    model = NewsItem
+    mForm = NewsForm
+    template_name = 'generic_details.html'
+    prefix = "news"
+    title = "NewsDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        context['mainitems'] = [
+            {'type': 'bold',  'label': "Title:",  'value': instance.title, 'link': reverse('newsitem_details', kwargs={'pk': instance.id})},
+            {'type': 'safe',  'label': "Message:", 'value': instance.msg},
+            {'type': 'plain', 'label': "Status:", 'value': instance.get_status_display()},
+            {'type': 'safe',  'label': "Created:", 'value': get_date_display( instance.created)},
+            {'type': 'safe',  'label': "Savid:", 'value': get_date_display(instance.saved)},
+            {'type': 'safe',  'label': "Valid until:", 'value': get_date_display(instance.until)}
+            ]
+        related_objects = []
+
+        context['related_objects'] = related_objects
+        # Return the context we have made
+        return context
+
+
+class LitrefListView(BasicList):
+    model = Litref
+    listform = LitrefForm
+    prefix = "lit"
+    plural_name = "References"
+    sg_name = "Reference"
+    order_cols = ['short', 'full']
+    order_default = ['full', 'short']
+    order_heads = [{'name': 'Short',          'order': 'o=1', 'type': 'str', 'custom': 'short', 'default': "-", 'linkdetails': True},
+                   {'name': 'Full reference', 'order': 'o=2', 'type': 'str', 'custom': 'full',  'main': True}]
+    filters = [ {"name": "Reference", "id": "filter_reference",     "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'reference',   'dbfield': 'full', 'keyS': 'full' }]}
+        ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "short":
+            html.append(instance.get_short_markdown())
+        elif custom == "full":
+            html.append(instance.get_full_markdown())
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+
+class LitrefEditView(BasicDetails):
+    model = Litref
+    mForm = LitrefForm
+    prefix = "lit"
+    titlesg = "Reference"
+    title = "Reference Edit"
+    mainitems = []
+    
+    def add_to_context(self, context, instance):
+        """Add to the existing context"""
+
+        # Define the main items to show and edit
+        context['mainitems'] = [
+            {'type': 'safe', 'label': "Full reference:", 'value': instance.get_full_markdown(), 'field_key': 'full'},
+            {'type': 'safe', 'label': "Short reference:", 'value': instance.get_short_markdown(), 'field_key': 'short'}
+            ]
+        # Return the context we have made
+        return context
+
+
+class LitrefDetailsView(LitrefEditView):
+    rtype = "html"

@@ -300,3 +300,4 @@ ModelManifest.xml
 /lenten/static/admin/js
 /lenten/static/admin
 /lenten/lentensermons/tagtext/migrations
+/lenten/lentensermons/basic/migrations
