@@ -1676,6 +1676,7 @@ class BasicListView(ListView):
     filters = []
     searches = []
     page_function = None
+    formdiv = None
 
     def get_context_data(self, **kwargs):
         # Call the base implementation first to get a context
@@ -1706,8 +1707,9 @@ class BasicListView(ListView):
             context['paginateSize'] = paginateSize
 
         # Need to pass on a pagination function
-        if self.page_function:
-            context['page_function'] = self.page_function
+        # if self.page_function:
+        context['page_function'] = self.page_function
+        context['formdiv'] = self.formdiv
 
         # Set the page number if needed
         if 'page_obj' in context and 'page' in initial and initial['page'] != "":
