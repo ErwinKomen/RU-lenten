@@ -1460,7 +1460,6 @@ class Edition(tagtext.models.TagtextModel):
         """Combine the date fields into a listview-showable version"""
 
         lCombi = []
-        lCombi.append(self.get_datetype_display())
         if self.date != None:
             if self.date_late == None or self.date == self.date_late:
                 lCombi.append("{}".format(self.date))
@@ -1470,6 +1469,7 @@ class Edition(tagtext.models.TagtextModel):
             lCombi.append( "{}".format(self.date_late))
         else:
             lCombi.append( "-")
+        lCombi.append(self.get_datetype_display())
         date = " ".join(lCombi)
         return date
 

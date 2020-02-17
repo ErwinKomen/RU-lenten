@@ -207,8 +207,12 @@
                   <!-- The place of this edition-->
                   <td class="tdnowrap">{{edition.get_place}}</td>
 
-                  <!-- The editors of this edition -->
-                  <td>{{edition.get_editors}}</td>
+                  <!-- The publishers of this edition -->
+                  <td title="{{edition.get_publisher}}" class="tdnowrap">
+                    <span style="font-size: smaller;">
+                      {{edition.get_publisher|truncatechars:20}}
+                    </span>
+                  </td>
 
                   <!-- The date of this edition -->
                   <td class="tdnowrap">{{edition.get_date}}</td>

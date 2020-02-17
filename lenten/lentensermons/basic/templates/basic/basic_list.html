@@ -350,7 +350,7 @@
                             <div class="text">
                               {% if hd.order == "" %}{{hd.name}}
                               {% else %}
-                              <a class="clickable {% if hd.used %}ordered{% endif %}" onclick="ru.lenten.seeker.search_ordered_start('{{hd.order}}');">{{hd.name}}</a>
+                              <a class="clickable {% if hd.used %}ordered{% endif %}" onclick="ru.basic.search_ordered_start('{{hd.order}}');">{{hd.name}}</a>
                               {% endif %}
                             </div>
                           </th>
@@ -385,7 +385,7 @@
                                     <span>
                                       <!-- The button to cancel deletion -->
                                       <a title="Cancel deletion" class="btn btn-xs jumbo-1"
-                                          onclick="ru.lenten.seeker.delete_cancel(this);">Cancel</a>
+                                          onclick="ru.basic.delete_cancel(this);">Cancel</a>
                                       <!-- The actual delete button-->
                                       <a mode="delete" title="Delete this {{titlesg}}" class="btn btn-xs jumbo-3"
                                           afterurl="{{basic_list}}"
@@ -400,7 +400,7 @@
                             {% elif field.delete and is_lenten_editor %}
                                 <!-- Put the delete button completely to the right-->
                                 <a mode="skip" class="view-mode btn btn-xs jumbo-1 pull-right"
-                                    onclick="ru.lenten.seeker.delete_confirm(this);">
+                                    onclick="ru.basic.delete_confirm(this);">
                                   <span class="glyphicon glyphicon-remove" title="Delete this {{titlesg}}"></span>
                                 </a>
                             {% endif %}
@@ -447,7 +447,7 @@
   </div>
 
 <script>
-  ru.lenten.seeker.init_events();
+  ru.basic.init_events();
 </script>
 
 {% endblock content %}

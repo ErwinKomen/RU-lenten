@@ -2744,7 +2744,7 @@ class CollectionDetailsView(PassimDetails):
         related_objects.append(manuscripts)
 
         # Show the EDITIONS that point to this collection
-        editions = {'title': 'Editions that contain this collection'}
+        editions = {'title': 'Printed editions that contain this collection'}
         # Get the list of editions
         qs = Edition.objects.filter(sermoncollection=instance).order_by('code')
         rel_list = []
@@ -2772,14 +2772,14 @@ class EditionListView(BasicListView):
     listform = EditionListForm
     prefix = "edi" 
     template_name = 'seeker/edition_list.html'
-    order_default = ['code', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'date']
-    order_cols = ['code', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'date']
-    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
-                   {'name': 'Authors', 'order': 'o=2', 'type': 'str'}, 
+    order_default = ['code', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date']
+    order_cols = order_default
+    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'str'}, 
+                   {'name': 'Authors',    'order': 'o=2', 'type': 'str'}, 
                    {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Place', 'order': 'o=4', 'type': 'str'},
-                   {'name': 'Editors', 'order': 'o=5', 'type': 'str'},
-                   {'name': 'Year', 'order': 'o=6', 'type': 'str'}]
+                   {'name': 'Place',      'order': 'o=4', 'type': 'str'},
+                   {'name': 'Publishers', 'order': 'o=5', 'type': 'str'},
+                   {'name': 'Year',       'order': 'o=6', 'type': 'str'}]
     filters = [ {"name": "Code",    "id": "filter_code",    "enabled": False},
                 {"name": "Author",  "id": "filter_author",  "enabled": False},
                 {"name": "Place",   "id": "filter_place",   "enabled": False}
