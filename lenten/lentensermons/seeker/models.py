@@ -1124,7 +1124,7 @@ class SermonCollection(tagtext.models.TagtextModel):
         url = reverse('api_tributes')
         return url
 
-    def first_edition(self):
+    def first_edition_obj(self):
         """Find the first edition from those linked to me"""
 
         # Order the editions by ascending date and then take the first
@@ -1155,7 +1155,8 @@ class SermonCollection(tagtext.models.TagtextModel):
 
     def get_firstauthor(self):
         f = self.authors.all().first()
-        return f.name
+        sBack = "" if f == None else f.name
+        return sBack
 
     def get_authors(self):
         auth_list = [x.name for x in self.authors.all()]
@@ -1179,6 +1180,16 @@ class SermonCollection(tagtext.models.TagtextModel):
             if year == None:
                 year = obj.date_late
         return year
+
+    def get_firstedition(self):
+        """Get the first edition and its author"""
+
+        sBack = ""
+        year = self.firstedition
+        author = self.get_firstauthor()
+        if author == "": author = "(unknown)"
+        sBack = "{} {}".format(author, year)
+        return sBack
 
     def adapt_editions(self):
         """This gets called when an edition changes"""
