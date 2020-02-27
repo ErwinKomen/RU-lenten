@@ -33,6 +33,7 @@ import base64
 import json
 import csv, re
 from io import StringIO
+from basic.views import BasicList, BasicDetails
 
 # Application specific
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
@@ -46,7 +47,6 @@ from lentensermons.seeker.models import get_current_datetime, adapt_search, get_
     Location, LocationRelation, Author, Keyword, FieldChoice, \
     Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource, \
     Publisher, Consulting, Litref
-from lentensermons.basic.views import BasicList, BasicDetails
 
 # Some constants that can be used
 paginateSize = 20
@@ -55,6 +55,9 @@ paginateValues = (100, 50, 20, 10, 5, 2, 1, )
 
 # Global debugging 
 bDebug = False
+
+app_editor = "lentensermons_editor"
+app_uploader = "lentensermons_uploader"
 
 
 def treat_bom(sHtml):
@@ -409,8 +412,8 @@ def home(request):
                 'year':get_current_datetime().year,
                 'pfx': APP_PREFIX,
                 'site_url': admin.site.site_url}
-    context['is_lenten_uploader'] = user_is_ingroup(request, 'lenten_uploader')
-    context['is_lenten_editor'] = user_is_ingroup(request, 'lenten_editor')
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
+    context['is_app_editor'] = user_is_ingroup(request, app_editor)
 
     # Process this visit
     # context['breadcrumbs'] = process_visit(request, "Home", True)
@@ -435,7 +438,7 @@ def contact(request):
                 'year':get_current_datetime().year,
                 'pfx': APP_PREFIX,
                 'site_url': admin.site.site_url}
-    context['is_lenten_uploader'] = user_is_ingroup(request, 'lenten_uploader')
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
 
     # Process this visit
     # context['breadcrumbs'] = process_visit(request, "Contact", True)
@@ -451,7 +454,7 @@ def more(request):
                 'year':get_current_datetime().year,
                 'pfx': APP_PREFIX,
                 'site_url': admin.site.site_url}
-    context['is_lenten_uploader'] = user_is_ingroup(request, 'lenten_uploader')
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
 
     # Process this visit
     # context['breadcrumbs'] = process_visit(request, "More", True)
@@ -468,7 +471,7 @@ def about(request):
                 'year':get_current_datetime().year,
                 'pfx': APP_PREFIX,
                 'site_url': admin.site.site_url}
-    context['is_lenten_uploader'] = user_is_ingroup(request, 'lenten_uploader')
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
 
     # Process this visit
     # context['breadcrumbs'] = process_visit(request, "About", True)
@@ -484,7 +487,7 @@ def short(request):
     context = {'title': 'Short overview',
                'message': 'Radboud University passim short intro',
                'year': get_current_datetime().year}
-    context['is_lenten_uploader'] = user_is_ingroup(request, 'lenten_uploader')
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
     return render(request, template, context)
 
 def nlogin(request):
@@ -493,7 +496,7 @@ def nlogin(request):
     context =  {    'title':'Not logged in', 
                     'message':'Radboud University passim utility.',
                     'year':get_current_datetime().year,}
-    context['is_lenten_uploader'] = user_is_ingroup(request, 'lenten_uploader')
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
     return render(request,'nlogin.html', context)
 
 def sync_entry(request):
@@ -930,8 +933,8 @@ class BasicPart(View):
             context = dict(object_id = pk, savedate=None)
             # context['prevpage'] = get_prevpage(request)     #  self.previous
             context['authenticated'] = user_is_authenticated(request)
-            context['is_lenten_uploader'] = user_is_ingroup(request, 'lenten_uploader')
-            context['is_lenten_editor'] = user_is_ingroup(request, 'lenten_editor')
+            context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
+            context['is_app_editor'] = user_is_ingroup(request, app_editor)
             # Action depends on 'action' value
             if self.action == "":
                 if self.bDebug: self.oErr.Status("ResearchPart: action=(empty)")
@@ -1213,8 +1216,8 @@ class BasicPart(View):
             context = dict(object_id = pk, savedate=None)
             context['prevpage'] = self.previous
             context['authenticated'] = user_is_authenticated(request)
-            context['is_lenten_uploader'] = user_is_ingroup(request, 'lenten_uploader')
-            context['is_lenten_editor'] = user_is_ingroup(request, 'lenten_editor')
+            context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
+            context['is_app_editor'] = user_is_ingroup(request, app_editor)
             # Walk all the form objects
             for formObj in self.form_objects:        
                 # Used to populate a NEW research project
@@ -1508,8 +1511,8 @@ class PassimDetails(DetailView):
 
         # Check this user: is he allowed to UPLOAD data?
         context['authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
+        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
         # context['prevpage'] = get_previous_page(self.request) # self.previous
 
         # Define where to go to after deletion
@@ -1744,8 +1747,8 @@ class BasicListView(ListView):
 
         # Check if user may upload
         context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
+        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
 
         # Process this visit and get the new breadcrumbs object
         context['breadcrumbs'] = process_visit(self.request, self.plural_name, True)
@@ -1884,8 +1887,8 @@ class LocationListView(ListView):
 
         # Check if user may upload
         context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
+        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
 
         # Process this visit and get the new breadcrumbs object
         context['breadcrumbs'] = process_visit(self.request, "Locations", True)
@@ -1954,7 +1957,7 @@ class LocationDetailsView(PassimDetails):
         context['contained_locations'] = contained_locations
 
         # The standard information
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
         # Process this visit and get the new breadcrumbs object
         context['breadcrumbs'] = process_visit(self.request, "Location edit", False)
         context['prevpage'] = get_previous_page(self.request)
@@ -2533,8 +2536,8 @@ class ReportListView(ListView):
 
         # Check if user may upload
         context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
+        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
 
         # Process this visit and get the new breadcrumbs object
         context['breadcrumbs'] = process_visit(self.request, "Upload reports", True)
@@ -2574,7 +2577,7 @@ class ReportDetailsView(PassimDetails):
     rtype = "html"
 
     def add_to_context(self, context, instance):
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
         # Process this visit and get the new breadcrumbs object
         context['breadcrumbs'] = process_visit(self.request, "Report edit", False)
         context['prevpage'] = get_previous_page(self.request)
@@ -2942,8 +2945,8 @@ class AuthorListView(ListView):
 
         # Check if user may upload
         context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
+        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
 
         # Process this visit and get the new breadcrumbs object
         context['breadcrumbs'] = process_visit(self.request, "Authors", True)
@@ -3075,8 +3078,8 @@ class ManuscriptListView(ListView):
 
         # Check if user may upload
         context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_lenten_uploader'] = user_is_ingroup(self.request, 'lenten_uploader')
-        context['is_lenten_editor'] = user_is_ingroup(self.request, 'lenten_editor')
+        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
+        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
 
         # Process this visit and get the new breadcrumbs object
         context['breadcrumbs'] = process_visit(self.request, "Manuscripts", True)

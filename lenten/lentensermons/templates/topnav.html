@@ -1,4 +1,4 @@
-﻿{% load staticfiles %}
+{% load staticfiles %}
 
     <div class="navbar navbar-custom navbar-fixed-top">
         <div class="container" url_home="{% url 'home' %}">
@@ -44,7 +44,7 @@
                           <li><a href="{% url 'tagcommunicative_list' %}">Tags: communicative</a></li>
                           <li><a href="{% url 'tagqsource_list' %}">Tags: source</a></li>
                           <li><a href="{% url 'tagnote_list' %}">Tags: note</a></li>
-                          {% if is_lenten_editor %}
+                          {% if is_app_editor %}
                             <li><a href="{% url 'location_list' %}" title="List of source information">Locations</a></li>
                             <li><a href="{% url 'report_list' %}" title="List reports of uploading etc.">Reports</a></li>
                             <li><a href="{% url 'newsitem_list' %}" title="List news items.">News items</a></li>
@@ -52,7 +52,7 @@
                         </ul>
                       </li>
 
-                      {% if is_lenten_uploader %}
+                      {% if is_app_uploader %}
                         <li class="dropdown">
                           <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" 
                              aria-haspopup="true" aria-expanded="false">Developers<span class="caret"></span></a>

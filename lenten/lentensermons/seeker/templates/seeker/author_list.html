@@ -15,7 +15,7 @@
         <form>
           <h3>
             <span title="These are 'gold standard' authors">Authors</span>
-            {% if is_lenten_editor %}
+            {% if is_app_editor %}
               <span id="add_author" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
@@ -59,7 +59,7 @@
 
                   <!-- Short indications for this author-->
                   <td style="min-width: 80px;">
-                    {% if is_lenten_editor %}
+                    {% if is_app_editor %}
                       <!-- Edit button -->
                       <a mode="edit" class="view-mode btn btn-xs jumbo-1"
                          onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_author_change' author.id %}')">

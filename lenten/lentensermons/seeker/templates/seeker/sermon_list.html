@@ -27,7 +27,7 @@
             </a>
 
             <!-- Allow uploading Lenten Excel files -->
-            {% if is_lenten_uploader %}
+            {% if is_app_uploader %}
               <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_upload_sermonexcel" 
                   role="button" title="Upload Excel files" >
                 <span class="glyphicon glyphicon-upload"></span>
@@ -157,7 +157,7 @@
     </form>
 
     <!-- Future extension: uploading -->
-    {% if is_lenten_uploader %}
+    {% if is_app_uploader %}
       <!-- Uplooad tab for Lenten sermon Excel files -->
       <div class="inert collapse" id="tab_upload_sermoexcel">
         <!-- VERDER INVULLEN -->
@@ -172,7 +172,7 @@
         <form>
           <h3>
             <span title="Every sermon belongs to a sermon collection">Sermons</span>
-            {% if is_lenten_editor %}
+            {% if is_app_editor %}
               <span id="add_sermon" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
@@ -244,7 +244,7 @@
 
                     <!-- Short indications for this sermon-->
                     <td style="min-width: 80px;">
-                      {% if is_lenten_editor %}
+                      {% if is_app_editor %}
                         <!-- Edit button -->
                         <a mode="edit" class="view-mode btn btn-xs jumbo-1"
                            onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_sermon_change' sermon.id %}')">

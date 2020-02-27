@@ -96,6 +96,7 @@
     <Content Include="lentensermons\seeker\static\seeker\content\site.css" />
     <Content Include="lentensermons\seeker\templates\seeker\collection_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\publisher_list.html" />
+    <Content Include="lentensermons\seeker\templates\seeker\news_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\tag_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\manuscript_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\edition_list.html" />

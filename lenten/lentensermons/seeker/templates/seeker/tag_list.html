@@ -115,7 +115,7 @@
         <form>
           <h3>
             <span title="Every {{plain_name}} belongs to one or more objects">{{plain_plural}}</span>
-            {% if is_lenten_editor %}
+            {% if is_app_editor %}
               <span id="add_keyword" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
@@ -182,7 +182,7 @@
 
                     <!-- Short indications for this tag-->
                     <td style="min-width: 80px;">
-                      {% if is_lenten_editor %}
+                      {% if is_app_editor %}
                         <!-- Edit button -->
                         <a mode="edit" class="view-mode btn btn-xs jumbo-1"
                            onclick="ru.lenten.seeker.goto_url('{{tag.get_url_edit}}')">

@@ -115,7 +115,7 @@
         <form>
           <h3>
             <span title="Every publisher belongs to one or more editions">Publishers</span>
-            {% if is_lenten_editor %}
+            {% if is_app_editor %}
               <span id="add_publisher" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
@@ -171,7 +171,7 @@
 
                     <!-- Button(s) for this publisher-->
                     <td style="min-width: 80px;">
-                      {% if is_lenten_editor %}
+                      {% if is_app_editor %}
                         <!-- Edit button -->
                         <a mode="edit" class="view-mode btn btn-xs jumbo-1"
                            onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_publisher_change' pb.id %}')">

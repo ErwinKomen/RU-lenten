@@ -142,7 +142,7 @@
         <form>
           <h3>
             <span title="An edition points to a particular sermon collection">Editions</span>
-            {% if is_lenten_editor %}
+            {% if is_app_editor %}
               <span id="add_sermon" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
@@ -222,7 +222,7 @@
 
                   <!-- Short indications for this edition -->
                   <td style="min-width: 80px;">
-                    {% if is_lenten_editor %}
+                    {% if is_app_editor %}
                       <!-- Edit button -->
                       <a mode="edit" class="view-mode btn btn-xs jumbo-1"
                          onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_edition_change' edition.id %}')">
