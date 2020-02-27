@@ -1594,6 +1594,27 @@ class Consulting(models.Model):
         return "-" if self == None else self.location
 
 
+class Dbcode(models.Model):
+    """Code of edition in other database"""
+
+    # [1] Obligatory name for this link
+    name = models.CharField("Name", max_length = MEDIUM_LENGTH)
+    # [1] URL 
+    url = models.URLField("URL")
+    # [1] Link to the edition
+    edition = models.ForeignKey(Edition, related_name="dbcodes", on_delete=models.CASCADE)
+
+    def __str__(self):
+        sBack = "{}: {}".format(self.name, self.url)
+        return sBack
+
+    def get_link(self):
+        return self.url
+
+    def get_label(self):
+        return self.name
+
+
 class Signature(models.Model):
     """Each edition may have a code/id in a widely used db (ISTC, GW, Edit16)"""
 

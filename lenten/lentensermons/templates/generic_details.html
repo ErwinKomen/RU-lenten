@@ -36,22 +36,37 @@
                       <tr class="view-row">
                         <td class="tdnowrap" valign="top">{{mainitem.label}}</td>
                         <td class="hoverable" {% if mainitem.align %}align="{{mainitem.align}}"{% endif %}>
-                          {% spaceless %}
-                            {% if mainitem.type == "bold" %}
-                              {% if not mainitem.link or mainitem.link == "" %}<b>{{mainitem.value|safe}}</b>
-                              {% else %}<a href="{{mainitem.link}}"><b>{{mainitem.value|safe}}</b></a>
+                          {% if mainitem.multiple %}
+                            <!-- Multiple instances choosing using Select2 -->
+                            {% if mainitem.value|length > 0 %}
+                              {% for subitem in mainitem.value %}
+                                {% if mainitem.qlist %}
+                                  <span class="keyword"><a href="{{mainitem.link}}?{{mainitem.qlist}}={{subitem.id}}">{{subitem.get_label}}</a></span>
+                                {% else %}
+                                  <span class="keyword"><a href="{{subitem.get_link}}">{{subitem.get_label}}</a></span>
+                                {% endif %}
+                              {% endfor %}
+                            {% else %}-{% endif %}
+
+                          {% else %}
+                            <!-- Basic view mode -->
+                            {% spaceless %}
+                              {% if mainitem.type == "bold" %}
+                                {% if not mainitem.link or mainitem.link == "" %}<b>{{mainitem.value|safe}}</b>
+                                {% else %}<a href="{{mainitem.link}}"><b>{{mainitem.value|safe}}</b></a>
+                                {% endif %}
+                              {% elif mainitem.type == "line" %}<div style="white-space: pre-line;">{{mainitem.value|safe}}</div>
+                              {% elif mainitem.type == "safe" %}
+                                {% if not mainitem.link or mainitem.link == "" %}
+                                  {{mainitem.value|safe}}
+                                {% else %}
+                                  <a href="{{mainitem.link}}">{{mainitem.value|safe}}</a>
+                                {% endif %}
+                              {% elif mainitem.type == "safeline" %}<div style="white-space: pre-line;">{{mainitem.value|safe}}</div>
+                              {% else %}{{mainitem.value}}
                               {% endif %}
-                            {% elif mainitem.type == "line" %}<div style="white-space: pre-line;">{{mainitem.value|safe}}</div>
-                            {% elif mainitem.type == "safe" %}
-                              {% if not mainitem.link or mainitem.link == "" %}
-                                {{mainitem.value|safe}}
-                              {% else %}
-                                <a href="{{mainitem.link}}">{{mainitem.value|safe}}</a>
-                              {% endif %}
-                            {% elif mainitem.type == "safeline" %}<div style="white-space: pre-line;">{{mainitem.value|safe}}</div>
-                            {% else %}{{mainitem.value}}
-                            {% endif %}
-                          {% endspaceless %}
+                            {% endspaceless %}
+                          {% endif %}
                         </td>
                       </tr>
                     {% endfor %}
@@ -118,25 +133,29 @@
                 <div class="col-md-12">
                   <h4>{{related.title}}</h4>
 
+                  {% if related.rel_list|length == 0 %}
+                    <div><i>(there are none)</i></div>
+                  {% else %}
                   <!-- List of related items -->
-                  <table class="func-view compact-simple" style="width: 100%;">
-                    <thead>
-                      <tr>{% for col in related.columns %}<th>{{col}}</th>{% endfor %}</tr>
-                    </thead>
-                    <tbody>
-                      {% for relrow in related.rel_list %}
-                      <tr class="form-row">
-                        {% for relcol in relrow %}
-                          <td {% if relcol.title %}title="{{relcol.title}}"{% endif %}
-                              {% if relcol.link %}class="clickable" onclick="ru.lenten.seeker.goto_url('{{relcol.link}}')"{% endif %}
-                              >
-                            {% if relcol.value %}{{relcol.value|safe}}{% endif %}
-                          </td>
+                    <table class="func-view compact-simple" style="width: 100%;">
+                      <thead>
+                        <tr>{% for col in related.columns %}<th>{{col}}</th>{% endfor %}</tr>
+                      </thead>
+                      <tbody>
+                        {% for relrow in related.rel_list %}
+                        <tr class="form-row">
+                          {% for relcol in relrow %}
+                            <td {% if relcol.title %}title="{{relcol.title}}"{% endif %}
+                                {% if relcol.link %}class="clickable" onclick="ru.lenten.seeker.goto_url('{{relcol.link}}')"{% endif %}
+                                >
+                              {% if relcol.value %}{{relcol.value|safe}}{% endif %}
+                            </td>
+                          {% endfor %}
+                        </tr>
                         {% endfor %}
-                      </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  {% endif %}
                 </div>
 
               </div>

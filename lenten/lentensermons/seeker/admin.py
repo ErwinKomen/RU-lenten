@@ -208,6 +208,12 @@ class ConsultingInline(admin.StackedInline):
         }
 
 
+class DbcodeInline(admin.TabularInline):
+    model = Dbcode
+    fk_name = "edition"
+    extra = 0
+
+
 class EditionAdminForm(forms.ModelForm):
     class Meta:
         model = Edition
@@ -234,7 +240,7 @@ class EditionAdmin(admin.ModelAdmin):
 
     form = EditionAdminForm
     filter_horizontal = ('publishers',)
-    inlines = [ConsultingInline]
+    inlines = [DbcodeInline, ConsultingInline]
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
@@ -271,6 +277,23 @@ class ConsultingAdmin(admin.ModelAdmin):
         """When the user presses [Save], we want to redirect to a view of the model"""
 
         sUrl = redirect(reverse('consulting_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        # Return to the Edition details view of the correct one
+        sUrl = redirect(reverse('edition_details', kwargs={'pk': obj.edition.id}))
+        return sUrl
+
+
+class DbcodeAdmin(admin.ModelAdmin):
+    """Define the elements of a consulting:"""
+
+    fields = ['name', 'url']
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('dbcode_details', kwargs={'pk': obj.id}))
         return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
@@ -441,6 +464,7 @@ admin.site.register(SermonCollection, SermonCollectionAdmin)
 admin.site.register(Manuscript, ManuscriptAdmin)
 admin.site.register(Edition, EditionAdmin)
 admin.site.register(Consulting, ConsultingAdmin)
+admin.site.register(Dbcode, DbcodeAdmin)
 admin.site.register(Publisher, PublisherAdmin)
 admin.site.register(Topic, TopicAdmin)
 admin.site.register(TagCommunicative, TagCommunicativeAdmin)

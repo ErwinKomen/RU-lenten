@@ -2908,6 +2908,8 @@ class EditionDetailsView(PassimDetails):
             {'type': 'plain', 'label': "Format:", 'value': instance.get_format_display() },
             {'type': 'plain', 'label': "Folia:", 'value': instance.folia},
             {'type': 'plain', 'label': "Number of sermons:", 'value': instance.numsermons},
+            {'type': 'plain', 'label': "External databases:", 'value': instance.dbcodes.all().order_by('name'),
+             'multiple': True}
             # MORE INFORMATION SHOULD FOLLOW
             ]
         
