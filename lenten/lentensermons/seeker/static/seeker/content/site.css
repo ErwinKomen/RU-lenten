@@ -1073,11 +1073,11 @@ table.compact-table td:hover {
 .manuscript {
   background-color: lightgray;
   color: darkblue;
-    font-family: monospace;
-    font-size: smaller;
-    border-radius: 2px;
-    /* padding: 2px; */
-     white-space:nowrap;
+  font-family: monospace;
+  font-size: smaller;
+  border-radius: 2px;
+  /* padding: 2px; */
+  white-space:nowrap;
 }
 
 .manuscript-city, .manuscript-library {
@@ -1241,11 +1241,12 @@ input:checked + .slider:before {
 
 
 span[contenteditable=false] {
-  background-color: lightgray;
+  /* background-color: lightgray;*/
   border-radius: 2px;
   padding: 1px;
   padding-left: 1px;
   padding-right: 1px;
+  font-size: 90%;
 }
 
 table.func-view span[contenteditable=false] {
@@ -1253,10 +1254,11 @@ table.func-view span[contenteditable=false] {
 }
 
 span[contenteditable=false] > a {
-  color: black;
+  font-weight: bold;
+  color: darkblue;
 }
 span[contenteditable=false] > a:hover {
-    background-color: yellow;
-    text-decoration-line: none;
-    cursor: pointer;
+  background-color: yellow;
+  text-decoration-line: none;
+  cursor: pointer;
 }
