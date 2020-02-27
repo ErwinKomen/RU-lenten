@@ -287,9 +287,13 @@ def make_search_list(filters, oFields, search_list, qd):
                                 s_q = Q(**{"{}__iexact".format(dbfield): val})
                     elif keyType == "has":
                         # Check the count for the db field
-                        val = 0
-                        enable_filter(filter_type, head_id)
-                        s_q = Q(**{"{}__gt".format(dbfield): val})
+                        val = oFields[filter_type]
+                        if val == "yes" or val == "no":
+                            enable_filter(filter_type, head_id)
+                            if val == "yes":
+                                s_q = Q(**{"{}__gt".format(dbfield): 0})
+                            else:
+                                s_q = Q(**{"{}".format(dbfield): 0})
 
                 # Check for list of specific signatures
                 if has_list_value(keyList, oFields):
