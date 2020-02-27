@@ -111,6 +111,16 @@
                   </table>
                 </div>
 
+                <!-- Has manuscripts or not -->
+                <div id="filter_hasmanu" class="{% if not collForm.title.value %}hidden{% endif %}">
+                  <table style="width: 100%;">
+                    <tr class="form-row">
+                      <td style="min-width: 130px;">Has manuscripts</td>
+                      <td style="width: 100%;">{{collForm.hasmanu}}</td>
+                    </tr>
+                  </table>
+                </div>
+
               </div>
             </div>
 

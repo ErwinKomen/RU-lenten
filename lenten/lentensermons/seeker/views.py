@@ -46,7 +46,7 @@ from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUr
     LitrefForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
-    Location, LocationRelation, Author, Keyword, FieldChoice, \
+    Location, LocationRelation, Author, Keyword, FieldChoice, Information, \
     Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource, \
     Publisher, Consulting, Litref
 
@@ -222,6 +222,7 @@ def make_search_list(filters, oFields, search_list, qd):
                 infield = get_value(search_item, "infield")
                 dbfield = get_value(search_item, "dbfield")
                 fkfield = get_value(search_item, "fkfield")
+                keyType = get_value(search_item, "keyType")
                 filter_type = get_value(search_item, "filter")
                 s_q = ""
                
@@ -284,6 +285,11 @@ def make_search_list(filters, oFields, search_list, qd):
                                 s_q = Q(**{"{}__iregex".format(dbfield): val})
                             else:
                                 s_q = Q(**{"{}__iexact".format(dbfield): val})
+                    elif keyType == "has":
+                        # Check the count for the db field
+                        val = 0
+                        enable_filter(filter_type, head_id)
+                        s_q = Q(**{"{}__gt".format(dbfield): val})
 
                 # Check for list of specific signatures
                 if has_list_value(keyList, oFields):
@@ -1813,7 +1819,7 @@ class BasicListView(ListView):
             if thisForm.is_valid():
                 # Process the criteria for this form
                 oFields = thisForm.cleaned_data
-                x = Sermon.objects.filter(Q(notetags__id='21'))
+                
                 self.filters, lstQ, self.initial = make_search_list(self.filters, oFields, self.searches, self.qd)
                 # Calculate the final qs
                 if len(lstQ) == 0:
@@ -2104,7 +2110,122 @@ class SermonListView(BasicListView):
         ]
     
 
-class SermonCollectionListView(BasicListView):
+class ConsultingDetailsView(PassimDetails):
+    model = Consulting
+    mForm = None
+    template_name = 'generic_details.html' 
+    prefix = "cons"
+    title = "ConsultingDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        url_label = "url" if instance.label == None or instance.label == "" else instance.label
+        context['mainitems'] = [
+            {'type': 'plain', 'label': "Location:", 'value': instance.location},
+            {'type': 'bold', 'label': "Link:", 'value': url_label, 'link': instance.link},
+            {'type': 'plain', 'label': "Ownership:", 'value': instance.ownership},
+            {'type': 'plain', 'label': "Marginalia:", 'value': instance.marginalia},
+            {'type': 'plain', 'label': "Images:", 'value': instance.images}
+            ]
+
+        # Adapt the listview to which the user can link: 
+        #    this should be the details view of the *EDITION* to which the consultings belong
+        context['listview'] = reverse('edition_details', kwargs={'pk': instance.edition.id})
+
+        return context
+
+
+class CollectionDetailsView(PassimDetails):
+    model = SermonCollection
+    mForm = None
+    template_name = 'generic_details.html' 
+    prefix = ""
+    title = "CollectionDetails"
+    rtype = "html"
+    mainitems = []
+    sections = []
+
+    def add_to_context(self, context, instance):
+        # Show the main items of this sermon collection
+        context['mainitems'] = [
+            {'type': 'plain', 'label': "Identifier (Code):", 'value': instance.idno},
+            {'type': 'bold',  'label': "Title:", 'value': instance.title},
+            {'type': 'plain', 'label': "Authors:", 'value': instance.get_authors()},
+            {'type': 'plain', 'label': "Date of composition:", 'value': "{} ({})".format(instance.datecomp, instance.get_datetype_display()) },
+            {'type': 'plain', 'label': "Place of composition:", 'value': instance.place.name },
+            {'type': 'plain', 'label': "First edition:", 'value': instance.firstedition },
+            {'type': 'plain', 'label': "Number of editions:", 'value': instance.numeditions }
+
+            ]
+
+        context['sections'] = [
+            {'name': 'Typology / structure', 'id': 'coll_typology', 'fields': [
+                {'type': 'plain', 'label': "Structure:", 'value': instance.structure },
+                {'type': 'safeline',    'label': "Liturgical relation:", 'value': instance.get_liturgical_display.strip(), 'title': "Relationship with liturgical texts"},
+                {'type': 'safeline',    'label': "Communicative strategy:", 'value': instance.get_communicative_display.strip()},
+                ]},
+            {'name': 'General notes', 'id': 'coll_general', 'fields': [
+                {'type': 'safeline',    'label': "Quoted sources:", 'value': instance.get_sources_display.strip()},
+                {'type': 'safeline',    'label': "Exempla:", 'value': instance.get_exempla_display.strip()},
+                {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()}                ]}
+            ]
+
+        related_objects = []
+
+        # Show the SERMONS of this collection
+        sermons = {'title': 'Sermons of this collection (based on the year/place edition code)'}
+        # Show the list of sermons that are part of this collection
+        qs = Sermon.objects.filter(collection=instance).order_by('code')
+        rel_list =[]
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.litday})
+            rel_item.append({'value': item.get_bibref()})
+            rel_item.append({'value': item.get_topics()})
+            rel_list.append(rel_item)
+        sermons['rel_list'] = rel_list
+        sermons['columns'] = ['Code', 'Liturgical day', 'Thema', 'Topics']
+        related_objects.append(sermons)
+
+        # Show the MANUSCRIPTS that point to this collection
+        manuscripts = {'title': 'Manuscripts that contain this collection'}
+        # Get the list of manuscripts
+        qs = Manuscript.objects.filter(collection=instance).order_by('info')
+        rel_list = []
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.info, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.link})
+            rel_list.append(rel_item)
+        manuscripts['rel_list'] = rel_list
+        manuscripts['columns'] = ['Information', 'Link']
+        related_objects.append(manuscripts)
+
+        # Show the EDITIONS that point to this collection
+        editions = {'title': 'Printed editions that contain this collection'}
+        # Get the list of editions
+        qs = Edition.objects.filter(sermoncollection=instance).order_by('code')
+        rel_list = []
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.get_place()})
+            rel_item.append({'value': item.get_editors()})
+            rel_item.append({'value': item.get_date()})
+            rel_item.append({'value': item.has_notes()})
+            rel_list.append(rel_item)
+        editions['rel_list'] = rel_list
+        editions['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
+        related_objects.append(editions)
+
+        context['related_objects'] = related_objects
+        # Return the context we have made
+        return context
+
+
+class CollectionListView(BasicListView):
     """Listview of sermon collections"""
 
     model = SermonCollection
@@ -2113,14 +2234,65 @@ class SermonCollectionListView(BasicListView):
     template_name = 'seeker/collection_list.html'
     entrycount = 0
     order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
-    order_cols = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
-    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
-                   {'name': 'Authors', 'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Title', 'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Year', 'order': 'o=4', 'type': 'str'},
-                   {'name': 'Place', 'order': 'o=5', 'type': 'str'},
+    order_cols = order_default
+    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'str'}, 
+                   {'name': 'Authors',       'order': 'o=2', 'type': 'str'}, 
+                   {'name': 'Title',         'order': 'o=3', 'type': 'str'}, 
+                   {'name': 'Year',          'order': 'o=4', 'type': 'str'},
+                   {'name': 'Place',         'order': 'o=5', 'type': 'str'},
                    {'name': 'First Edition', 'order': 'o=6', 'type': 'str'},
-                   {'name': 'Editions', 'order': 'o=7', 'type': 'str'}]
+                   {'name': 'Editions',      'order': 'o=7', 'type': 'str'}]
+    filters = [ {"name": "Identifier",      "id": "filter_idno",    "enabled": False},
+                {"name": "Author",          "id": "filter_author",  "enabled": False},
+                {"name": "Title",           "id": "filter_title",   "enabled": False},
+                {"name": "Place",           "id": "filter_place",   "enabled": False},
+                {"name": "Has manuscripts", "id": "filter_hasmanu", "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'idno',      'dbfield': 'code',      'keyS': 'code'},
+            {'filter': 'author',    'fkfield': 'authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
+            {'filter': 'title',     'dbfield': 'title',     'keyS': 'title'},
+            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' },
+            {'filter': 'hasmanu',   'dbfield': 'nummanu',   'keyType': 'has'}
+            ]},
+        {'section': 'other', 'filterlist': [
+            {'filter': 'tagnoteid',     'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
+            {'filter': 'taglituid',     'fkfield': 'liturtags',     'keyS': 'taglituid',    'keyFk': 'id' },
+            {'filter': 'tagcommid',     'fkfield': 'commutags',     'keyS': 'tagcommid',    'keyFk': 'id' },
+            {'filter': 'tagqsrcid',     'fkfield': 'sourcetags',    'keyS': 'tagqsrcid',    'keyFk': 'id' },
+            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
+            ]}
+        ]
+
+    def add_to_context(self, context, initial):
+        # Check if counting has been done
+        if Information.get_kvalue("manucount") == "":
+            # Calculate
+            if SermonCollection.do_manu_count():
+                Information.set_kvalue("manucount", "done")
+        return context
+    
+
+class CollectionList(BasicList):
+    """Listview of sermon collections"""
+
+    model = SermonCollection
+    listform = CollectionListForm
+    prefix = "coll"
+    basic_name = "collection"
+    plural_name = "Sermon collections"
+    sg_name = "Sermon collection"
+    # template_name = 'seeker/collection_list.html'
+    entrycount = 0
+    order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
+    order_cols = order_default
+    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'str'}, 
+                   {'name': 'Authors',       'order': 'o=2', 'type': 'str'}, 
+                   {'name': 'Title',         'order': 'o=3', 'type': 'str'}, 
+                   {'name': 'Year',          'order': 'o=4', 'type': 'str'},
+                   {'name': 'Place',         'order': 'o=5', 'type': 'str'},
+                   {'name': 'First Edition', 'order': 'o=6', 'type': 'str'},
+                   {'name': 'Editions',      'order': 'o=7', 'type': 'str'}]
     filters = [ {"name": "Identifier",  "id": "filter_idno",    "enabled": False},
                 {"name": "Author",      "id": "filter_author",  "enabled": False},
                 {"name": "Title",       "id": "filter_title",   "enabled": False},
@@ -2140,7 +2312,7 @@ class SermonCollectionListView(BasicListView):
             {'filter': 'tagexmpid',     'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
             ]}
         ]
-    
+
 
 class KeywordListView(BasicListView):
     """Listview of sermon collections"""
@@ -2681,95 +2853,6 @@ class SermonDetailsView(PassimDetails):
         return context
 
 
-class CollectionDetailsView(PassimDetails):
-    model = SermonCollection
-    mForm = None
-    template_name = 'generic_details.html' 
-    prefix = ""
-    title = "CollectionDetails"
-    rtype = "html"
-    mainitems = []
-    sections = []
-
-    def add_to_context(self, context, instance):
-        # Show the main items of this sermon collection
-        context['mainitems'] = [
-            {'type': 'plain', 'label': "Identifier (Code):", 'value': instance.idno},
-            {'type': 'bold',  'label': "Title:", 'value': instance.title},
-            {'type': 'plain', 'label': "Authors:", 'value': instance.get_authors()},
-            {'type': 'plain', 'label': "Date of composition:", 'value': "{} ({})".format(instance.datecomp, instance.get_datetype_display()) },
-            {'type': 'plain', 'label': "Place of composition:", 'value': instance.place.name },
-            {'type': 'plain', 'label': "First edition:", 'value': instance.firstedition },
-            {'type': 'plain', 'label': "Number of editions:", 'value': instance.numeditions }
-
-            ]
-
-        context['sections'] = [
-            {'name': 'Typology / structure', 'id': 'coll_typology', 'fields': [
-                {'type': 'plain', 'label': "Structure:", 'value': instance.structure },
-                {'type': 'safeline',    'label': "Liturgical relation:", 'value': instance.get_liturgical_display.strip(), 'title': "Relationship with liturgical texts"},
-                {'type': 'safeline',    'label': "Communicative strategy:", 'value': instance.get_communicative_display.strip()},
-                ]},
-            {'name': 'General notes', 'id': 'coll_general', 'fields': [
-                {'type': 'safeline',    'label': "Quoted sources:", 'value': instance.get_sources_display.strip()},
-                {'type': 'safeline',    'label': "Exempla:", 'value': instance.get_exempla_display.strip()},
-                {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()}                ]}
-            ]
-
-        related_objects = []
-
-        # Show the SERMONS of this collection
-        sermons = {'title': 'Sermons of this collection (based on the year/place edition code)'}
-        # Show the list of sermons that are part of this collection
-        qs = Sermon.objects.filter(collection=instance).order_by('code')
-        rel_list =[]
-        for item in qs:
-            rel_item = []
-            rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
-            rel_item.append({'value': item.litday})
-            rel_item.append({'value': item.get_bibref()})
-            rel_item.append({'value': item.get_topics()})
-            rel_list.append(rel_item)
-        sermons['rel_list'] = rel_list
-        sermons['columns'] = ['Code', 'Liturgical day', 'Thema', 'Topics']
-        related_objects.append(sermons)
-
-        # Show the MANUSCRIPTS that point to this collection
-        manuscripts = {'title': 'Manuscripts that contain this collection'}
-        # Get the list of manuscripts
-        qs = Manuscript.objects.filter(collection=instance).order_by('info')
-        rel_list = []
-        for item in qs:
-            rel_item = []
-            rel_item.append({'value': item.info, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
-            rel_item.append({'value': item.link})
-            rel_list.append(rel_item)
-        manuscripts['rel_list'] = rel_list
-        manuscripts['columns'] = ['Information', 'Link']
-        related_objects.append(manuscripts)
-
-        # Show the EDITIONS that point to this collection
-        editions = {'title': 'Printed editions that contain this collection'}
-        # Get the list of editions
-        qs = Edition.objects.filter(sermoncollection=instance).order_by('code')
-        rel_list = []
-        for item in qs:
-            rel_item = []
-            rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
-            rel_item.append({'value': item.get_place()})
-            rel_item.append({'value': item.get_editors()})
-            rel_item.append({'value': item.get_date()})
-            rel_item.append({'value': item.has_notes()})
-            rel_list.append(rel_item)
-        editions['rel_list'] = rel_list
-        editions['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
-        related_objects.append(editions)
-
-        context['related_objects'] = related_objects
-        # Return the context we have made
-        return context
-
-
 class EditionListView(BasicListView):
     """Listview of editions"""
 
@@ -2863,32 +2946,6 @@ class EditionDetailsView(PassimDetails):
         related_objects.append(consultings)
 
         context['related_objects'] = related_objects
-        return context
-
-
-class ConsultingDetailsView(PassimDetails):
-    model = Consulting
-    mForm = None
-    template_name = 'generic_details.html' 
-    prefix = "cons"
-    title = "ConsultingDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        url_label = "url" if instance.label == None or instance.label == "" else instance.label
-        context['mainitems'] = [
-            {'type': 'plain', 'label': "Location:", 'value': instance.location},
-            {'type': 'bold', 'label': "Link:", 'value': url_label, 'link': instance.link},
-            {'type': 'plain', 'label': "Ownership:", 'value': instance.ownership},
-            {'type': 'plain', 'label': "Marginalia:", 'value': instance.marginalia},
-            {'type': 'plain', 'label': "Images:", 'value': instance.images}
-            ]
-
-        # Adapt the listview to which the user can link: 
-        #    this should be the details view of the *EDITION* to which the consultings belong
-        context['listview'] = reverse('edition_details', kwargs={'pk': instance.edition.id})
-
         return context
 
 

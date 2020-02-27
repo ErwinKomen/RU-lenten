@@ -440,6 +440,8 @@ class CollectionListForm(forms.ModelForm):
     tagnoteid = forms.CharField(label=_("Note tag"), required = False)
     tagexmpid = forms.CharField(label=_("Exemplar tag"), required = False)
     tagqsrcid = forms.CharField(label=_("Quoted source tag"), required = False)
+    hasmanu = forms.ChoiceField(label=_(""), required=False,
+                                widget=forms.Select(attrs={'style': 'width: 100%;'}))
 
     class Meta:
         ATTRS_FOR_FORMS = {'class': 'form-control'};
@@ -462,6 +464,8 @@ class CollectionListForm(forms.ModelForm):
         self.fields['place'].required = False
         self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
         self.fields['placelist'].queryset = Location.objects.all().order_by('name')
+        # Initialise the choices for [hasmanu]
+        self.fields['hasmanu'].choices = ( ("undefined", "----"), ("yes", "Yes"), ("no", "No") )
 
         # Get the instance
         if 'instance' in kwargs:

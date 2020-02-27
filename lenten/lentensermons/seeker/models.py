@@ -481,6 +481,15 @@ class Information(models.Model):
         else:
             return info.kvalue
 
+    def set_kvalue(name, value):
+        info = Information.objects.filter(name=name).first()
+        if info == None:
+            info = Information(name=name)
+            info.save()
+        info.kvalue = value
+        info.save()
+        return True
+
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
         return super(Information, self).save(force_insert, force_update, using, update_fields)
 
@@ -1084,9 +1093,10 @@ class SermonCollection(tagtext.models.TagtextModel):
     # [0-1] Notes
     notes = models.TextField("Notes", blank=True, null=True)
     
-    # ----------- calculated fields for sorting ----------
+    # ----------- calculated fields for sorting and filtering ----------
     firstedition = models.IntegerField("First edition date", default=0)
     numeditions = models.IntegerField("number of editions", default=0)
+    nummanu = models.IntegerField("number of manuscripts", default=0)
 
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Author: each sermoncollection may have 1 or more authors
@@ -1187,6 +1197,31 @@ class SermonCollection(tagtext.models.TagtextModel):
             self.save()
         return True
 
+    def adapt_manucount(self):
+        """This gets called when manuscripts for a sermoncollection change"""
+
+        bNeedSaving = False
+        # Calculate the number of manuscripts
+        nummanu = self.manuscripts.all().count()
+        if nummanu != self.nummanu:
+            self.nummanu = nummanu
+            self.save()
+        return True
+
+    def do_manu_count():
+        """Count manuscripts for all collections"""
+
+        oErr = ErrHandle()
+        try:
+            with transaction.atomic():
+                for obj in SermonCollection.objects.all():
+                    obj.adapt_manucount()
+                    obj.adapt_editions()
+            return True
+        except:
+            msg = oErr.get_error_message()
+            return False
+
     def __str__(self):
         # Combine my ID number and the title (which is obligatory)
         sBack = "({}) {}".format(self.id, self.title)
@@ -1215,6 +1250,18 @@ class Manuscript(models.Model):
             sBack = sBack.strip()
         return sBack
 
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+        response = super(Manuscript, self).save(force_insert, force_update, using, update_fields)
+        # Adapt the information in sermoncollection
+        self.collection.adapt_manucount()
+        return response
+
+    def delete(self, using = None, keep_parents = False):
+        response = super(Manuscript, self).delete(using, keep_parents)
+        # Adapt the information in sermoncollection
+        self.collection.adapt_manucount()
+        return response
+    
 
 class Book(models.Model):
     """Book in the Bible""" 
