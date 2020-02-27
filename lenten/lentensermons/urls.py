@@ -9,7 +9,6 @@ from django.contrib import admin
 import django.contrib.auth.views
 
 import lentensermons.seeker.forms
-import lentensermons.seeker.views
 from lentensermons.seeker.views import *
 
 # Import from LENTENSERMONS as a whole

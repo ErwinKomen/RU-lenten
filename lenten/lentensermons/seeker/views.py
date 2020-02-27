@@ -33,6 +33,8 @@ import base64
 import json
 import csv, re
 from io import StringIO
+
+# My own application
 from basic.views import BasicList, BasicDetails
 
 # Application specific
