@@ -2178,7 +2178,7 @@ class CollectionDetailsView(PassimDetails):
         related_objects = []
 
         # Show the SERMONS of this collection
-        sermons = {'title': 'Sermons of this collection (based on the year/place edition code)'}
+        sermons = {'prefix': 'srm', 'title': 'Sermons of this collection (based on the year/place edition code)'}
         # Show the list of sermons that are part of this collection
         qs = Sermon.objects.filter(collection=instance).order_by('code')
         rel_list =[]
@@ -2194,7 +2194,7 @@ class CollectionDetailsView(PassimDetails):
         related_objects.append(sermons)
 
         # Show the MANUSCRIPTS that point to this collection
-        manuscripts = {'title': 'Manuscripts that contain this collection'}
+        manuscripts = {'prefix': 'man', 'title': 'Manuscripts that contain this collection'}
         # Get the list of manuscripts
         qs = Manuscript.objects.filter(collection=instance).order_by('info')
         rel_list = []
@@ -2208,7 +2208,7 @@ class CollectionDetailsView(PassimDetails):
         related_objects.append(manuscripts)
 
         # Show the EDITIONS that point to this collection
-        editions = {'title': 'Printed editions that contain this collection'}
+        editions = {'prefix': 'edi', 'title': 'Printed editions that contain this collection'}
         # Get the list of editions
         qs = Edition.objects.filter(sermoncollection=instance).order_by('code')
         rel_list = []
@@ -2445,7 +2445,7 @@ class TagLiturDetailView(PassimDetails):
         related_objects = []
 
         # This tag in: collection.communicative
-        collections = {'title': 'Collections that use this tag in their relastionship with [Liturgical] texts'}
+        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their relastionship with [Liturgical] texts'}
         # Show the list of collections that contain this tag
         qs = instance.collection_liturtags.all().order_by('idno')
         if qs.count() > 0:
@@ -2491,7 +2491,7 @@ class TagCommDetailView(PassimDetails):
         related_objects = []
 
         # This tag in: collection.communicative
-        collections = {'title': 'Collections that use this tag in their [Communicative strategy]'}
+        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Communicative strategy]'}
         # Show the list of collections that contain this tag
         qs = instance.collection_commtags.all().order_by('idno')
         if qs.count() > 0:
@@ -2537,7 +2537,7 @@ class TagQsourceDetailView(PassimDetails):
         related_objects = []
 
         # This tag in: sermon.summary
-        sermons = {'title': 'Sermons that use this tag in their [Summary]'}
+        sermons = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Summary]'}
         # Show the list of sermons that contain this tag
         qs = instance.sermon_summarytags.all().order_by('code')
         if qs.count() > 0:
@@ -2554,7 +2554,7 @@ class TagQsourceDetailView(PassimDetails):
             related_objects.append(sermons)
 
         # This tag in: collection.sources
-        collections = {'title': 'Collections that use this tag in their [Source]'}
+        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Source]'}
         # Show the list of collections that contain this tag
         qs = instance.collection_sources.all().order_by('idno')
         if qs.count() > 0:
@@ -2600,7 +2600,7 @@ class TagNoteDetailView(PassimDetails):
         related_objects = []
 
         # This tag in: sermon.notes
-        sermons = {'title': 'Sermons that use this tag in their [Notes]'}
+        sermons = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Notes]'}
         # Show the list of sermons that contain this tag
         qs = instance.sermon_notetags.all().order_by('code')
         if qs.count() > 0:
@@ -2617,7 +2617,7 @@ class TagNoteDetailView(PassimDetails):
             related_objects.append(sermons)
 
         # This tag in: collection.notes
-        collections = {'title': 'Collections that use this tag in their [Notes]'}
+        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Notes]'}
         # Show the list of collections that contain this tag
         qs = instance.collection_notes.all().order_by('idno')
         if qs.count() > 0:
@@ -2635,7 +2635,7 @@ class TagNoteDetailView(PassimDetails):
             related_objects.append(collections)
 
         # This tag in: collection.exempla
-        exempla = {'title': 'Collections that use this tag in their [Exempla]'}
+        exempla = {'prefix': 'exm', 'title': 'Collections that use this tag in their [Exempla]'}
         # Show the list of sermons that contain this tag
         qs = instance.collection_exempla.all().order_by('idno')
         if qs.count() > 0:
@@ -2653,7 +2653,7 @@ class TagNoteDetailView(PassimDetails):
             related_objects.append(exempla)
 
         # This tag in: edition.notes
-        editions = {'title': 'Editions that use this tag in their [Notes]'}
+        editions = {'prefix': 'edi', 'title': 'Editions that use this tag in their [Notes]'}
         # Show the list of editions that contain this tag
         qs = instance.edition_notetags.all().order_by('code')
         if qs.count() > 0:
@@ -2938,7 +2938,7 @@ class EditionDetailsView(PassimDetails):
         related_objects = []
 
         # Show the CONSULTINGS of this edition
-        consultings = {'title': 'Consultings of this edition'}
+        consultings = {'prefix': 'cns', 'title': 'Consultings of this edition'}
         # Show the list of sermons that are part of this collection
         qs = instance.consultings.all().order_by('location')
         rel_list =[]
@@ -3067,7 +3067,7 @@ class AuthorDetailsView(PassimDetails):
         related_objects = []
 
         # Show the collections containing this author
-        collections = {'title': 'Sermon collections that have this author'}
+        collections = {'prefix': 'col', 'title': 'Sermon collections that have this author'}
         # Show the list of collections using this author
         qs = SermonCollection.objects.filter(authors__id=instance.id).order_by('idno')
         rel_list =[]
@@ -3208,7 +3208,7 @@ class ManuscriptDetailsView(PassimDetails):
         related_objects = []
 
         ## Show the SERMONS of this manuscript
-        #sermons = {'title': 'Sermons that are part of this manuscript'}
+        #sermons = {'prefix': 'srm', 'title': 'Sermons that are part of this manuscript'}
         ## Show the list of sermons that are part of this manuscript
         #qs = Sermon.objects.filter(collection=instance.collection).order_by('code')
         #rel_list =[]
