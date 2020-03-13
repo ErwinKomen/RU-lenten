@@ -1240,7 +1240,7 @@ input:checked + .slider:before {
 .slider.round:before {   border-radius: 50%; }
 
 
-span[contenteditable=false] {
+span[contenteditable=false], span.topic {
   /* background-color: lightgray;*/
   border-radius: 2px;
   padding: 1px;
@@ -1249,15 +1249,15 @@ span[contenteditable=false] {
   font-size: 90%;
 }
 
-table.func-view span[contenteditable=false] {
+table.func-view span[contenteditable=false], span.topic {
   background-color: whitesmoke;
 }
 
-span[contenteditable=false] > a {
+span[contenteditable=false] > a, span.topic > a {
   font-weight: bold;
   color: darkblue;
 }
-span[contenteditable=false] > a:hover {
+span[contenteditable=false] > a:hover, span.topic > a:hover {
   background-color: yellow;
   text-decoration-line: none;
   cursor: pointer;

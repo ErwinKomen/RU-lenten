@@ -2098,14 +2098,16 @@ class SermonListView(BasicListView):
                 {"name": "Collection",     "id": "filter_collection",   "enabled": False},
                 {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
                 {"name": "Book",           "id": "filter_book",         "enabled": False},
-                {"name": "Keyword",        "id": "filter_keyword",      "enabled": False}]
+                {"name": "Keyword",        "id": "filter_keyword",      "enabled": False},
+                {"name": "Topic",          "id": "filter_topic",        "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
             {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
             {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
             {'filter': 'litday',    'dbfield': 'litday',    'keyS': 'litday'},
             {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
-            {'filter': 'keyword',   'fkfield': 'keywords',  'keyS': 'keyword',   'keyFk': 'name', 'keyList': 'kwlist', 'infield': 'name' }
+            {'filter': 'keyword',   'fkfield': 'keywords',  'keyS': 'keyword',  'keyFk': 'name', 'keyList': 'kwlist',   'infield': 'id' },
+            {'filter': 'topic',     'fkfield': 'topics',                        'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid',  'fkfield': 'notetags',      'keyS': 'tagnoteid', 'keyFk': 'id' },
@@ -2840,7 +2842,7 @@ class SermonDetailsView(PassimDetails):
             {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
             {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
             {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
-            {'type': 'line',  'label': "Keywords:", 'value': instance.get_keywords()},
+            {'type': 'line',  'label': "Keywords:", 'value': instance.get_keywords_markdown()},
             ]
 
         context['sections'] = [

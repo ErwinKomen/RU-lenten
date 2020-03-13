@@ -133,6 +133,18 @@
                   </table>
                 </div>
 
+                <!-- One or more topics -->
+                <div id="filter_topic" class="{% if not sermoForm.toplist.value  %}hidden{% endif %}">
+                  <table style="width: 100%;">
+                    <tr class="form-row">
+                      <td style="min-width: 130px;">Topic</td>
+                      <td style="width: 100%;">
+                        <span>{{sermoForm.toplist}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
               </div>
             </div>
 

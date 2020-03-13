@@ -1375,6 +1375,18 @@ class Sermon(tagtext.models.TagtextModel):
         kw_list = [x.name for x in self.keywords.all()]
         return ", ".join(kw_list)
 
+    def get_keywords_markdown(self):
+        lHtml = []
+        # Visit all keywords
+        for keyword in self.keywords.all():
+            # Determine where clicking should lead to
+            url = "{}?sermo-kwlist={}".format(reverse('sermon_list'), keyword.id)
+            # Create a display for this topic
+            lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,keyword.name))
+
+        sBack = ", ".join(lHtml)
+        return sBack
+
     def get_full_thema(self):
         sBack = ""
         if self.thema: 
@@ -1392,7 +1404,15 @@ class Sermon(tagtext.models.TagtextModel):
         return sBack
 
     def get_topics_markdown(self):
-        sBack = markdown(self.get_topics())
+        lHtml = []
+        # Visit all topics
+        for topic in self.topics.all():
+            # Determine where clicking should lead to
+            url = "{}?sermo-toplist={}".format(reverse('sermon_list'), topic.id)
+            # Create a display for this topic
+            lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,topic.name))
+
+        sBack = ", ".join(lHtml)
         return sBack
 
     def get_summary_markdown(self):

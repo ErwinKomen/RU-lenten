@@ -43,6 +43,17 @@ class KeywordWidget(ModelSelect2MultipleWidget):
         return Keyword.objects.all().order_by('name').distinct()
 
 
+class TopicWidget(ModelSelect2MultipleWidget):
+    model = Topic
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return Topic.objects.all().order_by('name').distinct()
+
+
 class PublisherWidget(ModelSelect2MultipleWidget):
     model = Publisher
     search_fields = [ 'name__icontains' ]
@@ -293,6 +304,8 @@ class SermonListForm(forms.ModelForm):
                 widget=forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Keyword(s)...', 'style': 'width: 100%;'}))
     kwlist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=KeywordWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
+    toplist = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=TopicWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
     tagqsrcid = forms.CharField(label=_("Quoted source tag"), required = False)
     tagnoteid = forms.CharField(label=_("Note tag"), required = False)
 
@@ -318,6 +331,7 @@ class SermonListForm(forms.ModelForm):
         self.fields['chapter'].required = False
         self.fields['verse'].required = False
         self.fields['kwlist'].queryset = Keyword.objects.all().order_by('name')
+        self.fields['toplist'].queryset = Topic.objects.all().order_by('name')
         self.fields['booklist'].queryset = Book.objects.all().order_by('name')
         self.fields['collectionlist'].queryset = SermonCollection.objects.all().order_by('title')
 
