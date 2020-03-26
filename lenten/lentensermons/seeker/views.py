@@ -62,15 +62,68 @@ app_editor = "lentensermons_editor"
 app_uploader = "lentensermons_uploader"
 
 
-def treat_bom(sHtml):
-    """REmove the BOM marker except at the beginning of the string"""
+def about(request):
+    """Renders the about page."""
+    assert isinstance(request, HttpRequest)
+    context =  {'title':'About',
+                'message':'Radboud University passim utility.',
+                'year':get_current_datetime().year,
+                'pfx': APP_PREFIX,
+                'site_url': admin.site.site_url}
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
 
-    # Check if it is in the beginning
-    bStartsWithBom = sHtml.startswith(u'\ufeff')
-    # Remove everywhere
-    sHtml = sHtml.replace(u'\ufeff', '')
-    # Return what we have
-    return sHtml
+    # Process this visit
+    # context['breadcrumbs'] = process_visit(request, "About", True)
+    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}, {'name': 'About', 'url': reverse('about')}]
+
+    return render(request,'about.html', context)
+
+def action_model_changes(form, instance):
+    field_values = model_to_dict(instance)
+    changed_fields = form.changed_data
+    changes = {}
+    for item in changed_fields: 
+        if item in field_values:
+            changes[item] = field_values[item]
+        else:
+            # It is a form field
+            try:
+                representation = form.cleaned_data[item]
+                if isinstance(representation, QuerySet):
+                    # This is a list
+                    rep_list = []
+                    for rep in representation:
+                        rep_str = str(rep)
+                        rep_list.append(rep_str)
+                    representation = json.dumps(rep_list)
+                changes[item] = representation
+            except:
+                changes[item] = "(unavailable)"
+    return changes
+
+def add_visit(request, name, is_menu):
+    """Add the visit to the current path"""
+
+    username = "anonymous" if request.user == None else request.user.username
+    if username != "anonymous":
+        Visit.add(username, name, request.path, is_menu)
+
+def contact(request):
+    """Renders the contact page."""
+    assert isinstance(request, HttpRequest)
+    context =  {'title':'Contact',
+                'message':'Pietro Delcorno',
+                'year':get_current_datetime().year,
+                'pfx': APP_PREFIX,
+                'site_url': admin.site.site_url}
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
+
+    # Process this visit
+    # context['breadcrumbs'] = process_visit(request, "Contact", True)
+    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}, {'name': 'Contact', 'url': reverse('contact')}]
+
+
+    return render(request,'contact.html', context)
 
 def csv_to_excel(sCsvData, response):
     """Convert CSV data to an Excel worksheet"""
@@ -108,64 +161,75 @@ def csv_to_excel(sCsvData, response):
     wb.save(response)
     return response
 
-def user_is_authenticated(request):
-    # Is this user authenticated?
-    username = request.user.username
-    user = User.objects.filter(username=username).first()
-    return user.is_authenticated()
+def download_file(url):
+    """Download a file from the indicated URL"""
 
-def user_is_ingroup(request, sGroup):
-    # Is this user part of the indicated group?
-    username = request.user.username
-    user = User.objects.filter(username=username).first()
-    # glist = user.groups.values_list('name', flat=True)
-
-    # Only look at group if the user is known
-    if user == None:
-        glist = []
+    bResult = True
+    sResult = ""
+    errHandle = ErrHandle()
+    # Get the filename from the url
+    name = url.split("/")[-1]
+    # Set the output directory
+    outdir = os.path.abspath(os.path.join(MEDIA_DIR, "e-codices"))
+    if not os.path.exists(outdir):
+        os.mkdir(outdir)
+    # Create a filename where we can store it
+    filename = os.path.abspath(os.path.join(outdir, name))
+    try:
+        r = requests.get(url)
+    except:
+        sMsg = errHandle.get_error_message()
+        errHandle.DoError("Request problem")
+        return False, sMsg
+    if r.status_code == 200:
+        # Read the response
+        sText = r.text
+        # Write away
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(sText)
+        sResult = filename
     else:
-        glist = [x.name for x in user.groups.all()]
+        bResult = False
+        sResult = "download_file received status {} for {}".format(r.status_code, url)
+    # Return the result
+    return bResult, sResult
 
-        # Only needed for debugging
-        if bDebug:
-            ErrHandle().Status("User [{}] is in groups: {}".format(user, glist))
-    # Evaluate the list
-    bIsInGroup = (sGroup in glist)
-    return bIsInGroup
+def get_date_display(dtThis):
+    if dtThis == None:
+        result = "-"
+    else:
+        result = dtThis.strftime("%d/%b/%Y %H:%M")
+    return result
 
-def add_visit(request, name, is_menu):
-    """Add the visit to the current path"""
+def get_previous_page(request):
+    """Find the previous page for this user"""
 
     username = "anonymous" if request.user == None else request.user.username
-    if username != "anonymous":
-        Visit.add(username, name, request.path, is_menu)
-
-def action_model_changes(form, instance):
-    field_values = model_to_dict(instance)
-    changed_fields = form.changed_data
-    changes = {}
-    for item in changed_fields: 
-        if item in field_values:
-            changes[item] = field_values[item]
+    if username != "anonymous" and request.user.username != "":
+        # Get the current path list
+        p_list = Profile.get_stack(username)
+        if len(p_list) < 2:
+            prevpage = request.META.get('HTTP_REFERER') 
         else:
-            # It is a form field
-            try:
-                representation = form.cleaned_data[item]
-                if isinstance(representation, QuerySet):
-                    # This is a list
-                    rep_list = []
-                    for rep in representation:
-                        rep_str = str(rep)
-                        rep_list.append(rep_str)
-                    representation = json.dumps(rep_list)
-                changes[item] = representation
-            except:
-                changes[item] = "(unavailable)"
-    return changes
-
-def has_string_value(field, obj):
-    response = (field in obj and obj[field] != None and obj[field] != "")
-    return response
+            p_item = p_list[len(p_list)-2]
+            prevpage = p_item['url']
+            # Possibly add arguments
+            if 'kwargs' in p_item:
+                # First strip off any arguments (anything after ?) in the url
+                if "?" in prevpage:
+                    prevpage = prevpage.split("?")[0]
+                bFirst = True
+                for k,v in p_item['kwargs'].items():
+                    if bFirst:
+                        addsign = "?"
+                        bFirst = False
+                    else:
+                        addsign = "&"
+                    prevpage = "{}{}{}={}".format(prevpage, addsign, k, v)
+    else:
+        prevpage = request.META.get('HTTP_REFERER') 
+    # Return the path
+    return prevpage
 
 def has_list_value(field, obj):
     response = (field in obj and obj[field] != None and len(obj[field]) > 0)
@@ -174,6 +238,104 @@ def has_list_value(field, obj):
 def has_obj_value(field, obj):
     response = (field != None and field in obj and obj[field] != None)
     return response
+
+def has_string_value(field, obj):
+    response = (field in obj and obj[field] != None and obj[field] != "")
+    return response
+
+def home(request):
+    """Renders the home page."""
+
+    assert isinstance(request, HttpRequest)
+    # Specify the template
+    template_name = 'index.html'
+    # Define the initial context
+    context =  {'title':'RU-lenten',
+                'year':get_current_datetime().year,
+                'pfx': APP_PREFIX,
+                'site_url': admin.site.site_url}
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
+    context['is_app_editor'] = user_is_ingroup(request, app_editor)
+
+    # Process this visit
+    # context['breadcrumbs'] = process_visit(request, "Home", True)
+    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}]
+
+    # Check the newsitems for validity
+    NewsItem.check_until()
+    # Create the list of news-items
+    lstQ = []
+    lstQ.append(Q(status='val'))
+    newsitem_list = NewsItem.objects.filter(*lstQ).order_by('-saved', '-created')
+    context['newsitem_list'] = newsitem_list
+
+    # Set the number of sermons and the number of collections
+    context['sermoncount'] = Sermon.objects.count()
+    context['collectioncount'] = SermonCollection.objects.count()
+
+    # Render and return the page
+    return render(request, template_name, context)
+
+def instruction(request):
+    """Renders the instruction page."""
+
+    assert isinstance(request, HttpRequest)
+    context =  {'title':'Instruction',
+                'message':'Helpful instructions',
+                'year':get_current_datetime().year,
+                'pfx': APP_PREFIX,
+                'site_url': admin.site.site_url}
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
+
+    # Process this visit
+    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}, {'name': 'Instruction', 'url': reverse('instruction')}]
+
+
+    return render(request,'instruction.html', context)
+
+def make_ordering(qs, qd, orders, order_cols, order_heads):
+
+    oErr = ErrHandle()
+
+    try:
+        bAscending = True
+        sType = 'str'
+        order = []
+        if 'o' in qd and qd['o'] != "":
+            colnum = qd['o']
+            if '=' in colnum:
+                colnum = colnum.split('=')[1]
+            if colnum != "":
+                order = []
+                iOrderCol = int(colnum)
+                bAscending = (iOrderCol>0)
+                iOrderCol = abs(iOrderCol)
+                for order_item in order_cols[iOrderCol-1].split(";"):
+                    order.append(Lower(order_item))
+                sType = order_heads[iOrderCol-1]['type']
+                if bAscending:
+                    order_heads[iOrderCol-1]['order'] = 'o=-{}'.format(iOrderCol)
+                else:
+                    # order = "-" + order
+                    order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
+        else:
+            for order_item in order_cols[0].split(";"):
+                order.append(Lower(order_item))
+        if sType == 'str':
+            if len(order) > 0:
+                qs = qs.order_by(*order)
+            # qs = qs.order_by('editions__first__date_late')
+        else:
+            qs = qs.order_by(*order)
+        # Possibly reverse the order
+        if not bAscending:
+            qs = qs.reverse()
+    except:
+        msg = oErr.get_error_message()
+        oErr.DoError("make_ordering")
+        lstQ = []
+
+    return qs, order_heads
 
 def make_search_list(filters, oFields, search_list, qd):
     """Using the information in oFields and search_list, produce a revised filters array and a lstQ for a Queryset"""
@@ -316,49 +478,30 @@ def make_search_list(filters, oFields, search_list, qd):
     # Return what we have created
     return filters, lstQ, qd
 
-def make_ordering(qs, qd, orders, order_cols, order_heads):
+def more(request):
+    """Renders the more page."""
+    assert isinstance(request, HttpRequest)
+    context =  {'title':'More',
+                'year':get_current_datetime().year,
+                'pfx': APP_PREFIX,
+                'site_url': admin.site.site_url}
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
 
-    oErr = ErrHandle()
+    # Process this visit
+    # context['breadcrumbs'] = process_visit(request, "More", True)
+    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}, {'name': 'More', 'url': reverse('more')}]
 
-    try:
-        bAscending = True
-        sType = 'str'
-        order = []
-        if 'o' in qd and qd['o'] != "":
-            colnum = qd['o']
-            if '=' in colnum:
-                colnum = colnum.split('=')[1]
-            if colnum != "":
-                order = []
-                iOrderCol = int(colnum)
-                bAscending = (iOrderCol>0)
-                iOrderCol = abs(iOrderCol)
-                for order_item in order_cols[iOrderCol-1].split(";"):
-                    order.append(Lower(order_item))
-                sType = order_heads[iOrderCol-1]['type']
-                if bAscending:
-                    order_heads[iOrderCol-1]['order'] = 'o=-{}'.format(iOrderCol)
-                else:
-                    # order = "-" + order
-                    order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
-        else:
-            for order_item in order_cols[0].split(";"):
-                order.append(Lower(order_item))
-        if sType == 'str':
-            if len(order) > 0:
-                qs = qs.order_by(*order)
-            # qs = qs.order_by('editions__first__date_late')
-        else:
-            qs = qs.order_by(*order)
-        # Possibly reverse the order
-        if not bAscending:
-            qs = qs.reverse()
-    except:
-        msg = oErr.get_error_message()
-        oErr.DoError("make_ordering")
-        lstQ = []
 
-    return qs, order_heads
+    return render(request,'more.html', context)
+
+def nlogin(request):
+    """Renders the not-logged-in page."""
+    assert isinstance(request, HttpRequest)
+    context =  {    'title':'Not logged in', 
+                    'message':'Radboud University passim utility.',
+                    'year':get_current_datetime().year,}
+    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
+    return render(request,'nlogin.html', context)
 
 def process_visit(request, name, is_menu, **kwargs):
     """Process one visit and return updated breadcrumbs"""
@@ -376,121 +519,6 @@ def process_visit(request, name, is_menu, **kwargs):
     # return json.dumps(p_list)
     return p_list
 
-def get_previous_page(request):
-    """Find the previous page for this user"""
-
-    username = "anonymous" if request.user == None else request.user.username
-    if username != "anonymous" and request.user.username != "":
-        # Get the current path list
-        p_list = Profile.get_stack(username)
-        if len(p_list) < 2:
-            prevpage = request.META.get('HTTP_REFERER') 
-        else:
-            p_item = p_list[len(p_list)-2]
-            prevpage = p_item['url']
-            # Possibly add arguments
-            if 'kwargs' in p_item:
-                # First strip off any arguments (anything after ?) in the url
-                if "?" in prevpage:
-                    prevpage = prevpage.split("?")[0]
-                bFirst = True
-                for k,v in p_item['kwargs'].items():
-                    if bFirst:
-                        addsign = "?"
-                        bFirst = False
-                    else:
-                        addsign = "&"
-                    prevpage = "{}{}{}={}".format(prevpage, addsign, k, v)
-    else:
-        prevpage = request.META.get('HTTP_REFERER') 
-    # Return the path
-    return prevpage
-
-def get_date_display(dtThis):
-    if dtThis == None:
-        result = "-"
-    else:
-        result = dtThis.strftime("%d/%b/%Y %H:%M")
-    return result
-
-def home(request):
-    """Renders the home page."""
-
-    assert isinstance(request, HttpRequest)
-    # Specify the template
-    template_name = 'index.html'
-    # Define the initial context
-    context =  {'title':'RU-lenten',
-                'year':get_current_datetime().year,
-                'pfx': APP_PREFIX,
-                'site_url': admin.site.site_url}
-    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
-    context['is_app_editor'] = user_is_ingroup(request, app_editor)
-
-    # Process this visit
-    # context['breadcrumbs'] = process_visit(request, "Home", True)
-    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}]
-
-    # Check the newsitems for validity
-    NewsItem.check_until()
-    # Create the list of news-items
-    lstQ = []
-    lstQ.append(Q(status='val'))
-    newsitem_list = NewsItem.objects.filter(*lstQ).order_by('-saved', '-created')
-    context['newsitem_list'] = newsitem_list
-
-    # Render and return the page
-    return render(request, template_name, context)
-
-def contact(request):
-    """Renders the contact page."""
-    assert isinstance(request, HttpRequest)
-    context =  {'title':'Contact',
-                'message':'Pietro Delcorno',
-                'year':get_current_datetime().year,
-                'pfx': APP_PREFIX,
-                'site_url': admin.site.site_url}
-    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
-
-    # Process this visit
-    # context['breadcrumbs'] = process_visit(request, "Contact", True)
-    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}, {'name': 'Contact', 'url': reverse('contact')}]
-
-
-    return render(request,'contact.html', context)
-
-def more(request):
-    """Renders the more page."""
-    assert isinstance(request, HttpRequest)
-    context =  {'title':'More',
-                'year':get_current_datetime().year,
-                'pfx': APP_PREFIX,
-                'site_url': admin.site.site_url}
-    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
-
-    # Process this visit
-    # context['breadcrumbs'] = process_visit(request, "More", True)
-    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}, {'name': 'More', 'url': reverse('more')}]
-
-
-    return render(request,'more.html', context)
-
-def about(request):
-    """Renders the about page."""
-    assert isinstance(request, HttpRequest)
-    context =  {'title':'About',
-                'message':'Radboud University passim utility.',
-                'year':get_current_datetime().year,
-                'pfx': APP_PREFIX,
-                'site_url': admin.site.site_url}
-    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
-
-    # Process this visit
-    # context['breadcrumbs'] = process_visit(request, "About", True)
-    context['breadcrumbs'] = [{'name': 'Home', 'url': reverse('home')}, {'name': 'About', 'url': reverse('about')}]
-
-    return render(request,'about.html', context)
-
 def short(request):
     """Renders the page with the short instructions."""
 
@@ -502,14 +530,39 @@ def short(request):
     context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
     return render(request, template, context)
 
-def nlogin(request):
-    """Renders the not-logged-in page."""
-    assert isinstance(request, HttpRequest)
-    context =  {    'title':'Not logged in', 
-                    'message':'Radboud University passim utility.',
-                    'year':get_current_datetime().year,}
-    context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
-    return render(request,'nlogin.html', context)
+def signup(request):
+    """Provide basic sign up and validation of it """
+
+    allow_signup = False # Do not allow signup yet
+    if allow_signup:
+        if request.method == 'POST':
+            form = SignUpForm(request.POST)
+            if form.is_valid():
+                # Save the form
+                form.save()
+                # Create the user
+                username = form.cleaned_data.get('username')
+                raw_password = form.cleaned_data.get('password1')
+                # also make sure that the user gets into the STAFF,
+                #      otherwise he/she may not see the admin pages
+                user = authenticate(username=username, 
+                                    password=raw_password,
+                                    is_staff=True)
+                user.is_staff = True
+                user.save()
+                # Add user to the "passim_user" group
+                gQs = Group.objects.filter(name="passim_user")
+                if gQs.count() > 0:
+                    g = gQs[0]
+                    g.user_set.add(user)
+                # Log in as the user
+                login(request, user)
+                return redirect('home')
+        else:
+            form = SignUpForm()
+        return render(request, 'signup.html', {'form': form})
+    else:
+        return redirect('home')
 
 def sync_entry(request):
     """-"""
@@ -624,113 +677,40 @@ def sync_progress(request):
     # Return this response
     return JsonResponse(data)
 
-def signup(request):
-    """Provide basic sign up and validation of it """
+def treat_bom(sHtml):
+    """REmove the BOM marker except at the beginning of the string"""
 
-    allow_signup = False # Do not allow signup yet
-    if allow_signup:
-        if request.method == 'POST':
-            form = SignUpForm(request.POST)
-            if form.is_valid():
-                # Save the form
-                form.save()
-                # Create the user
-                username = form.cleaned_data.get('username')
-                raw_password = form.cleaned_data.get('password1')
-                # also make sure that the user gets into the STAFF,
-                #      otherwise he/she may not see the admin pages
-                user = authenticate(username=username, 
-                                    password=raw_password,
-                                    is_staff=True)
-                user.is_staff = True
-                user.save()
-                # Add user to the "passim_user" group
-                gQs = Group.objects.filter(name="passim_user")
-                if gQs.count() > 0:
-                    g = gQs[0]
-                    g.user_set.add(user)
-                # Log in as the user
-                login(request, user)
-                return redirect('home')
-        else:
-            form = SignUpForm()
-        return render(request, 'signup.html', {'form': form})
+    # Check if it is in the beginning
+    bStartsWithBom = sHtml.startswith(u'\ufeff')
+    # Remove everywhere
+    sHtml = sHtml.replace(u'\ufeff', '')
+    # Return what we have
+    return sHtml
+
+def user_is_authenticated(request):
+    # Is this user authenticated?
+    username = request.user.username
+    user = User.objects.filter(username=username).first()
+    return user.is_authenticated()
+
+def user_is_ingroup(request, sGroup):
+    # Is this user part of the indicated group?
+    username = request.user.username
+    user = User.objects.filter(username=username).first()
+    # glist = user.groups.values_list('name', flat=True)
+
+    # Only look at group if the user is known
+    if user == None:
+        glist = []
     else:
-        return redirect('home')
+        glist = [x.name for x in user.groups.all()]
 
-@csrf_exempt
-def get_tributes(request):
-    """Get a list of tribute values for autocomplete"""
-
-    data = 'fail'
-    requestOk = request.is_ajax()
-    requestOk = True
-    if requestOk:
-        oErr = ErrHandle()
-        try:
-            # Get the tribute class
-            sTclass = request.GET.get('tclass', '')   
-            # Get the actual word(s) to search for
-            sQuery = request.GET.get('q', '')
-            if sTclass!= "" and sQuery != "":
-                # Yes, continue...
-                lstQ = []
-                lstQ.append(Q(name__icontains=sQuery))
-                clsThis = None
-                if sTclass == "communicative":
-                    clsThis = TagCommunicative
-                elif sTclass == "liturgical":
-                    clsThis = TagLiturgical
-                elif sTclass == "qsource":
-                    clsThis = TagQsource
-                elif sTclass == "notes":
-                    clsThis = TagNote
-                if clsThis != None:
-                    qs = clsThis.objects.filter(*lstQ).order_by('name')
-                    results = []
-                    for co in qs:
-                        co_json = {'name': co.name, 'value': co.name, 'id': co.id }
-                        results.append(co_json)
-                    data = json.dumps(results)
-        except:
-            msg = oErr.get_error_message()
-            oErr.DoError("get_tributes")
-    else:
-        data = "Request is not ajax"
-    mimetype = "application/json"
-    return HttpResponse(data, mimetype)
-
-@csrf_exempt
-def get_countries(request):
-    """Get a list of countries for autocomplete"""
-
-    data = 'fail'
-    method = "useLocation"
-    if request.is_ajax():
-        oErr = ErrHandle()
-        try:
-            sName = request.GET.get('country', '')
-            if sName == "": sName = request.GET.get('country_ta', "")
-            lstQ = []
-            lstQ.append(Q(name__icontains=sName))
-            if method == "useLocation":
-                loctype = LocationType.find("country")
-                lstQ.append(Q(loctype=loctype))
-                countries = Location.objects.filter(*lstQ).order_by('name')
-            else:
-                countries = Country.objects.filter(*lstQ).order_by('name')
-            results = []
-            for co in countries:
-                co_json = {'name': co.name, 'id': co.id }
-                results.append(co_json)
-            data = json.dumps(results)
-        except:
-            msg = oErr.get_error_message()
-            oErr.DoError("get_countries")
-    else:
-        data = "Request is not ajax"
-    mimetype = "application/json"
-    return HttpResponse(data, mimetype)
+        # Only needed for debugging
+        if bDebug:
+            ErrHandle().Status("User [{}] is in groups: {}".format(user, glist))
+    # Evaluate the list
+    bIsInGroup = (sGroup in glist)
+    return bIsInGroup
 
 @csrf_exempt
 def get_cities(request):
@@ -800,6 +780,38 @@ def get_cities(request):
     return HttpResponse(data, mimetype)
     
 @csrf_exempt
+def get_countries(request):
+    """Get a list of countries for autocomplete"""
+
+    data = 'fail'
+    method = "useLocation"
+    if request.is_ajax():
+        oErr = ErrHandle()
+        try:
+            sName = request.GET.get('country', '')
+            if sName == "": sName = request.GET.get('country_ta', "")
+            lstQ = []
+            lstQ.append(Q(name__icontains=sName))
+            if method == "useLocation":
+                loctype = LocationType.find("country")
+                lstQ.append(Q(loctype=loctype))
+                countries = Location.objects.filter(*lstQ).order_by('name')
+            else:
+                countries = Country.objects.filter(*lstQ).order_by('name')
+            results = []
+            for co in countries:
+                co_json = {'name': co.name, 'id': co.id }
+                results.append(co_json)
+            data = json.dumps(results)
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("get_countries")
+    else:
+        data = "Request is not ajax"
+    mimetype = "application/json"
+    return HttpResponse(data, mimetype)
+
+@csrf_exempt
 def get_locations(request):
     """Get a list of location names for autocomplete"""
 
@@ -824,39 +836,6 @@ def get_locations(request):
         data = "Request is not ajax"
     mimetype = "application/json"
     return HttpResponse(data, mimetype)
-
-def download_file(url):
-    """Download a file from the indicated URL"""
-
-    bResult = True
-    sResult = ""
-    errHandle = ErrHandle()
-    # Get the filename from the url
-    name = url.split("/")[-1]
-    # Set the output directory
-    outdir = os.path.abspath(os.path.join(MEDIA_DIR, "e-codices"))
-    if not os.path.exists(outdir):
-        os.mkdir(outdir)
-    # Create a filename where we can store it
-    filename = os.path.abspath(os.path.join(outdir, name))
-    try:
-        r = requests.get(url)
-    except:
-        sMsg = errHandle.get_error_message()
-        errHandle.DoError("Request problem")
-        return False, sMsg
-    if r.status_code == 200:
-        # Read the response
-        sText = r.text
-        # Write away
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(sText)
-        sResult = filename
-    else:
-        bResult = False
-        sResult = "download_file received status {} for {}".format(r.status_code, url)
-    # Return the result
-    return bResult, sResult
 
 @csrf_exempt
 def get_params(request):
@@ -907,6 +886,48 @@ def get_params(request):
     except:
         msg = oErr.get_error_message()
         data = "error: {}".format(msg)
+    mimetype = "application/json"
+    return HttpResponse(data, mimetype)
+
+@csrf_exempt
+def get_tributes(request):
+    """Get a list of tribute values for autocomplete"""
+
+    data = 'fail'
+    requestOk = request.is_ajax()
+    requestOk = True
+    if requestOk:
+        oErr = ErrHandle()
+        try:
+            # Get the tribute class
+            sTclass = request.GET.get('tclass', '')   
+            # Get the actual word(s) to search for
+            sQuery = request.GET.get('q', '')
+            if sTclass!= "" and sQuery != "":
+                # Yes, continue...
+                lstQ = []
+                lstQ.append(Q(name__icontains=sQuery))
+                clsThis = None
+                if sTclass == "communicative":
+                    clsThis = TagCommunicative
+                elif sTclass == "liturgical":
+                    clsThis = TagLiturgical
+                elif sTclass == "qsource":
+                    clsThis = TagQsource
+                elif sTclass == "notes":
+                    clsThis = TagNote
+                if clsThis != None:
+                    qs = clsThis.objects.filter(*lstQ).order_by('name')
+                    results = []
+                    for co in qs:
+                        co_json = {'name': co.name, 'value': co.name, 'id': co.id }
+                        results.append(co_json)
+                    data = json.dumps(results)
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("get_tributes")
+    else:
+        data = "Request is not ajax"
     mimetype = "application/json"
     return HttpResponse(data, mimetype)
 
@@ -1895,7 +1916,7 @@ class LocationListView(ListView):
             context['paginateSize'] = paginateSize
 
         # Set the title of the application
-        context['title'] = "Lentensermons location info"
+        context['title'] = "Lenten sermons location info"
 
         # Check if user may upload
         context['is_authenticated'] = user_is_authenticated(self.request)
@@ -2086,6 +2107,7 @@ class SermonListView(BasicListView):
     listform = SermonListForm
     prefix = "sermo"
     template_name = 'seeker/sermon_list.html'
+    plural_name = "Sermons"
     order_default = ['code', 'collection__authors__name' 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
     order_cols = ['code', 'collection__authors__name' 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
     order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
@@ -2238,6 +2260,7 @@ class CollectionListView(BasicListView):
     listform = CollectionListForm
     prefix = "coll"
     template_name = 'seeker/collection_list.html'
+    plural_name = "Sermon collections"
     entrycount = 0
     order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
     order_cols = order_default
@@ -2276,6 +2299,14 @@ class CollectionListView(BasicListView):
             # Calculate
             if SermonCollection.do_manu_count():
                 Information.set_kvalue("manucount", "done")
+
+        # Check if processing of tags has been done
+        if Information.get_kvalue("tagqsource") == "":
+            # Calculate
+            if SermonCollection.do_qsources():
+                Information.set_kvalue("tagqsource", "done")
+
+
         return context
     
 
@@ -2327,6 +2358,7 @@ class KeywordListView(BasicListView):
     listform = KeywordListForm
     prefix = "kw"
     template_name = 'seeker/keyword_list.html'
+    plural_name = "Keywords"
     entrycount = 0
     order_default = ['name', 'language']
     order_cols = ['name', 'language']
@@ -2348,6 +2380,7 @@ class PublisherListView(BasicListView):
     listform = PublisherListForm
     prefix = "pb"
     template_name = 'seeker/publisher_list.html'
+    plural_name = "Publishers"
     entrycount = 0
     order_default = ['name']
     order_cols = ['name']
@@ -2394,6 +2427,7 @@ class TagLiturListView(TagListView):
     urldef = "tagliturgical_list"
     plain_name = "liturgical tag"
     plain_plural = "Liturgical tags"
+    plural_name = plain_plural
 
 
 class TagCommListView(TagListView):
@@ -2403,6 +2437,7 @@ class TagCommListView(TagListView):
     urldef = "tagcommunicative_list"
     plain_name = "communicative tag"
     plain_plural = "Communicative tags"
+    plural_name = plain_plural
 
 
 class TagQsourceListView(TagListView):
@@ -2412,6 +2447,7 @@ class TagQsourceListView(TagListView):
     urldef = "tagqsource_list"
     plain_name = "source tag"
     plain_plural = "Source tags"
+    plural_name = plain_plural
 
 
 class TagNoteListView(TagListView):
@@ -2421,6 +2457,7 @@ class TagNoteListView(TagListView):
     urldef = "tagnote_list"
     plain_name = "note tag"
     plain_plural = "Note tags"
+    plural_name = plain_plural
 
 
 class TagLiturDetailView(PassimDetails):
@@ -2866,6 +2903,7 @@ class EditionListView(BasicListView):
     listform = EditionListForm
     prefix = "edi" 
     template_name = 'seeker/edition_list.html'
+    plural_name = "Editions"
     order_default = ['code', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date']
     order_cols = order_default
     order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'str'}, 
@@ -3236,6 +3274,7 @@ class NewsListView(BasicListView):
     listform = NewsForm
     prefix = "news"
     template_name = 'seeker/news_list.html'
+    plural_name = "News items"
     entrycount = 0
     order_default = ['status', '-saved', 'title']
     order_cols = ['title', 'util', 'status', 'created', 'saved']

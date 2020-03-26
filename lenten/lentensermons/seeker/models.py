@@ -956,6 +956,15 @@ class TagNote(models.Model):
         url = reverse('tagnote_details', kwargs={'pk': self.id})
         return url
 
+    def find_or_create(sName):
+        """Find or create [sName] and return its obj"""
+
+        sName = sName.lower()
+        obj = TagNote.objects.filter(name__iexact=sName).first()
+        if obj == None:
+            obj = TagNote.objects.create(name=sName)
+        return obj
+
 
 class TagQsource(models.Model):
     """The field 'quoted source' can have [0-n] tag words associated with it"""
@@ -1107,6 +1116,7 @@ class SermonCollection(tagtext.models.TagtextModel):
     commutags = models.ManyToManyField(TagCommunicative, blank=True, related_name="collection_commtags")
     # [n-n] Tags in the sources
     sourcetags = models.ManyToManyField(TagQsource, blank=True, related_name="collection_sources")
+    sourcenotetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_sourcenotes")
     # [n-n] Tags in the exempla
     exemplatags = models.ManyToManyField(TagNote, blank=True, related_name="collection_exempla")
     # [n-n] Tags in the notes
@@ -1233,6 +1243,62 @@ class SermonCollection(tagtext.models.TagtextModel):
             msg = oErr.get_error_message()
             return False
 
+    def do_qsources():
+        """Convert tagQsource into tagQnote
+        
+        Occurrances:
+        1 - SermonCollection.sourcetags: replace [SermonCollection.sources] items with links to tagQnote
+        2 - Sermon.summarytags:          replace [Sermon.summary] items with links to tagQnote
+        """
+
+        def convert_qsource_to_note(instance, sFieldText, m2mfield):
+            # Find out what the class is of the instance
+
+            # Get the field value
+            sValue = getattr(instance, sFieldText)
+            # Process this value
+            if sValue and sValue != "" and sValue[0] == "[":
+                lst_item = json.loads(sValue)
+                for item in lst_item:
+                    if item['type'] == "tag":
+                        tagid = item['tagid']
+                        value = item['value']
+                        # Convert the tagid into the proper link to the TagNote item
+                        obj = TagNote.find_or_create(value)
+                        # Create the link between the class instance and this TagNote
+                        link_base = getattr(instance, m2mfield)
+                        link = link_base.add(obj)
+                        # The new tagid gets the ID of the TagNote (not of the link)
+                        item['tagid'] = str(obj.id)
+                # REstore the list into a string
+                sValue = json.dumps(lst_item)
+            return sValue
+
+        oErr = ErrHandle()
+        try:
+            # (1) Visit [SermonCollection.sources]
+            for obj in SermonCollection.objects.all():
+                sOrg = obj.sources
+                sNew = convert_qsource_to_note(obj, "sources", "sourcenotetags")
+                if sOrg != sNew:
+                    obj.sources = sNew
+                    obj.save()
+
+            # (2) Visit [Sermon.summary]
+            for obj in Sermon.objects.all():
+                sOrg = obj.summary
+                sNew = convert_qsource_to_note(obj, "summary", "summarynotetags")
+                if sOrg != sNew:
+                    obj.summary = sNew
+                    obj.save()
+
+            # We are ready: return positively
+            return True
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("do_qsources")
+            return False
+
     def __str__(self):
         # Combine my ID number and the title (which is obligatory)
         sBack = "({}) {}".format(self.id, self.title)
@@ -1343,6 +1409,7 @@ class Sermon(tagtext.models.TagtextModel):
     keywords = models.ManyToManyField(Keyword, blank=True)
     # [0-n] = zero or more qsource tags in the summary field
     summarytags = models.ManyToManyField(TagQsource, blank=True, related_name="sermon_summarytags")
+    summarynotetags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_summarynotes")
     # [0-n] = zero or more notetags in the note field
     notetags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_notetags")
 

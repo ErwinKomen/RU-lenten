@@ -33,6 +33,7 @@ urlpatterns = [
     # Examples:
     url(r'^$', lentensermons.seeker.views.home, name='home'),
     url(r'^contact$', lentensermons.seeker.views.contact, name='contact'),
+    url(r'^instruction$', lentensermons.seeker.views.instruction, name='instruction'),
     url(r'^about', lentensermons.seeker.views.about, name='about'),
     url(r'^short', lentensermons.seeker.views.about, name='short'),
     url(r'^nlogin', lentensermons.seeker.views.nlogin, name='nlogin'),

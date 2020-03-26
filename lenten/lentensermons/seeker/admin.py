@@ -212,6 +212,8 @@ class DbcodeInline(admin.TabularInline):
     model = Dbcode
     fk_name = "edition"
     extra = 0
+    verbose_name = "External link"
+    verbose_name_plural = "External links"
 
 
 class EditionAdminForm(forms.ModelForm):
