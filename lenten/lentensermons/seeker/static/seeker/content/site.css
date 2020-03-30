@@ -615,8 +615,8 @@ a.jumbotron:hover {
     font-size: 12px;
 }
 
-/* Specify how a keyword should be shown */
-.kw {
+/* Specify how a concept should be shown */
+.cnc {
   font-family: monospace;
   color: darkblue;
   background-color: whitesmoke;
@@ -1263,7 +1263,7 @@ span[contenteditable=false] > a:hover, span.topic > a:hover {
   cursor: pointer;
 }
 
-.keyword {
+.concept {
     color: darkblue;
     font-family: monospace;
     background-color: lightgray;
@@ -1273,7 +1273,7 @@ span[contenteditable=false] > a:hover, span.topic > a:hover {
     padding: 0px 4px;
 }
 
-.keyword:hover {
+.concept:hover {
     color: whitesmoke;
     background-color: darkblue;
     cursor: pointer;

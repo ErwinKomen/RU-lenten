@@ -32,15 +32,15 @@ class LocationWidget(ModelSelect2MultipleWidget):
         return sLabel
 
 
-class KeywordWidget(ModelSelect2MultipleWidget):
-    model = Keyword
+class ConceptWidget(ModelSelect2MultipleWidget):
+    model = Concept
     search_fields = [ 'name__icontains' ]
 
     def label_from_instance(self, obj):
         return obj.name
 
     def get_queryset(self):
-        return Keyword.objects.all().order_by('name').distinct()
+        return Concept.objects.all().order_by('name').distinct()
 
 
 class TopicWidget(ModelSelect2MultipleWidget):
@@ -143,8 +143,8 @@ class TagQsourceWidget(TagWidget):
     model = TagQsource
 
 
-class TagNoteWidget(TagWidget):
-    model = TagNote
+class TagKeywordWidget(TagWidget):
+    model = TagKeyword
 
 
 # ===================== STANDARD FORMS ================================
@@ -300,13 +300,13 @@ class SermonListForm(forms.ModelForm):
                 widget=forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
     booklist  = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=BookWidget(attrs={'data-placeholder': 'Select multiple books...', 'style': 'width: 100%;', 'class': 'searching'}))
-    keyword = forms.CharField(label=_("Keyword"), required=False,
-                widget=forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Keyword(s)...', 'style': 'width: 100%;'}))
-    kwlist = ModelMultipleChoiceField(queryset=None, required=False, 
-                widget=KeywordWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
+    concept = forms.CharField(label=_("Concept"), required=False,
+                widget=forms.TextInput(attrs={'class': 'typeahead searching concepts input-sm', 'placeholder': 'Concept(s)...', 'style': 'width: 100%;'}))
+    cnclist = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=ConceptWidget(attrs={'data-placeholder': 'Select multiple concepts...', 'style': 'width: 100%;', 'class': 'searching'}))
     toplist = ModelMultipleChoiceField(queryset=None, required=False, 
-                widget=TopicWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
-    tagqsrcid = forms.CharField(label=_("Quoted source tag"), required = False)
+                widget=TopicWidget(attrs={'data-placeholder': 'Select multiple concepts...', 'style': 'width: 100%;', 'class': 'searching'}))
+    tagsummid = forms.CharField(label=_("Summary tag"), required = False)
     tagnoteid = forms.CharField(label=_("Note tag"), required = False)
 
     class Meta:
@@ -330,7 +330,7 @@ class SermonListForm(forms.ModelForm):
         self.fields['book'].required = False
         self.fields['chapter'].required = False
         self.fields['verse'].required = False
-        self.fields['kwlist'].queryset = Keyword.objects.all().order_by('name')
+        self.fields['cnclist'].queryset = Concept.objects.all().order_by('name')
         self.fields['toplist'].queryset = Topic.objects.all().order_by('name')
         self.fields['booklist'].queryset = Book.objects.all().order_by('name')
         self.fields['collectionlist'].queryset = SermonCollection.objects.all().order_by('title')
@@ -340,11 +340,11 @@ class SermonListForm(forms.ModelForm):
             instance = kwargs['instance']
 
 
-class KeywordListForm(forms.ModelForm):
-    kwname = forms.CharField(label=_("Keyword"), required=False, 
-                widget=forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Keyword...', 'style': 'width: 100%;'}))
-    kwlist = ModelMultipleChoiceField(queryset=None, required=False, 
-                widget=KeywordWidget(attrs={'data-placeholder': 'Select multiple keywords...', 'style': 'width: 100%;', 'class': 'searching'}))
+class ConceptListForm(forms.ModelForm):
+    cncname = forms.CharField(label=_("Concept"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching concepts input-sm', 'placeholder': 'Concept...', 'style': 'width: 100%;'}))
+    cnclist = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=ConceptWidget(attrs={'data-placeholder': 'Select multiple concepts...', 'style': 'width: 100%;', 'class': 'searching'}))
     lngname = forms.CharField(label=_("Language"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching languages input-sm', 'placeholder': 'Language...', 'style': 'width: 100%;'}))
     lnglist = ModelMultipleChoiceField(queryset=None, required=False, 
@@ -353,19 +353,19 @@ class KeywordListForm(forms.ModelForm):
     class Meta:
         ATTRS_FOR_FORMS = {'class': 'form-control'};
 
-        model = Keyword
+        model = Concept
         fields = ['name', 'language' ]
-        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching keywords input-sm', 'placeholder': 'Keyword...', 'style': 'width: 100%;'}),
+        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching concept input-sm', 'placeholder': 'Concept...', 'style': 'width: 100%;'}),
                  'language':    forms.TextInput(attrs={'class': 'typeahead searching languages input-sm', 'placeholder': 'Language...', 'style': 'width: 100%;'})
                  }
 
     def __init__(self, *args, **kwargs):
         # Start by executing the standard handling
-        super(KeywordListForm, self).__init__(*args, **kwargs)
+        super(ConceptListForm, self).__init__(*args, **kwargs)
         # Some fields are not required
         self.fields['name'].required = False
         self.fields['language'].required = False
-        self.fields['kwlist'].queryset = Keyword.objects.all().order_by('name')
+        self.fields['cnclist'].queryset = Concept.objects.all().order_by('name')
         self.fields['lnglist'].queryset = FieldChoice.objects.filter(field='seeker.language').order_by('english_name')
 
 
@@ -388,8 +388,8 @@ class LitrefForm(forms.ModelForm):
 
 
 class PublisherListForm(forms.ModelForm):
-    pbname = forms.CharField(label=_("Keyword"), required=False, 
-                widget=forms.TextInput(attrs={'class': 'typeahead searching publishers input-sm', 'placeholder': 'Keyword...', 'style': 'width: 100%;'}))
+    pbname = forms.CharField(label=_("Publisher"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching publishers input-sm', 'placeholder': 'Publisher...', 'style': 'width: 100%;'}))
     pblist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=PublisherWidget(attrs={'data-placeholder': 'Select multiple publishers...', 'style': 'width: 100%;', 'class': 'searching'}))
 
@@ -550,12 +550,12 @@ class TagQsourceListForm(TagForm):
         ta_class = "qsourcetags"
 
 
-class TagNoteListForm(TagForm):
+class TagKeywordListForm(TagForm):
     ta_class = "notetags"
     plural_name = "note tags"
-    tag_widget = TagNoteWidget
+    tag_widget = TagKeywordWidget
     class Meta(TagForm.Meta):
-        model = TagNote
+        model = TagKeyword
         ta_class = "notetags"
 
 

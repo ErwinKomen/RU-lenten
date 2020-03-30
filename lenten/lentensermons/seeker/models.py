@@ -897,14 +897,14 @@ class TagCommunicative(models.Model):
         return url
 
 
-class TagNote(models.Model):
+class TagKeyword(models.Model):
     """The field 'notes' can have [0-n] tag words associated with it"""
 
     # [1]
     name = models.CharField("Name", max_length=LONG_STRING)
 
     class Meta:
-        verbose_name_plural = "Note Tags"
+        verbose_name_plural = "Keyword Tags"
 
     def __str__(self):
         return "-" if self == None else self.name
@@ -917,9 +917,17 @@ class TagNote(models.Model):
         # Counts in: collection.exempla
         count = self.collection_exempla.all().count()
         url = reverse("collection_list")
-        params = "coll-tagexemid={}".format(self.id)
+        params = "coll-tagexmpid={}".format(self.id)
         css ="jumbo-1"
         item = dict(count=count, type="Collection Example tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Counts in: collection.sources
+        count = self.collection_sourcenotes.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagsrcid={}".format(self.id)
+        css ="jumbo-2"
+        item = dict(count=count, type="Collection Source tags", url=url, params=params, css=css)
         lst_back.append(item)
 
         # Counts in: collection.notes
@@ -928,6 +936,14 @@ class TagNote(models.Model):
         params = "coll-tagnoteid={}".format(self.id)
         css ="jumbo-2"
         item = dict(count=count, type="Collection Notes tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Counts in: sermon.summary
+        count = self.sermon_summarynotes.all().count()
+        url = reverse("sermon_list")
+        params = "sermo-tagsummid={}".format(self.id)
+        css ="jumbo-3"
+        item = dict(count=count, type="Sermon Summary tags", url=url, params=params, css=css)
         lst_back.append(item)
 
         # Counts in: sermon.notes
@@ -949,20 +965,20 @@ class TagNote(models.Model):
         return lst_back
 
     def get_url_edit(self):
-        url = reverse('admin:seeker_tagnote_change', args=[self.id])
+        url = reverse('admin:seeker_tagkeyword_change', args=[self.id])
         return url
 
     def get_url_view(self):
-        url = reverse('tagnote_details', kwargs={'pk': self.id})
+        url = reverse('tagkeyword_details', kwargs={'pk': self.id})
         return url
 
     def find_or_create(sName):
         """Find or create [sName] and return its obj"""
 
         sName = sName.lower()
-        obj = TagNote.objects.filter(name__iexact=sName).first()
+        obj = TagKeyword.objects.filter(name__iexact=sName).first()
         if obj == None:
-            obj = TagNote.objects.create(name=sName)
+            obj = TagKeyword.objects.create(name=sName)
         return obj
 
 
@@ -1116,18 +1132,18 @@ class SermonCollection(tagtext.models.TagtextModel):
     commutags = models.ManyToManyField(TagCommunicative, blank=True, related_name="collection_commtags")
     # [n-n] Tags in the sources
     sourcetags = models.ManyToManyField(TagQsource, blank=True, related_name="collection_sources")
-    sourcenotetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_sourcenotes")
+    sourcenotetags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_sourcenotes")
     # [n-n] Tags in the exempla
-    exemplatags = models.ManyToManyField(TagNote, blank=True, related_name="collection_exempla")
+    exemplatags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_exempla")
     # [n-n] Tags in the notes
-    notetags = models.ManyToManyField(TagNote, blank=True, related_name="collection_notes")
+    notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_notes")
 
     mixed_tag_fields = [
-            {"textfield": "liturgical",     "m2mfield": "liturtags",    "class": TagLiturgical,   "url": "taglitu_details"},
-            {"textfield": "communicative",  "m2mfield": "commutags",    "class": TagCommunicative,"url": "tagcomm_details"},
-            {"textfield": "sources",        "m2mfield": "sourcetags",   "class": TagQsource,      "url": "tagqsrc_details"},
-            {"textfield": "exempla",        "m2mfield": "exemplatags",  "class": TagNote,         "url": "tagnote_details"},
-            {"textfield": "notes",          "m2mfield": "notetags",     "class": TagNote,         "url": "tagnote_details"}
+            {"textfield": "liturgical",     "m2mfield": "liturtags",        "class": TagLiturgical,   "url": "taglitu_details"},
+            {"textfield": "communicative",  "m2mfield": "commutags",        "class": TagCommunicative,"url": "tagcomm_details"},
+            {"textfield": "sources",        "m2mfield": "sourcenotetags",   "class": TagKeyword,      "url": "tagkeyword_details"},
+            {"textfield": "exempla",        "m2mfield": "exemplatags",      "class": TagKeyword,      "url": "tagkeyword_details"},
+            {"textfield": "notes",          "m2mfield": "notetags",         "class": TagKeyword,      "url": "tagkeyword_details"}
         ]
 
     def tagtext_url(self):
@@ -1244,11 +1260,11 @@ class SermonCollection(tagtext.models.TagtextModel):
             return False
 
     def do_qsources():
-        """Convert tagQsource into tagQnote
+        """Convert tagQsource into tagNote
         
         Occurrances:
-        1 - SermonCollection.sourcetags: replace [SermonCollection.sources] items with links to tagQnote
-        2 - Sermon.summarytags:          replace [Sermon.summary] items with links to tagQnote
+        1 - SermonCollection.sourcetags: replace [SermonCollection.sources] items with links to tagNote
+        2 - Sermon.summarytags:          replace [Sermon.summary] items with links to tagNote
         """
 
         def convert_qsource_to_note(instance, sFieldText, m2mfield):
@@ -1263,12 +1279,12 @@ class SermonCollection(tagtext.models.TagtextModel):
                     if item['type'] == "tag":
                         tagid = item['tagid']
                         value = item['value']
-                        # Convert the tagid into the proper link to the TagNote item
-                        obj = TagNote.find_or_create(value)
-                        # Create the link between the class instance and this TagNote
+                        # Convert the tagid into the proper link to the TagKeyword item
+                        obj = TagKeyword.find_or_create(value)
+                        # Create the link between the class instance and this TagKeyword
                         link_base = getattr(instance, m2mfield)
                         link = link_base.add(obj)
-                        # The new tagid gets the ID of the TagNote (not of the link)
+                        # The new tagid gets the ID of the TagKeyword (not of the link)
                         item['tagid'] = str(obj.id)
                 # REstore the list into a string
                 sValue = json.dumps(lst_item)
@@ -1366,10 +1382,10 @@ class Topic(models.Model):
         return "-" if self == None else  self.name
 
 
-class Keyword(models.Model):
-    # [1] Every topic consists of a name
+class Concept(models.Model):
+    # [1] Every concept consists of a name
     name = models.CharField("Name", max_length = MEDIUM_LENGTH)
-    # [1] Every keyword must belong to language English or Latin
+    # [1] Every concept must belong to language English or Latin
     language = models.CharField("Language", choices=build_abbr_list(LANGUAGE_tYPE),  max_length=5)
 
     def __str__(self):
@@ -1405,17 +1421,17 @@ class Sermon(tagtext.models.TagtextModel):
     # =================== many-to-many fields =================================================
     # [0-n] zero or more topics
     topics = models.ManyToManyField(Topic, blank=True)
-    # [0-n] Zero or more keywords linked to each Sermon
-    keywords = models.ManyToManyField(Keyword, blank=True)
+    # [0-n] Zero or more concepts linked to each Sermon
+    concepts = models.ManyToManyField(Concept, blank=True)
     # [0-n] = zero or more qsource tags in the summary field
     summarytags = models.ManyToManyField(TagQsource, blank=True, related_name="sermon_summarytags")
-    summarynotetags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_summarynotes")
+    summarynotetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_summarynotes")
     # [0-n] = zero or more notetags in the note field
-    notetags = models.ManyToManyField(TagNote, blank=True, related_name="sermon_notetags")
+    notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_notetags")
 
     mixed_tag_fields = [
-            {"textfield": "summary",    "m2mfield": "summarytags",  "class": TagQsource, "url": "tagqsrc_details"},
-            {"textfield": "note",       "m2mfield": "notetags",     "class": TagNote,    "url": "tagnote_details"}
+            {"textfield": "summary",    "m2mfield": "summarynotetags",  "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "note",       "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"}
         ]
 
     def tagtext_url(self):
@@ -1438,18 +1454,18 @@ class Sermon(tagtext.models.TagtextModel):
                 sRef = sBook
         return sRef
 
-    def get_keywords(self):
-        kw_list = [x.name for x in self.keywords.all()]
-        return ", ".join(kw_list)
+    def get_concepts(self):
+        cnc_list = [x.name for x in self.concepts.all()]
+        return ", ".join(cnc_list)
 
-    def get_keywords_markdown(self):
+    def get_concepts_markdown(self):
         lHtml = []
-        # Visit all keywords
-        for keyword in self.keywords.all():
+        # Visit all concepts
+        for concept in self.concepts.all():
             # Determine where clicking should lead to
-            url = "{}?sermo-kwlist={}".format(reverse('sermon_list'), keyword.id)
-            # Create a display for this topic
-            lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,keyword.name))
+            url = "{}?sermo-cnclist={}".format(reverse('sermon_list'), concept.id)
+            # Create a display for this concept
+            lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,concept.name))
 
         sBack = ", ".join(lHtml)
         return sBack
@@ -1554,10 +1570,10 @@ class Edition(tagtext.models.TagtextModel):
     # [n-n] Each edition may have any number of publishers
     publishers = models.ManyToManyField(Publisher, related_name="publisher_editions", blank=True)
     # [0-n] = zero or more notetags in the note field
-    notetags = models.ManyToManyField(TagNote, blank=True, related_name="edition_notetags")
+    notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="edition_notetags")
 
     mixed_tag_fields = [
-            {"textfield": "note",           "m2mfield": "notetags",     "class": TagNote, "url": "tagnote_details"}
+            {"textfield": "note",           "m2mfield": "notetags",     "class": TagKeyword, "url": "tagkeyword_details"}
         ]
 
     def __str__(self):

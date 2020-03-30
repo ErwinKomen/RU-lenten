@@ -116,10 +116,10 @@
           <h3>
             <span title="Every {{plain_name}} belongs to one or more objects">{{plain_plural}}</span>
             {% if is_app_editor %}
-              <span id="add_keyword" class="pull-right">
+              <span id="add_concept" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
-                    href="{% url 'keyword_add' %}">
+                    href="{% url 'concept_add' %}">
                   <span class="glyphicon glyphicon-plus"></span>Add a {{plain_name}}
                 </a>
               </span>

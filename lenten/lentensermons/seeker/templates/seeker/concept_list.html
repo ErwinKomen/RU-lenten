@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block scripts %}
-  {{kwForm.media.css}}
+  {{cncForm.media.css}}
 {% endblock %}
 
 {% block content %}
@@ -32,7 +32,7 @@
     </div>
 
     <!-- Define the filter tab -->
-    <form  id="keywords_filter" method='post' action="{% url 'keyword_list' %}" >
+    <form  id="concepts_filter" method='post' action="{% url 'concept_list' %}" >
       {% csrf_token %}
       <!-- entrypoint for search_paged_start -->
       <div class="hidden search_paged_start">
@@ -61,39 +61,39 @@
             </div>
           </div>
               
-          <div class="row" id="keyword_filter_specs">
+          <div class="row" id="concept_filter_specs">
             <!-- The column with the different filter sections -->
             <div class="col-md-10">
               <div class="panel panel-default ">
 
                 <!-- Intro -->
-                <div><h5>Keyword filters: </h5></div>
+                <div><h5>Concept filters: </h5></div>
 
-                <!-- One or more keyword names -->
-                <div id="filter_name" class="{% if not kwForm.name.value and not kwForm.kwlist.value %}hidden{% endif %}">
+                <!-- One or more concept names -->
+                <div id="filter_name" class="{% if not cncForm.name.value and not cncForm.cnclist.value %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
-                      <td style="min-width: 130px;" valign="top">Keyword</td>
+                      <td style="min-width: 130px;" valign="top">Concept</td>
                       <td style="width: 100%;">
-                        <span class="keyword-key hidden">{{kwform.name}}</span>
-                        <span>{{kwForm.kwname}}</span>
+                        <span class="concept-key hidden">{{cncForm.name}}</span>
+                        <span>{{cncForm.cncname}}</span>
                         <span> or select: </span>
-                        <span>{{kwForm.kwlist}}</span>
+                        <span>{{cncForm.cnclist}}</span>
                       </td>
                     </tr>
                   </table>
                 </div>
 
                 <!-- One or more languages -->
-                <div id="filter_language" class="{% if not kwForm.language.value and not kwForm.lnglist.value %}hidden{% endif %}">
+                <div id="filter_language" class="{% if not cncForm.language.value and not cncForm.lnglist.value %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
                       <td style="min-width: 130px;" valign="top">Language</td>
                       <td style="width: 100%;">
-                        <span class="language-key hidden">{{kwform.language}}</span>
-                        <span>{{kwForm.lngname}}</span>
+                        <span class="language-key hidden">{{cncForm.language}}</span>
+                        <span>{{cncForm.lngname}}</span>
                         <span> or select: </span>
-                        <span>{{kwForm.lnglist}}</span>
+                        <span>{{cncForm.lnglist}}</span>
                       </td>
                     </tr>
                   </table>
@@ -126,16 +126,16 @@
     <div class="" id="tab_list">
       <div class="panel panel-default">
 
-        <!-- Heading and button to add a new keyword -->
+        <!-- Heading and button to add a new concept -->
         <form>
           <h3>
-            <span title="Every keyword belongs to one or more sermons">Keywords</span>
+            <span title="Every concept belongs to one or more sermons">Concepts</span>
             {% if is_app_editor %}
-              <span id="add_keyword" class="pull-right">
+              <span id="add_concept" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
-                    href="{% url 'keyword_add' %}">
-                  <span class="glyphicon glyphicon-plus"></span>Add a keyword
+                    href="{% url 'concept_add' %}">
+                  <span class="glyphicon glyphicon-plus"></span>Add a concept
                 </a>
               </span>
             {% endif %}
@@ -176,23 +176,23 @@
                   </tr>
                 </thead>
                 <tbody>
-                {% for kw in object_list %}
+                {% for cnc in object_list %}
                   <tr class="dict-entry">
-                    <td class="hidden"> {{ kw.id }}</td>
+                    <td class="hidden"> {{ cnc.id }}</td>
 
-                    <!-- Language of this keyword -->
-                    <td class="tdnowrap" >{{kw.get_language_display}}</td>
+                    <!-- Language of this concept -->
+                    <td class="tdnowrap" >{{cnc.get_language_display}}</td>
 
-                    <!-- Keyword name-->
-                    <td class="clickable" title="View the keyword" style="width: 100%;"
-                        onclick="ru.lenten.seeker.goto_url('{% url 'keyword_details' kw.id %}')">{% if kw.name %}{{kw.name}}{% endif %}</td>
+                    <!-- Concept name-->
+                    <td class="clickable" title="View the concept" style="width: 100%;"
+                        onclick="ru.lenten.seeker.goto_url('{% url 'concept_details' cnc.id %}')">{% if cnc.name %}{{cnc.name}}{% endif %}</td>
 
-                    <!-- Short indications for this keyword-->
+                    <!-- Short indications for this concept-->
                     <td style="min-width: 80px;">
                       {% if is_app_editor %}
                         <!-- Edit button -->
                         <a mode="edit" class="view-mode btn btn-xs jumbo-1"
-                           onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_keyword_change' kw.id %}')">
+                           onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_concept_change' cnc.id %}')">
                           <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
                         </a>
                       {% endif %}
@@ -215,7 +215,7 @@
           </div>
 
         {% else %}
-          <p>No keywords have been found.</p>
+          <p>No concepts have been found.</p>
         {% endif %}
       </div>
 
@@ -230,5 +230,5 @@
 {% endblock content %}
 
 {% block endcontent %} 
-  {{kwForm.media.js }} 
+  {{cncForm.media.js }} 
 {% endblock %}

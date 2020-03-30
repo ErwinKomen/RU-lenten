@@ -42,8 +42,8 @@ var ru = (function ($, ru) {
         loc_manuidnoL = [],
         loc_edition = [],           // critical editions that belong to a gold sermon
         loc_editionL = [],
-        loc_keyword = [],           // Keywords that can belong to a sermongold or a sermondescr
-        loc_keywordL = [],
+        loc_concept = [],           // Concepts that can belong to a sermongold or a sermondescr
+        loc_conceptL = [],
         loc_language = [],          // Languages 
         loc_languageL = [],
         loc_elInput = null,
@@ -92,106 +92,15 @@ var ru = (function ($, ru) {
         
         if (bUseTypeahead) {
 
-          /*
-          // Bloodhound: LOCATION
-          loc_locations = new Bloodhound({
-            datumTokenizer: Bloodhound.tokenizers.whitespace,
-            queryTokenizer: Bloodhound.tokenizers.whitespace,
-            // loc_libraries will be an array of libraries
-            local: loc_locationsL,
-            prefetch: { url: base_url + 'api/locations/', cache: true },
-            remote: {
-              url: base_url + 'api/locations/?name=',
-              replace: ru.lenten.tt_library
-            }
-          });
-
-          // Bloodhound: AUTHOR
-          loc_authors = new Bloodhound({
-            datumTokenizer: function (myObj) {
-              return myObj;
-            },
-            queryTokenizer: function (myObj) {
-              return myObj;
-            },
-            // loc_countries will be an array of countries
-            local: loc_authorsL,
-            prefetch: { url: base_url + 'api/authors/list/', cache: true },
-            remote: {
-              url: base_url + 'api/authors/list/?name=',
-              replace: function (url, uriEncodedQuery) {
-                url += encodeURIComponent(uriEncodedQuery);
-                return url;
-              }
-            }
-          });
-
-          // Bloodhound: SIGNATURE
-          loc_signature = new Bloodhound({
-            datumTokenizer: function (myObj) {
-              return myObj;
-            },
-            queryTokenizer: function (myObj) {
-              return myObj;
-            },
-            // loc_countries will be an array of countries
-            local: loc_signatureL,
-            prefetch: { url: base_url + 'api/signatures/', cache: true },
-            remote: {
-              url: base_url + 'api/signatures/?name=',
-              replace: function (url, uriEncodedQuery) {
-                url += encodeURIComponent(uriEncodedQuery);
-                return url;
-              }
-            }
-          });
-        
-          // Bloodhound: manuidno
-          loc_manuidno = new Bloodhound({
-            datumTokenizer: function (myObj) { return myObj; },
-            queryTokenizer: function (myObj) { return myObj; },
-            // loc_countries will be an array of countries
-            local: loc_manuidnoL,
-            prefetch: { url: base_url + 'api/manuidnos/', cache: true },
-            remote: {
-              url: base_url + 'api/manuidnos/?name=',
-              replace: function (url, uriEncodedQuery) {
-                url += encodeURIComponent(uriEncodedQuery);
-                return url;
-              }
-            }
-          });
-
-          // Bloodhound: EDITION
-          loc_edition = new Bloodhound({
-            datumTokenizer: function (myObj) {
-              return myObj;
-            },
-            queryTokenizer: function (myObj) {
-              return myObj;
-            },
-            // loc_countries will be an array of countries
-            local: loc_editionL,
-            prefetch: { url: base_url + 'api/editions/', cache: true },
-            remote: {
-              url: base_url + 'api/editions/?name=',
-              replace: function (url, uriEncodedQuery) {
-                url += encodeURIComponent(uriEncodedQuery);
-                return url;
-              }
-            }
-          });
-          */
-
-          // Bloodhound: KEYWORD
-          loc_keyword = new Bloodhound({
+          // Bloodhound: CONCEPT
+          loc_concept = new Bloodhound({
             datumTokenizer: function (myObj) {return myObj;},
             queryTokenizer: function (myObj) {return myObj;},
-            // loc_keyword will be an array of keywords
-            local: loc_keywordL,
-            prefetch: { url: base_url + 'api/params/?field=keyword', cache: true },
+            // loc_concept will be an array of concepts
+            local: loc_conceptL,
+            prefetch: { url: base_url + 'api/params/?field=concept', cache: true },
             remote: {
-              url: base_url + 'api/params/?field=keyword&name=',
+              url: base_url + 'api/params/?field=concept&name=',
               replace: function (url, uriEncodedQuery) {
                 url += encodeURIComponent(uriEncodedQuery);
                 return url;
@@ -229,95 +138,24 @@ var ru = (function ($, ru) {
       init_typeahead: function () {
         try {
           // First destroy them
-          /*
-          $(".typeahead.locations").typeahead('destroy');
-          $(".typeahead.authors").typeahead('destroy');
-          $(".typeahead.signatures").typeahead('destroy');
-          $(".typeahead.editions").typeahead('destroy');
-          $(".typeahead.manuidnos").typeahead('destroy');
-          */
-          $(".typeahead.keywords").typeahead('destroy');
+          $(".typeahead.concepts").typeahead('destroy');
           $(".typeahead.languages").typeahead('destroy');
 
-          /*
-          // Type-ahead: LOCATION
-          $(".form-row:not(.empty-form) .typeahead.locations, .manuscript-details .typeahead.locations").typeahead(
+
+          // Type-ahead: CONCEPT -- NOTE: not in a form-row, but in a normal 'row'
+          $(".row .typeahead.concepts, tr .typeahead.concepts").typeahead(
             { hint: true, highlight: true, minLength: 1 },
             {
-              name: 'locations', source: loc_locations, limit: 25, displayKey: "name",
+              name: 'concepts', source: loc_concept, limit: 25, displayKey: "name",
               templates: {
+                empty: '<p>Use the wildcard * to mark an inexact wording of a concept</p>',
                 suggestion: function (item) {
                   return '<div>' + item.name + '</div>';
                 }
               }
             }
           ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".location-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: AUTHOR -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.authors, tr .typeahead.authors").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'authors', source: loc_authors, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Not found</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".author-key input").last().val(suggestion.id);
-          });
-
-
-          // Type-ahead: SIGNATURE (SermonGold) -- NOTE: not in a form-row, but in a normal 'row'
-          $("tr:not(.empty-form) .typeahead.signatures, .manuscript-details .typeahead.signatures").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'signatures', source: loc_signature, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark inexact code</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".signature-key input").last().val(suggestion.id);
-          });
-
-          // Type-ahead: EDITION -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.editions, tr .typeahead.editions").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'editions', source: loc_edition, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark an inexact wording of an edition</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".edition-key input").last().val(suggestion.id);
-          });*/
-
-          // Type-ahead: KEYWORD -- NOTE: not in a form-row, but in a normal 'row'
-          $(".row .typeahead.keywords, tr .typeahead.keywords").typeahead(
-            { hint: true, highlight: true, minLength: 1 },
-            {
-              name: 'keywords', source: loc_keyword, limit: 25, displayKey: "name",
-              templates: {
-                empty: '<p>Use the wildcard * to mark an inexact wording of a keyword</p>',
-                suggestion: function (item) {
-                  return '<div>' + item.name + '</div>';
-                }
-              }
-            }
-          ).on('typeahead:selected typeahead:autocompleted', function (e, suggestion, name) {
-            $(this).closest("td").find(".keyword-key input").last().val(suggestion.id);
+            $(this).closest("td").find(".concept-key input").last().val(suggestion.id);
           });
 
           // Type-ahead: LANGUAGE -- NOTE: not in a form-row, but in a normal 'row'

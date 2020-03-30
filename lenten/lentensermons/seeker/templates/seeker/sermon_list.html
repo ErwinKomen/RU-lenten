@@ -119,15 +119,15 @@
                   </table>
                 </div>
 
-                <!-- One or more keywords -->
-                <div id="filter_keyword" class="{% if not sermoForm.keyword.value and not sermoForm.kwlist.value  %}hidden{% endif %}">
+                <!-- One or more concepts -->
+                <div id="filter_concept" class="{% if not sermoForm.concept.value and not sermoForm.cnclist.value  %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
-                      <td style="min-width: 130px;">Keyword</td>
+                      <td style="min-width: 130px;">Concept</td>
                       <td style="width: 100%;">
-                        <span style="min-width: 100px;">{{sermoForm.keyword}}</span>
+                        <span style="min-width: 100px;">{{sermoForm.concept}}</span>
                         <span> or select: </span>
-                        <span>{{sermoForm.kwlist}}</span>
+                        <span>{{sermoForm.cnclist}}</span>
                       </td>
                     </tr>
                   </table>

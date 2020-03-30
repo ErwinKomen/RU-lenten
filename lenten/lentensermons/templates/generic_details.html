@@ -41,9 +41,9 @@
                             {% if mainitem.value|length > 0 %}
                               {% for subitem in mainitem.value %}
                                 {% if mainitem.qlist %}
-                                  <span class="keyword"><a href="{{mainitem.link}}?{{mainitem.qlist}}={{subitem.id}}">{{subitem.get_label}}</a></span>
+                                  <span class="concept"><a href="{{mainitem.link}}?{{mainitem.qlist}}={{subitem.id}}">{{subitem.get_label}}</a></span>
                                 {% else %}
-                                  <span class="keyword"><a href="{{subitem.get_link}}">{{subitem.get_label}}</a></span>
+                                  <span class="concept"><a href="{{subitem.get_link}}">{{subitem.get_label}}</a></span>
                                 {% endif %}
                               {% endfor %}
                             {% else %}-{% endif %}

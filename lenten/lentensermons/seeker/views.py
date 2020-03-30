@@ -41,13 +41,13 @@ from basic.views import BasicList, BasicDetails
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
-    SignUpForm, SermonListForm, CollectionListForm, EditionListForm, KeywordListForm, \
-    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagNoteListForm, PublisherListForm, NewsForm, \
+    SignUpForm, SermonListForm, CollectionListForm, EditionListForm, ConceptListForm, \
+    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagKeywordListForm, PublisherListForm, NewsForm, \
     LitrefForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
-    Location, LocationRelation, Author, Keyword, FieldChoice, Information, \
-    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagNote, TagQsource, \
+    Location, LocationRelation, Author, Concept, FieldChoice, Information, \
+    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagKeyword, TagQsource, \
     Publisher, Consulting, Litref
 
 # Some constants that can be used
@@ -839,7 +839,7 @@ def get_locations(request):
 
 @csrf_exempt
 def get_params(request):
-    """Get a list of keywords for autocomplete"""
+    """Get a list of concepts for autocomplete"""
 
     oErr = ErrHandle()
     try:
@@ -860,8 +860,8 @@ def get_params(request):
             name = "" if len(namelist) == 0 else namelist[-1].strip()
 
             # Find out what type we have
-            if field == "keyword":
-                model = Keyword
+            if field == "concept":
+                model = Concept
                 model_field = "name"
                 fieldQ = Q(name__icontains=name)
             elif field == "language":
@@ -915,7 +915,7 @@ def get_tributes(request):
                 elif sTclass == "qsource":
                     clsThis = TagQsource
                 elif sTclass == "notes":
-                    clsThis = TagNote
+                    clsThis = TagKeyword
                 if clsThis != None:
                     qs = clsThis.objects.filter(*lstQ).order_by('name')
                     results = []
@@ -2120,7 +2120,7 @@ class SermonListView(BasicListView):
                 {"name": "Collection",     "id": "filter_collection",   "enabled": False},
                 {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
                 {"name": "Book",           "id": "filter_book",         "enabled": False},
-                {"name": "Keyword",        "id": "filter_keyword",      "enabled": False},
+                {"name": "Concept",        "id": "filter_concept",      "enabled": False},
                 {"name": "Topic",          "id": "filter_topic",        "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
@@ -2128,12 +2128,12 @@ class SermonListView(BasicListView):
             {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
             {'filter': 'litday',    'dbfield': 'litday',    'keyS': 'litday'},
             {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
-            {'filter': 'keyword',   'fkfield': 'keywords',  'keyS': 'keyword',  'keyFk': 'name', 'keyList': 'kwlist',   'infield': 'id' },
+            {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
             {'filter': 'topic',     'fkfield': 'topics',                        'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
             ]},
         {'section': 'other', 'filterlist': [
-            {'filter': 'tagnoteid',  'fkfield': 'notetags',      'keyS': 'tagnoteid', 'keyFk': 'id' },
-            {'filter': 'tagqsrcid',  'fkfield': 'summarytags',   'keyS': 'tagqsrcid', 'keyFk': 'id' }
+            {'filter': 'tagnoteid',  'fkfield': 'notetags',         'keyS': 'tagnoteid', 'keyFk': 'id' },
+            {'filter': 'tagsummid',  'fkfield': 'summarynotetags',  'keyS': 'tagsummid', 'keyFk': 'id' }
             ]}
         ]
     
@@ -2189,7 +2189,7 @@ class CollectionDetailsView(PassimDetails):
 
         context['sections'] = [
             {'name': 'Typology / structure', 'id': 'coll_typology', 'fields': [
-                {'type': 'plain', 'label': "Structure:", 'value': instance.structure },
+                {'type': 'plain',       'label': "Structure:", 'value': instance.structure },
                 {'type': 'safeline',    'label': "Liturgical relation:", 'value': instance.get_liturgical_display.strip(), 'title': "Relationship with liturgical texts"},
                 {'type': 'safeline',    'label': "Communicative strategy:", 'value': instance.get_communicative_display.strip()},
                 ]},
@@ -2285,11 +2285,11 @@ class CollectionListView(BasicListView):
             {'filter': 'hasmanu',   'dbfield': 'nummanu',   'keyType': 'has'}
             ]},
         {'section': 'other', 'filterlist': [
-            {'filter': 'tagnoteid',     'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
-            {'filter': 'taglituid',     'fkfield': 'liturtags',     'keyS': 'taglituid',    'keyFk': 'id' },
-            {'filter': 'tagcommid',     'fkfield': 'commutags',     'keyS': 'tagcommid',    'keyFk': 'id' },
-            {'filter': 'tagqsrcid',     'fkfield': 'sourcetags',    'keyS': 'tagqsrcid',    'keyFk': 'id' },
-            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
+            {'filter': 'tagnoteid', 'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
+            {'filter': 'taglituid', 'fkfield': 'liturtags',     'keyS': 'taglituid',    'keyFk': 'id' },
+            {'filter': 'tagcommid', 'fkfield': 'commutags',     'keyS': 'tagcommid',    'keyFk': 'id' },
+            {'filter': 'tagqsrcid', 'fkfield': 'sourcenotetags','keyS': 'tagqsrcid',    'keyFk': 'id' },
+            {'filter': 'tagexmpid', 'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
             ]}
         ]
 
@@ -2351,24 +2351,24 @@ class CollectionList(BasicList):
         ]
 
 
-class KeywordListView(BasicListView):
+class ConceptListView(BasicListView):
     """Listview of sermon collections"""
 
-    model = Keyword
-    listform = KeywordListForm
-    prefix = "kw"
-    template_name = 'seeker/keyword_list.html'
-    plural_name = "Keywords"
+    model = Concept
+    listform = ConceptListForm
+    prefix = "cnc"
+    template_name = 'seeker/concept_list.html'
+    plural_name = "Concepts"
     entrycount = 0
     order_default = ['name', 'language']
     order_cols = ['name', 'language']
     order_heads = [{'name': 'Language', 'order': 'o=2', 'type': 'str'},
-                   {'name': 'Keyword', 'order': 'o=1', 'type': 'str'}]
-    filters = [ {"name": "Keyword",     "id": "filter_name",    "enabled": False},
+                   {'name': 'Concept',  'order': 'o=1', 'type': 'str'}]
+    filters = [ {"name": "Concept",     "id": "filter_name",    "enabled": False},
                 {"name": "Language",    "id": "filter_language",  "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'name',      'dbfield': 'name',      'keyS': 'kwname',   'keyList': 'kwlist', 'infield': 'name'},
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'cncname',  'keyList': 'cnclist', 'infield': 'name'},
             {'filter': 'language',  'dbfield': 'language',  'keyS': 'lngname',  'keyList': 'lnglist', 'infield': 'abbr'} ]}
         ]
 
@@ -2440,23 +2440,13 @@ class TagCommListView(TagListView):
     plural_name = plain_plural
 
 
-class TagQsourceListView(TagListView):
-    model = TagQsource
-    listform = TagQsourceListForm
-    prefix = "tagq"
-    urldef = "tagqsource_list"
-    plain_name = "source tag"
-    plain_plural = "Source tags"
-    plural_name = plain_plural
-
-
-class TagNoteListView(TagListView):
-    model = TagNote
-    listform = TagNoteListForm
-    prefix = "tagn"
-    urldef = "tagnote_list"
-    plain_name = "note tag"
-    plain_plural = "Note tags"
+class TagKeywordListView(TagListView):
+    model = TagKeyword
+    listform = TagKeywordListForm
+    prefix = "tagkw"
+    urldef = "tagkeyword_list"
+    plain_name = "keyword tag"
+    plain_plural = "Keyword tags"
     plural_name = plain_plural
 
 
@@ -2552,75 +2542,12 @@ class TagCommDetailView(PassimDetails):
         return context    
 
 
-class TagQsourceDetailView(PassimDetails):
-    model = TagQsource
+class TagKeywordDetailView(PassimDetails):
+    model = TagKeyword
     mForm = None
     template_name = 'generic_details.html'
-    prefix = "tagq"
-    title = "QuotedSourceTagDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        # The main item of the view is the name of the tag itself
-        context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""}
-            ]
-        # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
-        lst_count = instance.get_list()
-        for oCount in lst_count:
-            oItem = dict(type='plain', label=oCount['type'], value=oCount['count'], align='right')
-            context['mainitems'].append(oItem)
-
-        # Make sure to show each of the sections in [lst_count] separately
-        related_objects = []
-
-        # This tag in: sermon.summary
-        sermons = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Summary]'}
-        # Show the list of sermons that contain this tag
-        qs = instance.sermon_summarytags.all().order_by('code')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.litday})
-                rel_item.append({'value': item.get_bibref()})
-                rel_item.append({'value': item.get_summary_display})
-                rel_list.append(rel_item)
-            sermons['rel_list'] = rel_list
-            sermons['columns'] = ['Code', 'Liturgical day', 'Thema', 'Summary']
-            related_objects.append(sermons)
-
-        # This tag in: collection.sources
-        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Source]'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_sources.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_sources_display})
-                rel_list.append(rel_item)
-            collections['rel_list'] = rel_list
-            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Sources']
-            related_objects.append(collections)
-
-        context['related_objects'] = related_objects
-        # Return the resulting context
-        return context
-        
-
-class TagNoteDetailView(PassimDetails):
-    model = TagNote
-    mForm = None
-    template_name = 'generic_details.html'
-    prefix = "tagn"
-    title = "NoteTagDetails"
+    prefix = "tagkw"
+    title = "KeywordTagDetails"
     rtype = "html"
     mainitems = []
 
@@ -2639,6 +2566,23 @@ class TagNoteDetailView(PassimDetails):
         related_objects = []
 
         # This tag in: sermon.notes
+        summaries = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Summary]'}
+        # Show the list of sermons that contain this tag
+        qs = instance.sermon_summarynotes.all().order_by('code')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.litday})
+                rel_item.append({'value': item.get_bibref()})
+                rel_item.append({'value': item.get_note_display})
+                rel_list.append(rel_item)
+            summaries['rel_list'] = rel_list
+            summaries['columns'] = ['Code', 'Liturgical day', 'Thema', 'Note']
+            related_objects.append(summaries)
+
+        # This tag in: sermon.notes
         sermons = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Notes]'}
         # Show the list of sermons that contain this tag
         qs = instance.sermon_notetags.all().order_by('code')
@@ -2654,6 +2598,24 @@ class TagNoteDetailView(PassimDetails):
             sermons['rel_list'] = rel_list
             sermons['columns'] = ['Code', 'Liturgical day', 'Thema', 'Note']
             related_objects.append(sermons)
+
+        # This tag in: collection.sources
+        sources = {'prefix': 'col', 'title': 'Collections that use this tag in their [Sources]'}
+        # Show the list of collections that contain this tag
+        qs = instance.collection_sourcenotes.all().order_by('idno')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.title})
+                rel_item.append({'value': item.datecomp})
+                rel_item.append({'value': item.get_place()})
+                rel_item.append({'value': item.get_notes_display})
+                rel_list.append(rel_item)
+            sources['rel_list'] = rel_list
+            sources['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Note']
+            related_objects.append(sources)
 
         # This tag in: collection.notes
         collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Notes]'}
@@ -2879,7 +2841,7 @@ class SermonDetailsView(PassimDetails):
             {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
             {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
             {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
-            {'type': 'line',  'label': "Keywords:", 'value': instance.get_keywords_markdown()},
+            {'type': 'line',  'label': "Concepts:", 'value': instance.get_concepts_markdown()},
             ]
 
         context['sections'] = [
@@ -3127,18 +3089,18 @@ class AuthorDetailsView(PassimDetails):
         return context
 
 
-class KeywordDetailsView(PassimDetails):
-    model = Keyword
+class ConceptDetailsView(PassimDetails):
+    model = Concept
     mForm = None
     template_name = 'generic_details.html' 
-    prefix = "kw"
-    title = "KeywordDetails"
+    prefix = "cnc"
+    title = "ConceptDetails"
     rtype = "html"
     mainitems = []
 
     def add_to_context(self, context, instance):
         context['mainitems'] = [
-            {'type': 'plain',  'label': "Keyword:", 'value': instance.name},
+            {'type': 'plain', 'label': "Concept:",  'value': instance.name},
             {'type': 'plain', 'label': "Language:", 'value': instance.get_language_display()}
             ]
         return context
