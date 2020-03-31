@@ -219,8 +219,9 @@ class DbcodeInline(admin.TabularInline):
 class EditionAdminForm(forms.ModelForm):
     class Meta:
         model = Edition
-        fields = ['code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', 'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents',\
-              'othertexts', 'images', 'fulltitle', 'colophon', 'publishers', 'note']
+        fields = ['sermoncollection', 'code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', \
+                 'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents',\
+                 'othertexts', 'images', 'fulltitle', 'colophon', 'publishers', 'note']
         # filter_horizontal = ('publishers',)
         widgets = {
             'datecomment':  forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
