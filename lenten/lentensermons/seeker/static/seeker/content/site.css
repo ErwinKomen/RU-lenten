@@ -890,6 +890,9 @@ table.func-view td {
   vertical-align: top;
   padding: 2px;
 }
+table.no-border-table td {
+    border: none !important;
+}
 table.func-view td.vmiddle {
   vertical-align: middle;
 }

@@ -8,6 +8,7 @@ from django.db.models.functions import Lower
 from django.utils.html import mark_safe
 from django.utils import timezone
 from django.forms.models import model_to_dict
+from django.template.loader import render_to_string
 import pytz
 from django.urls import reverse
 from datetime import datetime
@@ -354,6 +355,41 @@ def import_data_file(sContents, arErr):
         sMsg = errHandle.get_error_message()
         arErr.DoError("import_data_file error:")
         return {}
+
+def tag_combine_html(obj, sParts, sWhole):
+    """a"""
+
+    # Initialisations
+    lHtml = []
+    oErr = ErrHandle()
+
+    try:
+        # Get the id as a string
+        obj_id = str(obj.id)
+        # The whole
+        lHtml.append('<div class="tag-combi tag-combi-whole tag-{} hidden"><button class="btn btn-xs jumbo-1" onclick="ru.lenten.seeker.toggle_tag(this);">Hide</button>{}</div>'.format(obj_id, sWhole))
+        # Start the partial stuff
+        lHtml.append('<div class="tag-combi tag-combi-part tag-{}" >'.format(obj_id))
+        parts = json.loads(sParts)
+        lFound = []
+        for idx, item in enumerate(parts):
+            # Check if this is a focus item
+            if item['type'] == 'tag' and item['tagid'] == obj_id:
+                prev_item = "" if idx == 0 else parts[idx-1]
+                next_item = "" if idx+1 >= len(parts) else parts[idx+1]
+                prev_item = prev_item['value'].strip().replace('\n', ' ').replace('*', '')[-50:]
+                next_item = next_item['value'].strip().replace('\n', ' ').replace('*', '')[:50]
+                this_item = item['value']
+                lFound.append("<tr class='clickable' onclick='ru.lenten.seeker.toggle_tag(this);'><td align='right'>...{}</td><td align='center'><b>{}</b></td><td>{}...</td></tr>".format(prev_item, this_item, next_item ))
+        if len(lFound) > 0:
+            lHtml.append("<table class='no-border-table'>{}</table>".format("\n".join(lFound)))
+        # Finish this off
+        lHtml.append("</div>")
+    except:
+        msg = oErr.get_error_message()
+        oErr.DoError("tag_combine_html")
+        lHtml = [ "error", msg ]
+    return "\n".join(lHtml)
 
 
 
@@ -1546,11 +1582,26 @@ class Sermon(tagtext.models.TagtextModel):
         sBack = ", ".join(lHtml)
         return sBack
 
-    def get_summary_markdown(self):
+    def get_authors(self):
+        """Get the name of the author"""
+
+        sBack = "-"
+        if self.collection:
+            lCombi = []
+            for obj in self.collection.authors.all():
+                lCombi.append(obj.name)
+            sBack = ", ".join(lCombi)
+        return sBack
+
+    def get_summary_markdown(self, obj=None):
         sBack = ""
         if self.summary:
-            sBack = markdown(self.get_summary_display)
-            sBack = sBack.strip()
+            # Retrieve the whole
+            sWhole = markdown(self.get_summary_display).strip()
+            if obj:
+                sWhole = tag_combine_html(obj, self.summary, sWhole)
+            # Combine everything
+            sBack = sWhole
         return sBack
 
 
