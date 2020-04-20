@@ -54,7 +54,7 @@
                     <span class="author-name">{{author.name}}</span>
                   </td>
                   <td style="width: 100%;">
-                    <span class="author-info">{{author.info}}</span>
+                    <span class="author-info">{{author.get_info_markdown|safe}}</span>
                   </td>
 
                   <!-- Short indications for this author-->

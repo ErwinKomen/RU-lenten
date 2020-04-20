@@ -2565,7 +2565,22 @@ class TagKeywordDetailView(PassimDetails):
         # Make sure to show each of the sections in [lst_count] separately
         related_objects = []
 
-        # This tag in: sermon.notes
+        # This tag in: author.info
+        infos = {'prefix': 'auth', 'title': 'Author descriptions that use this tag in their [Information]'}
+        # Show the list of sermons that contain this tag
+        qs = instance.author_infotags.all().order_by('name')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.name, 'title': 'View this author', 'link': reverse('author_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.get_info_display})
+                rel_list.append(rel_item)
+            infos['rel_list'] = rel_list
+            infos['columns'] = ['Name', 'Information']
+            related_objects.append(infos)
+
+        # This tag in: sermon.summaries
         summaries = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Summary]'}
         # Show the list of sermons that contain this tag
         qs = instance.sermon_summarynotes.all().order_by('code')
@@ -3063,8 +3078,8 @@ class AuthorDetailsView(PassimDetails):
 
     def add_to_context(self, context, instance):
         context['mainitems'] = [
-            {'type': 'plain',  'label': "Name:", 'value': instance.name},
-            {'type': 'plain', 'label': "Information:", 'value': instance.info}
+            {'type': 'plain',  'label': "Name:",        'value': instance.name},
+            {'type': 'line',   'label': "Information:", 'value': instance.get_info_markdown()}
             ]
         related_objects = []
 

@@ -1049,13 +1049,21 @@ class Litref(models.Model):
         return adapt_markdown(self.short, lowercase=False)
 
 
-class Author(models.Model):
+class Author(tagtext.models.TagtextModel):
     """We have a set of authors that are the 'golden' standard"""
 
     # [1] Name of the author
     name = models.CharField("Name", max_length=LONG_STRING)
     # [0-1] Information per author and bibliography
     info = models.TextField("Information", blank=True, null=True)
+
+    # --------- MANY-TO-MANY connections ------------------
+    # [0-n] = zero or more notetags in the 'info' field
+    infotags = models.ManyToManyField(TagKeyword, blank=True, related_name="author_infotags")
+
+    mixed_tag_fields = [
+            {"textfield": "info", "m2mfield": "infotags",     "class": TagKeyword, "url": "tagkeyword_details"}
+        ]
 
     def __str__(self):
         return "-" if self == None else  self.name
@@ -1080,6 +1088,13 @@ class Author(models.Model):
         hit = Author.objects.filter(Q(name__iexact=sName)).first()
         # Return what we found
         return hit
+
+    def get_info_markdown(self):
+        sBack = ""
+        if self.info:
+            sBack = markdown(self.get_info_display)
+            sBack = sBack.strip()
+        return sBack
 
 
 class SermonCollection(tagtext.models.TagtextModel):

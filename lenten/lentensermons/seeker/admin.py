@@ -439,13 +439,31 @@ class SermonAdmin(admin.ModelAdmin):
         return sUrl
 
 
+class AuthorAdminForm(forms.ModelForm):
+    class Meta:
+        model = Author
+        fields = ['name', 'info']
+        widgets = {
+            'name':         forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'info':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            }
+
+
 class AuthorAdmin(admin.ModelAdmin):
+    form = AuthorAdminForm
+
     fields = ['name', 'info']
     list_display = ['name', 'info']
     search_fields = ['name', 'info']
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
         }
+
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('author_details', kwargs={'pk': obj.id}))
+        return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
         sUrl = redirect(reverse('author_list'))
