@@ -962,6 +962,22 @@ class TagKeyword(models.Model):
         item = dict(count=count, type="Edition Note tags", url=url, params=params, css=css)
         lst_back.append(item)
 
+        # Counts in: author.notes
+        count = self.author_infotags.all().count()
+        url = reverse("author_list")
+        params = "auth-tagnoteid={}".format(self.id)
+        css ="jumbo-5"
+        item = dict(count=count, type="Author Info tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
+        # Counts in: manuscript.notes
+        count = self.manuscript_infotags.all().count()
+        url = reverse("manuscript_list")
+        params = "manu-tagnoteid={}".format(self.id)
+        css ="jumbo-6"
+        item = dict(count=count, type="Manuscript Info tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
         return lst_back
 
     def get_url_edit(self):
@@ -1336,9 +1352,11 @@ class SermonCollection(tagtext.models.TagtextModel):
         return sBack
 
 
-class Manuscript(models.Model):
+class Manuscript(tagtext.models.TagtextModel):
     """Information on the manuscripts that belong to a sermon collection""" 
 
+    # [1] Name of the manuscript
+    name = models.TextField("Name", default="-")
     # [1] If there are manuscripts there must be information on them
     info = models.TextField("Info on manuscripts", default="-")
     # [0-1] Possibly provide a link to the manuscript online
@@ -1347,6 +1365,14 @@ class Manuscript(models.Model):
     url = models.URLField("URL of this link", blank=True, null=True)
     # [1] Each Manuscript belongs to a collection
     collection = models.ForeignKey(SermonCollection, related_name="manuscripts", on_delete=models.CASCADE)
+
+    # --------- MANY-TO-MANY connections ------------------
+    # [0-n] = zero or more notetags in the 'info' field
+    infotags = models.ManyToManyField(TagKeyword, blank=True, related_name="manuscript_infotags")
+
+    mixed_tag_fields = [
+            {"textfield": "info", "m2mfield": "infotags",     "class": TagKeyword, "url": "tagkeyword_details"}
+        ]
 
     def __str__(self):
         return self.info
@@ -1369,6 +1395,13 @@ class Manuscript(models.Model):
         # Adapt the information in sermoncollection
         self.collection.adapt_manucount()
         return response
+
+    def get_info_markdown(self):
+        sBack = ""
+        if self.info:
+            sBack = markdown(self.get_info_display)
+            sBack = sBack.strip()
+        return sBack
     
 
 class Book(models.Model):

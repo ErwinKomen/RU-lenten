@@ -35,7 +35,7 @@ import csv, re
 from io import StringIO
 
 # My own application
-from basic.views import BasicList, BasicDetails
+from lentensermons.basic.views import BasicList, BasicDetails
 
 # Application specific
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
@@ -43,7 +43,7 @@ from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, ConceptListForm, \
     TagLiturListForm, TagCommListForm, TagQsourceListForm, TagKeywordListForm, PublisherListForm, NewsForm, \
-    LitrefForm
+    LitrefForm, AuthorListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Concept, FieldChoice, Information, \
@@ -2580,6 +2580,22 @@ class TagKeywordDetailView(PassimDetails):
             infos['columns'] = ['Name', 'Information']
             related_objects.append(infos)
 
+        # This tag in: manuscript.info
+        infos = {'prefix': 'manu', 'title': 'Manuscript descriptions that use this tag in their [Information]'}
+        # Show the list of sermons that contain this tag
+        qs = instance.manuscript_infotags.all().order_by('name')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.name, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.get_info_display})
+                rel_item.append({'value': item.link})
+                rel_list.append(rel_item)
+            infos['rel_list'] = rel_list
+            infos['columns'] = ['Name', 'Information', 'Link']
+            related_objects.append(infos)
+
         # This tag in: sermon.summaries
         summaries = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Summary]'}
         # Show the list of sermons that contain this tag
@@ -2988,84 +3004,39 @@ class PublisherDetailsView(PassimDetails):
         return context
 
 
-class AuthorListView(ListView):
+class AuthorListView(BasicList):
     """Listview of authors"""
 
     model = Author
-    paginate_by = 15
-    template_name = 'seeker/author_list.html'
-    entrycount = 0
+    listform = AuthorListForm
+    prefix = "auth"
+    # template_name = 'seeker/author_list.html'
+    admin_editable = True
+    order_cols = ['name', 'info']
+    order_default = order_cols
+    order_heads = [{'name': 'Name',        'order': 'o=1', 'type': 'str', 'custom': 'name', 'default': "-", 'linkdetails': True},
+                   {'name': 'Information', 'order': 'o=2', 'type': 'str', 'custom': 'info',  'main': True}]
+    filters = [ {"name": "Name", "id": "filter_author",     "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'author',   'dbfield': 'name', 'keyS': 'name' }]},
+        {'section': 'other', 'filterlist': [
+            {'filter': 'tagnoteid',     'fkfield': 'infotags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
+            ]}
+        ]
 
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(AuthorListView, self).get_context_data(**kwargs)
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "name":
+            html.append(instance.name)
+        elif custom == "info":
+            html.append(instance.get_info_markdown())
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
-        # Get parameters
-        initial = self.request.GET
-
-        # Determine the count 
-        context['entrycount'] = self.entrycount # self.get_queryset().count()
-
-        # Set the prefix
-        context['app_prefix'] = APP_PREFIX
-
-        # Get parameters for the search
-        initial = self.request.GET
-        # The searchform is just a list form, but filled with the 'initial' parameters
-        # context['searchform'] = LocationForm(initial)
-
-        # Make sure the paginate-values are available
-        context['paginateValues'] = paginateValues
-
-        if 'paginate_by' in initial:
-            context['paginateSize'] = int(initial['paginate_by'])
-        else:
-            context['paginateSize'] = paginateSize
-
-        # Set the title of the application
-        context['title'] = "Authors"
-
-        # Check if user may upload
-        context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
-        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
-
-        # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, "Authors", True)
-        context['prevpage'] = get_previous_page(self.request)
-
-        # Return the calculated context
-        return context
-
-    def get_paginate_by(self, queryset):
-        """
-        Paginate by specified value in default class property value.
-        """
-        return self.paginate_by
-  
-    def get_queryset(self):
-        # Get the parameters passed on with the GET or the POST request
-        get = self.request.GET if self.request.method == "GET" else self.request.POST
-        get = get.copy()
-        self.get = get
-
-        lstQ = []
-
-        # Check for author name
-        if 'name' in get and get['name'] != '':
-            val = adapt_search(get['name'])
-            # Search in the name field
-            lstQ.append(Q(name__iregex=val))
-
-        # Calculate the final qs
-        qs = Author.objects.filter(*lstQ).order_by('name').distinct()
-
-        # Determine the length
-        self.entrycount = len(qs)
-
-        # Return the resulting filtered and sorted queryset
-        return qs
-    
 
 class AuthorDetailsView(PassimDetails):
     model = Author
@@ -3218,7 +3189,8 @@ class ManuscriptDetailsView(PassimDetails):
     def add_to_context(self, context, instance):
         context['mainitems'] = [
             {'type': 'bold',  'label': "Collection:",  'value': instance.collection.title, 'link': reverse('collection_details', kwargs={'pk': instance.collection.id})},
-            {'type': 'plain', 'label': "Information:", 'value': instance.info},
+            {'type': 'plain', 'label': "Manuscript:", 'value': instance.name},
+            {'type': 'line',  'label': "Information:", 'value': instance.get_info_markdown()},
             {'type': 'safe',  'label': "Link name (if available):", 'value': instance.get_link_markdown(), 'link': instance.url},
             {'type': 'safe',  'label': "Author[s] (collection):", 'value': instance.collection.authorbadges()}
             ]

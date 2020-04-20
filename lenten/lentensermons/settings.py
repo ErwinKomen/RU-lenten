@@ -77,7 +77,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Add your apps here to enable them
     'django_select2',
-    'basic',
+    'lentensermons.basic',
     'lentensermons.tagtext',
     'lentensermons.seeker',
 ]

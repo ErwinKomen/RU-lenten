@@ -387,6 +387,28 @@ class LitrefForm(forms.ModelForm):
         self.fields['short'].required = False
 
 
+class AuthorListForm(forms.ModelForm):
+    tagnoteid = forms.CharField(label=_("Note tag"), required = False)
+
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = Author
+        fields = ['name', 'info' ]
+        widgets={'name':    forms.TextInput(attrs={'class': 'searching input-sm', 
+                                                  'placeholder': 'Name of the author...', 'style': 'width: 100%;'}),
+                 'info':    forms.Textarea(attrs={'rows': 1, 'cols': 60, 'class': 'searching input-sm', 
+                                                  'placeholder': 'Additional information...', 'style': 'height: 40px; width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(AuthorListForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['name'].required = False
+        self.fields['info'].required = False
+
+
 class PublisherListForm(forms.ModelForm):
     pbname = forms.CharField(label=_("Publisher"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching publishers input-sm', 'placeholder': 'Publisher...', 'style': 'width: 100%;'}))

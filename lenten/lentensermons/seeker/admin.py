@@ -171,11 +171,27 @@ class NewsItemAdmin(admin.ModelAdmin):
         sUrl = redirect(reverse('newsitem_list'))
         return sUrl
 
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('newsitem_list'))
+        return sUrl
+
+
+class ManuscriptAdminForm(forms.ModelForm):
+    class Meta:
+        model = Manuscript
+        fields = ['name', 'info', 'link']
+        widgets = {
+            'name': forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'info': TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            }
+
 
 class ManuscriptAdmin(admin.ModelAdmin):
     """Define a Manuscript"""
 
-    list_display = ['info', 'link']
+    form = ManuscriptAdminForm
+
+    list_display = ['name', 'info', 'link']
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
@@ -187,6 +203,10 @@ class ManuscriptAdmin(admin.ModelAdmin):
         return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('manuscript_list'))
+        return sUrl
+
+    def response_delete(self, request, obj_display, obj_id):
         sUrl = redirect(reverse('manuscript_list'))
         return sUrl
 
@@ -258,6 +278,10 @@ class EditionAdmin(admin.ModelAdmin):
         sUrl = redirect(reverse('edition_list'))
         return sUrl
 
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('edition_list'))
+        return sUrl
+
 
 class EditionInline(admin.StackedInline):
     model = Edition
@@ -302,6 +326,10 @@ class DbcodeAdmin(admin.ModelAdmin):
     def response_add(self, request, obj, post_url_continue = None):
         # Return to the Edition details view of the correct one
         sUrl = redirect(reverse('edition_details', kwargs={'pk': obj.edition.id}))
+        return sUrl
+
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('edition_list'))
         return sUrl
 
 
@@ -355,6 +383,10 @@ class SermonCollectionAdmin(admin.ModelAdmin):
         return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('collection_list'))
+        return sUrl
+
+    def response_delete(self, request, obj_display, obj_id):
         sUrl = redirect(reverse('collection_list'))
         return sUrl
 
@@ -438,6 +470,10 @@ class SermonAdmin(admin.ModelAdmin):
         sUrl = redirect(reverse('sermon_list'))
         return sUrl
 
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('sermon_list'))
+        return sUrl
+
 
 class AuthorAdminForm(forms.ModelForm):
     class Meta:
@@ -466,6 +502,10 @@ class AuthorAdmin(admin.ModelAdmin):
         return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('author_list'))
+        return sUrl
+
+    def response_delete(self, request, obj_display, obj_id):
         sUrl = redirect(reverse('author_list'))
         return sUrl
 

@@ -564,7 +564,17 @@ form .panel-heading.row {
   color: lavender;
   fill: #ff2400;
 }
-.jumbo-2 text, .jumbo-3 text, .jumbo-4 text {
+.jumbo-5 {
+  background-color: purple;
+  color: lavender;
+  fill: purple;
+}
+.jumbo-6 {
+  background-color: slateblue;
+  color: lavender;
+  fill: slateblue;
+}
+.jumbo-2 text, .jumbo-3 text, .jumbo-4 text, .jumbo-5 text, .jumbo-6 text {
   fill: lavender;
 }
 
