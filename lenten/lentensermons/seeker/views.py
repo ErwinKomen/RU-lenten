@@ -43,7 +43,7 @@ from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, ConceptListForm, \
     TagLiturListForm, TagCommListForm, TagKeywordListForm, PublisherListForm, NewsForm, \
-    LitrefForm, AuthorListForm, TgroupForm  # , TagQsourceListForm
+    LitrefForm, AuthorListForm, TgroupForm, ManuscriptForm  # , TagQsourceListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Concept, FieldChoice, Information, \
@@ -3242,90 +3242,68 @@ class ConceptDetailsView(PassimDetails):
         return context
 
 
-class ManuscriptListView(ListView):
+class ManuscriptListView(BasicList):
     """Listview of manuscripts"""
 
     model = Manuscript
-    paginate_by = 15
-    template_name = 'seeker/manuscript_list.html'
-    entrycount = 0
+    listform = ManuscriptForm
+    prefix = "manu"
+    admin_editable = True
+    basic_add = "manuscript_add"
+    has_select2 = True
+    order_cols = ['collection__authors__name', 'collection__title', 'name', '']
+    order_default = order_cols
+    order_heads = [{'name': 'Author',       'order': 'o=1', 'type': 'str', 'custom': 'author'},
+                   {'name': 'Collection',   'order': 'o=2', 'type': 'str', 'custom': 'collection'},
+                   {'name': 'Name',         'order': 'o=3', 'type': 'str', 'custom': 'name',       'linkdetails': True,  'main': True},
+                   {'name': 'Notes?',       'order': '',    'type': 'str', 'custom': 'notes'}]
+    filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
+                {"name": "Name",        "id": "filter_name",        "enabled": False},
+                {"name": "Link",        "id": "filter_link",        "enabled": False},
+                {"name": "Information", "id": "filter_info",        "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'name' },
+            {'filter': 'link',      'dbfield': 'link',      'keyS': 'link' },
+            {'filter': 'info',      'dbfield': 'info',      'keyS': 'info' }]},
+        {'section': 'other', 'filterlist': [
+            {'filter': 'tagnoteid', 'fkfield': 'infotags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
+            ]}
+        ]
 
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(ManuscriptListView, self).get_context_data(**kwargs)
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "collection":
+            url = reverse("collection_details", kwargs={'pk': instance.collection.id})
+            html.append("<span><a class='nostyle' href='{}'>{}</a></span>".format(url, instance.collection.title))
+            sTitle = "View the sermon collection"
+        elif custom == "author":
+            # Get the name of the first author
+            authors = instance.collection.authors.all()
+            if authors.count() == 0:
+                html.append("(none)")
+            else:
+                url = reverse("author_details", kwargs={'pk': authors.first().id})
+                html.append("<span><a class='nostyle' href='{}'>{}</a></span>".format(url, authors.first().name))
+                sTitle = "View the author details"
+        elif custom == "name":
+            sName = instance.name[:80]
+            if len(instance.name) > 80:
+                sName = "{}...".format(sName)
+            html.append(sName)
+            sTitle = instance.name
+        elif custom == "info":
+            html.append(instance.get_info_markdown())
+        elif custom == "notes":
+            if instance.info and instance.info != "":
+                html.append("*")
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
-        # Get parameters
-        initial = self.request.GET
-
-        # Determine the count 
-        context['entrycount'] = self.entrycount # self.get_queryset().count()
-
-        # Set the prefix
-        context['app_prefix'] = APP_PREFIX
-
-        # Get parameters for the search
-        initial = self.request.GET
-        # The searchform is just a list form, but filled with the 'initial' parameters
-        # context['searchform'] = LocationForm(initial)
-
-        # Make sure the paginate-values are available
-        context['paginateValues'] = paginateValues
-
-        if 'paginate_by' in initial:
-            context['paginateSize'] = int(initial['paginate_by'])
-        else:
-            context['paginateSize'] = paginateSize
-
-        # Set the title of the application
-        context['title'] = "Manuscripts"
-
-        # Check if user may upload
-        context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
-        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
-
-        # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, "Manuscripts", True)
-        context['prevpage'] = get_previous_page(self.request)
-
-        # Return the calculated context
-        return context
-
-    def get_paginate_by(self, queryset):
-        """
-        Paginate by specified value in default class property value.
-        """
-        return self.paginate_by
-  
-    def get_queryset(self):
-        # Get the parameters passed on with the GET or the POST request
-        get = self.request.GET if self.request.method == "GET" else self.request.POST
-        get = get.copy()
-        self.get = get
-
-        lstQ = []
-
-        # Check for manuscript information
-        if 'info' in get and get['info'] != '':
-            val = adapt_search(get['info'])
-            # Search in the info field
-            lstQ.append(Q(info__iregex=val))
-
-        # Check for the link in the manuscript
-        if 'link' in get and get['link'] != '':
-            val = adapt_search(get['link'])
-            # Search in the link field
-            lstQ.append(Q(link__iregex=val))
-
-        # Calculate the final qs
-        qs = Manuscript.objects.filter(*lstQ).order_by('collection__idno').distinct()
-
-        # Determine the length
-        self.entrycount = len(qs)
-
-        # Return the resulting filtered and sorted queryset
-        return qs
-    
 
 class ManuscriptDetailsView(PassimDetails):
     model = Manuscript

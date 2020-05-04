@@ -179,9 +179,13 @@ class NewsItemAdmin(admin.ModelAdmin):
 class ManuscriptAdminForm(forms.ModelForm):
     class Meta:
         model = Manuscript
-        fields = ['name', 'info', 'link']
+        fields = ['name', 'info', 'link', 'url', 'collection']
         widgets = {
             'name': forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'link': forms.TextInput(attrs={'class': 'searching input-sm', 
+                                                  'placeholder': 'Label for the link to the manuscript...', 'style': 'width: 100%;'}),
+            'url': forms.URLInput(attrs={'class': 'searching input-sm', 
+                                                  'placeholder': 'URL to the manuscript (optional)...', 'style': 'width: 100%;'}),
             'info': TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
 
@@ -191,7 +195,7 @@ class ManuscriptAdmin(admin.ModelAdmin):
 
     form = ManuscriptAdminForm
 
-    list_display = ['name', 'info', 'link']
+    list_display = ['name', 'info', 'link', 'collection']
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }

@@ -1232,6 +1232,10 @@ class SermonCollection(tagtext.models.TagtextModel):
             {"textfield": "notes",          "m2mfield": "notetags",         "class": TagKeyword,      "url": "tagkeyword_details"}
         ]
 
+    def __str__(self):
+        sBack = "{} {}".format(self.idno, self.title)
+        return sBack
+
     def tagtext_url(self):
         url = reverse('api_tributes')
         return url

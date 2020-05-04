@@ -416,6 +416,42 @@ class AuthorListForm(forms.ModelForm):
         self.fields['info'].required = False
 
 
+class ManuscriptForm(forms.ModelForm):
+    """Viewing and processing a manuscript"""
+
+    collname = forms.CharField(label=_("Collection"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
+    collectionlist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=CollectionWidget(attrs={'data-placeholder': 'Select multiple collections...', 'style': 'width: 100%;', 'class': 'searching'}))
+    tagnoteid = forms.CharField(label=_("Keyword tag"), required = False)
+
+    class Meta:
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        model = Manuscript
+        fields = ['name', 'info', 'link', 'collection', 'url' ]
+        widgets={'name':    forms.TextInput(attrs={'class': 'searching input-sm', 
+                                                  'placeholder': 'Name of the manuscript...', 'style': 'width: 100%;'}),
+                 'link':    forms.TextInput(attrs={'class': 'searching input-sm', 
+                                                  'placeholder': 'Label for a link to the manuscript...', 'style': 'width: 100%;'}),
+                 'url':     forms.URLInput(attrs={'class': 'searching input-sm', 
+                                                  'placeholder': 'URL to the manuscript (optional)...', 'style': 'width: 100%;'}),
+                 'info':    forms.Textarea(attrs={'rows': 1, 'cols': 60, 'class': 'searching input-sm', 
+                                                  'placeholder': 'Additional information...', 'style': 'height: 40px; width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(ManuscriptForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['name'].required = False
+        self.fields['link'].required = False
+        self.fields['url'].required = False
+        self.fields['info'].required = False
+        self.fields['collection'].required = False
+        self.fields['collectionlist'].queryset = SermonCollection.objects.all().order_by('title')
+
+
 class PublisherListForm(forms.ModelForm):
     pbname = forms.CharField(label=_("Publisher"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching publishers input-sm', 'placeholder': 'Publisher...', 'style': 'width: 100%;'}))
