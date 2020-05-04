@@ -804,12 +804,10 @@ var ru = (function ($, ru) {
               }
               // Create the option to be passed on
               options["templateSelection"] = template_fn;
-              options["templateResult"] = template_fn;
-              // options["templateSelection"] = template_sel;
               // Remove previous .select2
-              $(el).find(".select2").remove();
+              $(el).parent().find(".select2").remove();
               // Now make it happen
-              $(el).find(".django-select2").djangoSelect2(options);
+              $(el).parent().find(".django-select2").djangoSelect2(options);
             }
           });
 
@@ -827,6 +825,15 @@ var ru = (function ($, ru) {
 
           // Set handling of unique-field
           $("td.unique-field input").unbind("change").change(ru.basic.unique_change);
+
+          // Look for <select> or <input> with [tdstyle]
+          $("select[tdstyle], input[tdstyle]").each(function (idx, el) {
+            var td = $(el).closest("td");
+
+            if (! $(td)[0].hasAttribute("style")) {
+              $(td).attr("style", $(el).attr("tdstyle"));
+            }
+          });
 
           // First destroy them
           $(".typeahead.keywords").typeahead('destroy');

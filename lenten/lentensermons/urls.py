@@ -55,7 +55,6 @@ urlpatterns = [
     url(r'^sermon/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='sermon_details'),
 
     url(r'^collection/list',  CollectionListView.as_view(), name='collection_list'),
-    # url(r'^collection/list',  CollectionList.as_view(), name='collection_list'),
     url(r'^collection/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermoncollection/add'), name='collection_add'),
     url(r'^collection/view(?:/(?P<pk>\d+))?/$', CollectionDetailsView.as_view(), name='collection_details'),
 
@@ -71,12 +70,20 @@ urlpatterns = [
     url(r'^concept/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/concept/add'), name='concept_add'),
     url(r'^concept/view(?:/(?P<pk>\d+))?/$', ConceptDetailsView.as_view(), name='concept_details'),
 
+    url(r'^tag/group/list',  TgroupListView.as_view(), name='tgroup_list'),
+    url(r'^tag/group/edit(?:/(?P<pk>\d+))?/$', TgroupEdit.as_view(), name='tgroup_edit'),
+    url(r'^tag/group/view(?:/(?P<pk>\d+))?/$', TgroupDetails.as_view(), name='tgroup_details'),
+
     url(r'^tag/liturgical/list',  TagLiturListView.as_view(), name='tagliturgical_list'),
     url(r'^tag/communicative/list',  TagCommListView.as_view(), name='tagcommunicative_list'),
     url(r'^tag/keyword/list',  TagKeywordListView.as_view(), name='tagkeyword_list'),
 
-    url(r'^tag/liturgical/view(?:/(?P<pk>\d+))?/$', TagLiturDetailView.as_view(), name='taglitu_details'),
-    url(r'^tag/communicative/view(?:/(?P<pk>\d+))?/$', TagCommDetailView.as_view(), name='tagcomm_details'),
+    url(r'^tag/liturgical/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/tagliturgical/add'), name='taglitu_add'),
+    url(r'^tag/communicative/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/tagcommunicative/add'), name='tagcomm_add'),
+    url(r'^tag/keyword/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/tagkeyword/add'), name='tagkeyw_add'),
+
+    url(r'^tag/liturgical/view(?:/(?P<pk>\d+))?/$', TagLiturDetailView.as_view(), name='tagliturgical_details'),
+    url(r'^tag/communicative/view(?:/(?P<pk>\d+))?/$', TagCommDetailView.as_view(), name='tagcommunicative_details'),
     url(r'^tag/keyword/view(?:/(?P<pk>\d+))?/$', TagKeywordDetailView.as_view(), name='tagkeyword_details'),
 
     url(r'^publisher/list',  PublisherListView.as_view(), name='publisher_list'),

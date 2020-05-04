@@ -42,13 +42,13 @@ from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, ConceptListForm, \
-    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagKeywordListForm, PublisherListForm, NewsForm, \
-    LitrefForm, AuthorListForm
+    TagLiturListForm, TagCommListForm, TagKeywordListForm, PublisherListForm, NewsForm, \
+    LitrefForm, AuthorListForm, TgroupForm  # , TagQsourceListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Concept, FieldChoice, Information, \
-    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagKeyword, TagQsource, \
-    Publisher, Consulting, Litref
+    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagKeyword,  \
+    Publisher, Consulting, Litref, Tgroup   # , TagQsource
 
 # Some constants that can be used
 paginateSize = 20
@@ -912,8 +912,8 @@ def get_tributes(request):
                     clsThis = TagCommunicative
                 elif sTclass == "liturgical":
                     clsThis = TagLiturgical
-                elif sTclass == "qsource":
-                    clsThis = TagQsource
+                #elif sTclass == "qsource":
+                #    clsThis = TagQsource
                 elif sTclass == "notes":
                     clsThis = TagKeyword
                 if clsThis != None:
@@ -2300,11 +2300,11 @@ class CollectionListView(BasicListView):
             if SermonCollection.do_manu_count():
                 Information.set_kvalue("manucount", "done")
 
-        # Check if processing of tags has been done
-        if Information.get_kvalue("tagqsource") == "":
-            # Calculate
-            if SermonCollection.do_qsources():
-                Information.set_kvalue("tagqsource", "done")
+        ## Check if processing of tags has been done
+        #if Information.get_kvalue("tagqsource") == "":
+        #    # Calculate
+        #    if SermonCollection.do_qsources():
+        #        Information.set_kvalue("tagqsource", "done")
 
 
         return context
@@ -2392,32 +2392,125 @@ class PublisherListView(BasicListView):
         ]
 
 
-class TagListView(BasicListView):
+class TgroupListView(BasicList):
+    """Listview of tgroups"""
+
+    model = Tgroup
+    listform = TgroupForm
+    prefix = "tgr"
+    basic_name = "tgroup"
+    plural_name = "Tag groups"
+    sg_name = "Tag group"
+    order_default = ['name', '']
+    order_cols = order_default
+    order_heads = [{'name': 'Name',          'order': 'o=1', 'type': 'str', 'field': 'name', 'main': True, 'linkdetails': True},
+                   {'name': 'Counts',        'order': '',    'type': 'str', 'custom': 'counts'}]
+    filters = [{"name": "Name",          "id": "filter_name",            "enabled": False}]
+    searches = [
+       {'section': '', 'filterlist': [
+            {'filter': 'name',   'dbfield': 'name',       'keyS': 'name'}
+            ]},
+        ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        # FIgure out what to return
+        if custom == "counts":
+            # Get the number of tgroups for each of the tag types
+            iLitu = instance.tgroupslitu.all().count()
+            iComm = instance.tgroupscomm.all().count()
+            iKeyw = instance.tgroupskeyw.all().count()
+            if iLitu > 0:
+                url = "{}?tagl-tgrlist={}".format(reverse('tagliturgical_list'), instance.id)
+                html.append("<span class='badge' title='liturgical tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iLitu))
+            if iComm > 0:
+                url = "{}?tagc-tgrlist={}".format(reverse('tagcommunicative_list'), instance.id)
+                html.append("<span class='badge' title='communicative tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iComm))
+            if iKeyw > 0:
+                url = "{}?tagk-tgrlist={}".format(reverse('tagkeyword_list'), instance.id)
+                html.append("<span class='badge' title='keyword tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iKeyw))
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+
+class TgroupEdit(BasicDetails):
+    model = Tgroup
+    mForm = TgroupForm
+    prefix = "tgr"
+    titlesg = "Tag group"
+    title = "Tgroup Edit"
+    mainitems = []
+    
+    def add_to_context(self, context, instance):
+        """Add to the existing context"""
+
+        # Define the main items to show and edit
+        context['mainitems'] = [
+            {'type': 'safe', 'label': "Name:", 'value': instance.name, 'field_key': 'name'}
+            ]
+        # Return the context we have made
+        return context
+
+
+class TgroupDetails(TgroupEdit):
+    rtype = "html"
+
+
+class TagListView(BasicList):
     """Listview of tags"""
 
     model = None
     listform = None
     prefix = ""
     urldef = ""
-    plain_name = ""
-    plain_plural = ""
-    template_name = 'seeker/tag_list.html'
-    entrycount = 0
-    order_default = ['name', 'number']
-    order_cols = ['name', 'number']
-    order_heads = [{'name': 'Tag', 'order': 'o=1', 'type': 'str'},
-                   {'name': 'Usage', 'order': '', 'type': 'str'}]
-    filters = [ {"name": "Tag",     "id": "filter_name",    "enabled": False}]
+    basic_name = ""
+    plural_name = ""
+    sg_name = ""
+    has_select2 = True
+    order_default = ['tgroup', 'name', '']
+    order_cols = ['tgroup', 'name', '']
+    order_heads = [{'name': 'Group',    'order': 'o=1', 'type': 'str', 'custom': 'group', 'linkdetails': True},
+                   {'name': 'Tag',      'order': 'o=2', 'type': 'str', 'field':  'name',  'linkdetails': True, 'main': True},
+                   {'name': 'Usage',    'order': '',    'type': 'str', 'custom': 'usage'}]
+    filters = [ {"name": "Tag",     "id": "filter_name",    "enabled": False},
+                {"name": "Group",   "id": "filter_tgroup",  "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'name',      'dbfield': 'name',      'keyS': 'tagname',   'keyList': 'taglist', 'infield': 'name'} ] }
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'tagname',   'keyList': 'taglist', 'infield': 'name'},
+            {'filter': 'tgroup',    'fkfield': 'tgroup',    'keyFk': 'name',     'keyList': 'tgrlist', 'infield': 'id'} ] }
         ]
 
-    def add_to_context(self, context, initial):
-        # We need to have the URL to this particular view
-        context['listview'] = reverse(self.urldef)
-        context['plain_name'] = self.plain_name
-        return context
+    def initializations(self):
+        if self.prefix == "tagl":
+            self.basic_add = 'taglitu_add'
+        elif self.prefix == "tagc":
+            self.basic_add = 'tagcomm_add'
+        elif self.prefix == "tagkw":
+            self.basic_add = 'tagkeyw_add'
+        return None
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        # FIgure out what to return
+        if custom == "usage":
+            # Get the number of times each tag is used
+            for tagitem in instance.get_list():
+                if tagitem['count'] > 0:
+                    url = "{}?{}".format(tagitem['params'], tagitem['count'])
+                    html.append("<span class='badge {}' title='{}'><a ref='{}'>{}</a></span>".format(
+                        tagitem['css'], tagitem['type'], url, tagitem['count']))
+        elif custom == "group":
+            # Show the group
+            html.append(instance.tgroup.name)
+
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
 
 class TagLiturListView(TagListView):
@@ -2425,9 +2518,10 @@ class TagLiturListView(TagListView):
     listform = TagLiturListForm
     prefix = "tagl"
     urldef = "tagliturgical_list"
-    plain_name = "liturgical tag"
-    plain_plural = "Liturgical tags"
-    plural_name = plain_plural
+
+    basic_name = "tagliturgical"
+    plural_name = "Liturgical tags"
+    sg_name = "Liturgical tag"
 
 
 class TagCommListView(TagListView):
@@ -2435,9 +2529,10 @@ class TagCommListView(TagListView):
     listform = TagCommListForm
     prefix = "tagc"
     urldef = "tagcommunicative_list"
-    plain_name = "communicative tag"
-    plain_plural = "Communicative tags"
-    plural_name = plain_plural
+
+    basic_name = "tagcommunicative"
+    plural_name = "Communicative tags"
+    sg_name = "Communicative tag"
 
 
 class TagKeywordListView(TagListView):
@@ -2445,9 +2540,56 @@ class TagKeywordListView(TagListView):
     listform = TagKeywordListForm
     prefix = "tagkw"
     urldef = "tagkeyword_list"
-    plain_name = "keyword tag"
-    plain_plural = "Keyword tags"
-    plural_name = plain_plural
+
+    basic_name = "tagkeyword"
+    plural_name = "Keyword tags"
+    sg_name = "Keyword tag"
+
+
+class TagLiturDetailView_New(BasicDetails):
+    model = TagLiturgical
+    mForm = None
+    prefix = "tagl"
+    title = "LiturgicalTagDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        # The main item of the view is the name of the tag itself
+        context['mainitems'] = [
+            {'type': 'bold',  'label': "Tag",   'value': instance.name, 'link': ""},
+            {'type': 'bold',  'label': "Group", 'value': instance.name, 'link': ""}
+            ]
+        # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
+        lst_count = instance.get_list()
+        for oCount in lst_count:
+            oItem = dict(type='plain', label=oCount['type'], value=oCount['count'], align='right')
+            context['mainitems'].append(oItem)
+
+        # Make sure to show each of the sections in [lst_count] separately
+        related_objects = []
+
+        # This tag in: collection.communicative
+        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their relastionship with [Liturgical] texts'}
+        # Show the list of collections that contain this tag
+        qs = instance.collection_liturtags.all().order_by('idno')
+        if qs.count() > 0:
+            rel_list =[]
+            for item in qs:
+                rel_item = []
+                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.title})
+                rel_item.append({'value': item.datecomp})
+                rel_item.append({'value': item.get_place()})
+                rel_item.append({'value': item.get_liturgical_display})
+                rel_list.append(rel_item)
+            collections['rel_list'] = rel_list
+            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Liturgical']
+            related_objects.append(collections)
+
+        context['related_objects'] = related_objects
+        # Return the resulting context
+        return context    
 
 
 class TagLiturDetailView(PassimDetails):
@@ -2462,7 +2604,8 @@ class TagLiturDetailView(PassimDetails):
     def add_to_context(self, context, instance):
         # The main item of the view is the name of the tag itself
         context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""}
+            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""},
+            {'type': 'plain',  'label': "Group", 'value': instance.tgroup.name, 'link': ""}
             ]
         # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
         lst_count = instance.get_list()
@@ -2508,7 +2651,8 @@ class TagCommDetailView(PassimDetails):
     def add_to_context(self, context, instance):
         # The main item of the view is the name of the tag itself
         context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""}
+            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""},
+            {'type': 'plain',  'label': "Group", 'value': instance.tgroup.name, 'link': ""}
             ]
         # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
         lst_count = instance.get_list()
@@ -2554,7 +2698,8 @@ class TagKeywordDetailView(PassimDetails):
     def add_to_context(self, context, instance):
         # The main item of the view is the name of the tag itself
         context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""}
+            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""},
+            {'type': 'plain',  'label': "Group", 'value': instance.tgroup.name, 'link': ""}
             ]
         # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
         lst_count = instance.get_list()

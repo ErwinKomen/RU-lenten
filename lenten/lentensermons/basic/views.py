@@ -4,7 +4,8 @@ Definition of views for the BASIC app.
 
 from django.apps import apps
 from django.contrib.auth.models import User, Group
-from django.core.urlresolvers import reverse
+# from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.db.models import Q, Prefetch, Count, F
@@ -419,7 +420,6 @@ class BasicList(ListView):
     list_fields = []
     uploads = []
     delete_line = False
-    admin_editable = False
     none_on_empty = False
     use_team_group = False
     lst_typeaheads = []
@@ -498,12 +498,7 @@ class BasicList(ListView):
         if self.basic_add:
             basic_add = reverse(self.basic_add)
         else:
-            if not self.admin_editable:
-                # This would normally be the case
-                basic_add = reverse("{}_details".format(self.basic_name))
-            else:
-                # But this is the case for LENTEN: since it uses the Admin interface
-                basic_add = reverse("{}_add".format(self.basic_name))
+            basic_add = reverse("{}_details".format(self.basic_name))
         context['basic_add'] = basic_add
         context['basic_list'] = reverse("{}_list".format(self.basic_name))
         context['basic_edit'] = self.basic_edit if self.basic_edit != "" else "{}_edit".format(self.basic_name)
@@ -542,10 +537,6 @@ class BasicList(ListView):
         # Delete button per line?
         if self.delete_line:
             context['delete_line'] = True
-
-        # This line editable for the admin view?
-        if self.admin_editable:
-            context['admin_editable'] = True
 
         # Make sure we pass on the ordered heads
         context['order_heads'] = self.order_heads
@@ -676,14 +667,6 @@ class BasicList(ListView):
                 fields.append(fobj)
             # Make the list of field-values available
             result['fields'] = fields
-            # Calculate the admindetails information
-            classname = obj._meta.model_name
-            admindetails = "admin:seeker_{}_change".format(classname)
-            try:
-                result['admindetails'] = reverse(admindetails, args=[obj.id])
-            except:
-                pass
-
             # Add to the list of results
             result_list.append(result)
         return result_list
@@ -771,7 +754,7 @@ class BasicList(ListView):
                     for item in lstQ[1:]:
                         filter = filter & item
                     if qAlternative:
-                        filter = ( filter ) | qAlternative
+                        filter = ( filter ) | ( ( qAlternative ) & filter )
 
                     # Check if excluding is needed
                     if lstExclude:
@@ -789,7 +772,6 @@ class BasicList(ListView):
             elif not self.none_on_empty:
                 # Just show everything
                 qs = self.model.objects.all().distinct()
-
 
 
             # Do the ordering of the results
@@ -836,6 +818,7 @@ class BasicDetails(DetailView):
     new_button = False
     do_not_save = False
     newRedirect = False     # Redirect the page name to a correct one after creating
+    use_team_group = False
     redirectpage = ""       # Where to redirect to
     add = False             # Are we adding a new record or editing an existing one?
     is_basic = True         # Is this a basic details/edit view?
@@ -1198,7 +1181,9 @@ class BasicDetails(DetailView):
         if frm and 'mainitems' in context:
             for mobj in context['mainitems']:
                 # Check for possible form field information
-                if 'field_key' in mobj: mobj['field_key'] = frm[mobj['field_key']]
+                if 'field_key' in mobj: 
+                    mobj['field_abbr'] = "{}-{}".format(frm.prefix, mobj['field_key'])
+                    mobj['field_key'] = frm[mobj['field_key']]
                 if 'field_view' in mobj: mobj['field_view'] = frm[mobj['field_view']]
                 if 'field_ta' in mobj: mobj['field_ta'] = frm[mobj['field_ta']]
                 if 'field_list' in mobj: mobj['field_list'] = frm[mobj['field_list']]
@@ -1222,6 +1207,9 @@ class BasicDetails(DetailView):
         bNew = False
         mForm = self.mForm
         oErr = ErrHandle()
+        username=self.request.user.username
+        team_group=app_editor
+
 
         # Determine the prefix
         if self.prefix_type == "":
@@ -1275,15 +1263,24 @@ class BasicDetails(DetailView):
             # Do we have an existing object or are we creating?
             if instance == None:
                 # Saving a new item
-                frm = mForm(initial, prefix=prefix)
+                if self.use_team_group:
+                    frm = mForm(initial, prefix=prefix, username=username, team_group=team_group)
+                else:
+                    frm = mForm(initial, prefix=prefix)
                 bNew = True
                 self.add = True
             elif len(initial) == 0:
                 # Create a completely new form, on the basis of the [instance] only
-                frm = mForm(prefix=prefix, instance=instance)
+                if self.use_team_group:
+                    frm = mForm(prefix=prefix, instance=instance, username=username, team_group=team_group)
+                else:
+                    frm = mForm(prefix=prefix, instance=instance)
             else:
                 # Editing an existing one
-                frm = mForm(initial, prefix=prefix, instance=instance)
+                if self.use_team_group:
+                    frm = mForm(initial, prefix=prefix, instance=instance, username=username, team_group=team_group)
+                else:
+                    frm = mForm(initial, prefix=prefix, instance=instance)
             # Both cases: validation and saving
             if frm.is_valid():
                 # The form is valid - do a preliminary saving
@@ -1333,10 +1330,16 @@ class BasicDetails(DetailView):
             # Check if this is asking for a new form
             if instance == None:
                 # Get the form for the sermon
-                frm = mForm(prefix=prefix)
+                if self.use_team_group:
+                    frm = mForm(prefix=prefix, username=username, team_group=team_group)
+                else:
+                    frm = mForm(prefix=prefix)
             else:
                 # Get the form for the sermon
-                frm = mForm(instance=instance, prefix=prefix)
+                if self.use_team_group:
+                    frm = mForm(instance=instance, prefix=prefix, username=username, team_group=team_group)
+                else:
+                    frm = mForm(instance=instance, prefix=prefix)
             if frm.is_valid():
                 iOkay = 1
             # Walk all the form objects

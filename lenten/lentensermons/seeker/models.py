@@ -863,17 +863,58 @@ class LocationRelation(models.Model):
 
 # ============================= Different TAG related CLASSES =====================================
 
+class Tgroup(models.Model):
+    """Tags can be part of a group"""
+
+    # [1] A group obligatorily has a name
+    name = models.CharField("Name", max_length=LONG_STRING)
+
+    class Meta:
+        verbose_name = "Tag group"
+        verbose_name_plural = "Tag groups"
+
+    def __str__(self):
+        return "-" if self == None else  self.name
+
+    def get_url_edit(self):
+        url = reverse('admin:seeker_tgroup_change', args=[self.id])
+        return url
+
+    def get_url_view(self):
+        url = reverse('tgroup_details', kwargs={'pk': self.id})
+        return url
+
+    def get_default():
+        """The default Tgroup must be [general]"""
+
+        obj = Tgroup.objects.filter(name="general").first()
+        if obj == None:
+            obj = Tgroup(name="general")
+            obj.save()
+        return obj
+
+
 class TagLiturgical(models.Model):
     """The field 'liturgical' can have [0-n] tag words associated with it"""
 
-    # [1]
+    # [1] Any tag has a name
     name = models.CharField("Name", max_length=LONG_STRING)
+    # [1] Each tag must be part of a group
+    tgroup = models.ForeignKey(Tgroup, on_delete=models.CASCADE, related_name="tgroupslitu")
 
     class Meta:
         verbose_name_plural = "Liturgical Tags"
 
     def __str__(self):
         return "-" if self == None else  self.name
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.tgroup_id:
+            # Get the default tgroup
+            tgroup = Tgroup.get_default()
+            self.tgroup = tgroup
+        super(TagLiturgical, self).save(*args, **kwargs)
+        return None
 
     def get_list(self):
         """Get a list of type/count items"""
@@ -901,14 +942,24 @@ class TagLiturgical(models.Model):
 class TagCommunicative(models.Model):
     """The field 'communicative' can have [0-n] tag words associated with it"""
 
-    # [1]
+    # [1] Any tag has a name
     name = models.CharField("Name", max_length=LONG_STRING)
+    # [1] Each tag must be part of a group
+    tgroup = models.ForeignKey(Tgroup, on_delete=models.CASCADE, related_name="tgroupscomm")
 
     class Meta:
         verbose_name_plural = "Communicative Tags"
 
     def __str__(self):
         return "-" if self == None else  self.name
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.tgroup_id:
+            # Get the default tgroup
+            tgroup = Tgroup.get_default()
+            self.tgroup = tgroup
+        super(TagCommunicative, self).save(*args, **kwargs)
+        return None
 
     def get_list(self):
         """Get a list of type/count items"""
@@ -936,14 +987,24 @@ class TagCommunicative(models.Model):
 class TagKeyword(models.Model):
     """The field 'notes' can have [0-n] tag words associated with it"""
 
-    # [1]
+    # [1] Any tag has a name
     name = models.CharField("Name", max_length=LONG_STRING)
+    # [1] Each tag must be part of a group
+    tgroup = models.ForeignKey(Tgroup, on_delete=models.CASCADE, related_name="tgroupskeyw")
 
     class Meta:
         verbose_name_plural = "Keyword Tags"
 
     def __str__(self):
         return "-" if self == None else self.name
+
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.tgroup_id:
+            # Get the default tgroup
+            tgroup = Tgroup.get_default()
+            self.tgroup = tgroup
+        super(TagKeyword, self).save(*args, **kwargs)
+        return None
 
     def get_list(self):
         """Get a list of type/count items"""
@@ -1033,48 +1094,6 @@ class TagKeyword(models.Model):
             obj = TagKeyword.objects.create(name=sName)
         return obj
 
-
-class TagQsource(models.Model):
-    """The field 'quoted source' can have [0-n] tag words associated with it"""
-
-    # [1]
-    name = models.CharField("Name", max_length=LONG_STRING)
-
-    class Meta:
-        verbose_name_plural = "Quoted Source Tags"
-
-    def __str__(self):
-        return "-" if self == None else  self.name
-
-    def get_list(self):
-        """Get a list of type/count items"""
-
-        lst_back = []
-        # Counts in: collection sources
-        count = self.collection_sources.all().count()
-        url = reverse("collection_list")
-        params = "coll-tagqsrcid={}".format(self.id)
-        css ="jumbo-1"
-        item = dict(count=count, type="Collection quoted-source tags", url=url, params=params, css=css)
-        lst_back.append(item)
-
-        # Counts in: sermon summaries
-        url = reverse("sermon_list")
-        css ="jumbo-2"
-        params = "sermo-tagqsrcid={}".format(self.id)
-        count = self.sermon_summarytags.all().count()
-        item = dict(count=count, type="Sermon Summary quoted-source tags", url=url, params=params, css=css)
-        lst_back.append(item)
-
-        return lst_back
-
-    def get_url_edit(self):
-        url = reverse('admin:seeker_tagqsource_change', args=[self.id])
-        return url
-
-    def get_url_view(self):
-        url = reverse('tagqsrc_details', kwargs={'pk': self.id})
-        return url
 
 
 # ============================= Other CLASSES =====================================================
@@ -1198,7 +1217,7 @@ class SermonCollection(tagtext.models.TagtextModel):
     # [n-n] Communicative tags
     commutags = models.ManyToManyField(TagCommunicative, blank=True, related_name="collection_commtags")
     # [n-n] Tags in the sources
-    sourcetags = models.ManyToManyField(TagQsource, blank=True, related_name="collection_sources")
+    # sourcetags = models.ManyToManyField(TagQsource, blank=True, related_name="collection_sources")
     sourcenotetags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_sourcenotes")
     # [n-n] Tags in the exempla
     exemplatags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_exempla")
@@ -1206,8 +1225,8 @@ class SermonCollection(tagtext.models.TagtextModel):
     notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_notes")
 
     mixed_tag_fields = [
-            {"textfield": "liturgical",     "m2mfield": "liturtags",        "class": TagLiturgical,   "url": "taglitu_details"},
-            {"textfield": "communicative",  "m2mfield": "commutags",        "class": TagCommunicative,"url": "tagcomm_details"},
+            {"textfield": "liturgical",     "m2mfield": "liturtags",        "class": TagLiturgical,   "url": "tagliturgical_details"},
+            {"textfield": "communicative",  "m2mfield": "commutags",        "class": TagCommunicative,"url": "tagcommunicative_details"},
             {"textfield": "sources",        "m2mfield": "sourcenotetags",   "class": TagKeyword,      "url": "tagkeyword_details"},
             {"textfield": "exempla",        "m2mfield": "exemplatags",      "class": TagKeyword,      "url": "tagkeyword_details"},
             {"textfield": "notes",          "m2mfield": "notetags",         "class": TagKeyword,      "url": "tagkeyword_details"}
@@ -1326,61 +1345,61 @@ class SermonCollection(tagtext.models.TagtextModel):
             msg = oErr.get_error_message()
             return False
 
-    def do_qsources():
-        """Convert tagQsource into tagNote
+    #def do_qsources():
+    #    """Convert tagQsource into tagNote
         
-        Occurrances:
-        1 - SermonCollection.sourcetags: replace [SermonCollection.sources] items with links to tagNote
-        2 - Sermon.summarytags:          replace [Sermon.summary] items with links to tagNote
-        """
+    #    Occurrances:
+    #    1 - SermonCollection.sourcetags: replace [SermonCollection.sources] items with links to tagNote
+    #    2 - Sermon.summarytags:          replace [Sermon.summary] items with links to tagNote
+    #    """
 
-        def convert_qsource_to_note(instance, sFieldText, m2mfield):
-            # Find out what the class is of the instance
+    #    def convert_qsource_to_note(instance, sFieldText, m2mfield):
+    #        # Find out what the class is of the instance
 
-            # Get the field value
-            sValue = getattr(instance, sFieldText)
-            # Process this value
-            if sValue and sValue != "" and sValue[0] == "[":
-                lst_item = json.loads(sValue)
-                for item in lst_item:
-                    if item['type'] == "tag":
-                        tagid = item['tagid']
-                        value = item['value']
-                        # Convert the tagid into the proper link to the TagKeyword item
-                        obj = TagKeyword.find_or_create(value)
-                        # Create the link between the class instance and this TagKeyword
-                        link_base = getattr(instance, m2mfield)
-                        link = link_base.add(obj)
-                        # The new tagid gets the ID of the TagKeyword (not of the link)
-                        item['tagid'] = str(obj.id)
-                # REstore the list into a string
-                sValue = json.dumps(lst_item)
-            return sValue
+    #        # Get the field value
+    #        sValue = getattr(instance, sFieldText)
+    #        # Process this value
+    #        if sValue and sValue != "" and sValue[0] == "[":
+    #            lst_item = json.loads(sValue)
+    #            for item in lst_item:
+    #                if item['type'] == "tag":
+    #                    tagid = item['tagid']
+    #                    value = item['value']
+    #                    # Convert the tagid into the proper link to the TagKeyword item
+    #                    obj = TagKeyword.find_or_create(value)
+    #                    # Create the link between the class instance and this TagKeyword
+    #                    link_base = getattr(instance, m2mfield)
+    #                    link = link_base.add(obj)
+    #                    # The new tagid gets the ID of the TagKeyword (not of the link)
+    #                    item['tagid'] = str(obj.id)
+    #            # REstore the list into a string
+    #            sValue = json.dumps(lst_item)
+    #        return sValue
 
-        oErr = ErrHandle()
-        try:
-            # (1) Visit [SermonCollection.sources]
-            for obj in SermonCollection.objects.all():
-                sOrg = obj.sources
-                sNew = convert_qsource_to_note(obj, "sources", "sourcenotetags")
-                if sOrg != sNew:
-                    obj.sources = sNew
-                    obj.save()
+    #    oErr = ErrHandle()
+    #    try:
+    #        # (1) Visit [SermonCollection.sources]
+    #        for obj in SermonCollection.objects.all():
+    #            sOrg = obj.sources
+    #            sNew = convert_qsource_to_note(obj, "sources", "sourcenotetags")
+    #            if sOrg != sNew:
+    #                obj.sources = sNew
+    #                obj.save()
 
-            # (2) Visit [Sermon.summary]
-            for obj in Sermon.objects.all():
-                sOrg = obj.summary
-                sNew = convert_qsource_to_note(obj, "summary", "summarynotetags")
-                if sOrg != sNew:
-                    obj.summary = sNew
-                    obj.save()
+    #        # (2) Visit [Sermon.summary]
+    #        for obj in Sermon.objects.all():
+    #            sOrg = obj.summary
+    #            sNew = convert_qsource_to_note(obj, "summary", "summarynotetags")
+    #            if sOrg != sNew:
+    #                obj.summary = sNew
+    #                obj.save()
 
-            # We are ready: return positively
-            return True
-        except:
-            msg = oErr.get_error_message()
-            oErr.DoError("do_qsources")
-            return False
+    #        # We are ready: return positively
+    #        return True
+    #    except:
+    #        msg = oErr.get_error_message()
+    #        oErr.DoError("do_qsources")
+    #        return False
 
     def __str__(self):
         # Combine my ID number and the title (which is obligatory)
@@ -1508,7 +1527,7 @@ class Sermon(tagtext.models.TagtextModel):
     # [0-n] Zero or more concepts linked to each Sermon
     concepts = models.ManyToManyField(Concept, blank=True)
     # [0-n] = zero or more qsource tags in the summary field
-    summarytags = models.ManyToManyField(TagQsource, blank=True, related_name="sermon_summarytags")
+    # summarytags = models.ManyToManyField(TagQsource, blank=True, related_name="sermon_summarytags")
     summarynotetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_summarynotes")
     # [0-n] = zero or more notetags in the note field
     notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_notetags")

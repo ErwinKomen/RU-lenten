@@ -65,17 +65,6 @@ class PublisherWidget(ModelSelect2MultipleWidget):
         return Publisher.objects.all().order_by('name').distinct()
 
 
-class TagWidget(ModelSelect2MultipleWidget):
-    model = None
-    search_fields = [ 'name__icontains' ]
-
-    def label_from_instance(self, obj):
-        return obj.name
-
-    def get_queryset(self):
-        return self.model.objects.all().order_by('name').distinct()
-
-
 class LanguageWidget(ModelSelect2MultipleWidget):
     model = FieldChoice
     search_fields = ['english_name__icontains']
@@ -131,16 +120,34 @@ class LocationWidget(ModelSelect2MultipleWidget):
         return Location.objects.all().order_by('name').distinct()
 
 
+class TgroupWidget(ModelSelect2MultipleWidget):
+    model = Tgroup
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return self.model.objects.all().order_by('name').distinct()
+
+
+class TagWidget(ModelSelect2MultipleWidget):
+    model = None
+    search_fields = [ 'name__icontains' ]
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    def get_queryset(self):
+        return self.model.objects.all().order_by('name').distinct()
+
+
 class TagLiturWidget(TagWidget):
     model = TagLiturgical
 
 
 class TagCommWidget(TagWidget):
     model = TagCommunicative
-
-
-class TagQsourceWidget(TagWidget):
-    model = TagQsource
 
 
 class TagKeywordWidget(TagWidget):
@@ -431,33 +438,25 @@ class PublisherListForm(forms.ModelForm):
         self.fields['pblist'].queryset = Publisher.objects.all().order_by('name')
 
 
-class TagForm(forms.ModelForm):
-    tag_widget = None
-    ta_class = ""
-    plural_name = ""
-    tagname = forms.CharField(label=_("Tag"), required=False, 
-                widget=forms.TextInput(attrs={'class': 'typeahead searching {} input-sm'.format(ta_class), 'placeholder': 'Tag...', 'style': 'width: 100%;'}))
-    taglist = ModelMultipleChoiceField(queryset=None, required=False)
+class TgroupForm(forms.ModelForm):
+    tgrname = forms.CharField(label=_("Tag group"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'searching input-sm', 'placeholder': 'Tag group...', 'style': 'width: 100%;'}))
+    tgrlist = ModelMultipleChoiceField(queryset=None, required=False)
 
     class Meta:
-        abstract = True
+        model = Tgroup
         ATTRS_FOR_FORMS = {'class': 'form-control'};
-
-        # model = super(Meta, self).mymodel # TagLiturgical
         fields = ['name' ]
-        # ta_class = super(Meta, self).ta_class
-        ta_class = ""
-        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching {} input-sm'.format(ta_class), 'placeholder': 'Tag...', 'style': 'width: 100%;'})
+        widgets={'name':        forms.TextInput(attrs={'class': 'searching input-sm', 'placeholder': 'Tag group...', 'style': 'width: 100%;'})
                  }
 
     def __init__(self, *args, **kwargs):
         # Start by executing the standard handling
-        super(TagForm, self).__init__(*args, **kwargs)
+        super(TgroupForm, self).__init__(*args, **kwargs)
         # Some fields are not required
         self.fields['name'].required = False
-        wdg = self.tag_widget(attrs={'data-placeholder': 'Select multiple {}...'.format(self.plural_name), 'style': 'width: 100%;', 'class': 'searching'})
-        self.fields['taglist'].widget = wdg
-        self.fields['taglist'].queryset = self.Meta.model.objects.all().order_by('name')
+        self.fields['tgrname'].required = False
+        self.fields['tgrlist'].queryset = Tgroup.objects.all().order_by('name')
 
 
 class CollectionListForm(forms.ModelForm):
@@ -545,6 +544,38 @@ class EditionListForm(forms.ModelForm):
 
 
 # ====================== APPLICATION TAG FORMS =============================
+class TagForm(forms.ModelForm):
+    tag_widget = None
+    ta_class = ""
+    plural_name = ""
+    tagname = forms.CharField(label=_("Tag"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching {} input-sm'.format(ta_class), 'placeholder': 'Tag...', 'style': 'width: 100%;'}))
+    taglist = ModelMultipleChoiceField(queryset=None, required=False)
+    tgrlist = ModelMultipleChoiceField(queryset=None, required=False,
+                widget=TgroupWidget(attrs={'data-placeholder': 'Select multiple groups...', 'style': 'width: 100%;', 'class': 'searching'}))
+
+    class Meta:
+        abstract = True
+        ATTRS_FOR_FORMS = {'class': 'form-control'};
+
+        # model = super(Meta, self).mymodel # TagLiturgical
+        fields = ['name' ]
+        # ta_class = super(Meta, self).ta_class
+        ta_class = ""
+        widgets={'name':        forms.TextInput(attrs={'class': 'typeahead searching {} input-sm'.format(ta_class), 'placeholder': 'Tag...', 'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(TagForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['name'].required = False
+        wdg = self.tag_widget(attrs={'data-placeholder': 'Select multiple {}...'.format(self.plural_name), 'style': 'width: 100%;', 'class': 'searching'})
+        self.fields['taglist'].widget = wdg
+        self.fields['taglist'].queryset = self.Meta.model.objects.all().order_by('name')
+        self.fields['tgrlist'].queryset = Tgroup.objects.all().order_by('name')
+
+
 class TagLiturListForm(TagForm):
     ta_class = "liturtags"
     plural_name = "liturgical tags"
@@ -561,15 +592,6 @@ class TagCommListForm(TagForm):
     class Meta(TagForm.Meta):
         model = TagCommunicative
         ta_class = "commtags"
-
-
-class TagQsourceListForm(TagForm):
-    ta_class = "qsourcetags"
-    plural_name = "source question tags"
-    tag_widget = TagQsourceWidget
-    class Meta(TagForm.Meta):
-        model = TagQsource
-        ta_class = "qsourcetags"
 
 
 class TagKeywordListForm(TagForm):
