@@ -3097,6 +3097,7 @@ class EditionDetailsView(PassimDetails):
                 {'type': 'safeline', 'label': "Prologue:", 'value': instance.prologue},
                 {'type': 'safeline', 'label': "Dedicatory letter:", 'value': instance.dedicatory},
                 {'type': 'safeline', 'label': "Table of contents:", 'value': instance.contents},
+                {'type': 'safeline', 'label': "List of sermons:", 'value': instance.sermonlist},
                 {'type': 'safeline', 'label': "Other texts:", 'value': instance.othertexts},
                 {'type': 'safeline', 'label': "Images:", 'value': instance.images},
                 {'type': 'safeline', 'label': "Full title:", 'value': instance.fulltitle},
@@ -3130,6 +3131,10 @@ class EditionDetailsView(PassimDetails):
         related_objects.append(consultings)
 
         context['related_objects'] = related_objects
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Edition details", False)
+        context['prevpage'] = get_previous_page(self.request)
         return context
 
 

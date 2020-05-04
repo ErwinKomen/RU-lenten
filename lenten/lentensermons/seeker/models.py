@@ -1345,67 +1345,6 @@ class SermonCollection(tagtext.models.TagtextModel):
             msg = oErr.get_error_message()
             return False
 
-    #def do_qsources():
-    #    """Convert tagQsource into tagNote
-        
-    #    Occurrances:
-    #    1 - SermonCollection.sourcetags: replace [SermonCollection.sources] items with links to tagNote
-    #    2 - Sermon.summarytags:          replace [Sermon.summary] items with links to tagNote
-    #    """
-
-    #    def convert_qsource_to_note(instance, sFieldText, m2mfield):
-    #        # Find out what the class is of the instance
-
-    #        # Get the field value
-    #        sValue = getattr(instance, sFieldText)
-    #        # Process this value
-    #        if sValue and sValue != "" and sValue[0] == "[":
-    #            lst_item = json.loads(sValue)
-    #            for item in lst_item:
-    #                if item['type'] == "tag":
-    #                    tagid = item['tagid']
-    #                    value = item['value']
-    #                    # Convert the tagid into the proper link to the TagKeyword item
-    #                    obj = TagKeyword.find_or_create(value)
-    #                    # Create the link between the class instance and this TagKeyword
-    #                    link_base = getattr(instance, m2mfield)
-    #                    link = link_base.add(obj)
-    #                    # The new tagid gets the ID of the TagKeyword (not of the link)
-    #                    item['tagid'] = str(obj.id)
-    #            # REstore the list into a string
-    #            sValue = json.dumps(lst_item)
-    #        return sValue
-
-    #    oErr = ErrHandle()
-    #    try:
-    #        # (1) Visit [SermonCollection.sources]
-    #        for obj in SermonCollection.objects.all():
-    #            sOrg = obj.sources
-    #            sNew = convert_qsource_to_note(obj, "sources", "sourcenotetags")
-    #            if sOrg != sNew:
-    #                obj.sources = sNew
-    #                obj.save()
-
-    #        # (2) Visit [Sermon.summary]
-    #        for obj in Sermon.objects.all():
-    #            sOrg = obj.summary
-    #            sNew = convert_qsource_to_note(obj, "summary", "summarynotetags")
-    #            if sOrg != sNew:
-    #                obj.summary = sNew
-    #                obj.save()
-
-    #        # We are ready: return positively
-    #        return True
-    #    except:
-    #        msg = oErr.get_error_message()
-    #        oErr.DoError("do_qsources")
-    #        return False
-
-    def __str__(self):
-        # Combine my ID number and the title (which is obligatory)
-        sBack = "({}) {}".format(self.id, self.title)
-        return sBack
-
 
 class Manuscript(tagtext.models.TagtextModel):
     """Information on the manuscripts that belong to a sermon collection""" 
@@ -1671,6 +1610,8 @@ class Edition(tagtext.models.TagtextModel):
     dedicatory = models.TextField("Dedicatory letter", blank=True, null=True)
     # [0-1] Table of contents
     contents = models.TextField("Table of contents", blank=True, null=True)
+    # [0-1] List of sermons
+    sermonlist = models.TextField("List of sermons", blank=True, null=True)
     # [0-1] Other texts
     othertexts = models.TextField("Other texts", blank=True, null=True)
     # [0-1] Other texts

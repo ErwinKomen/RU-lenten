@@ -314,7 +314,7 @@ class SermonListForm(forms.ModelForm):
     toplist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=TopicWidget(attrs={'data-placeholder': 'Select multiple concepts...', 'style': 'width: 100%;', 'class': 'searching'}))
     tagsummid = forms.CharField(label=_("Summary tag"), required = False)
-    tagnoteid = forms.CharField(label=_("Note tag"), required = False)
+    tagnoteid = forms.CharField(label=_("Keyword tag"), required = False)
 
     class Meta:
         ATTRS_FOR_FORMS = {'class': 'form-control'};

@@ -240,7 +240,7 @@ class EditionAdminForm(forms.ModelForm):
     class Meta:
         model = Edition
         fields = ['sermoncollection', 'code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', \
-                 'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents',\
+                 'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents', 'sermonlist', \
                  'othertexts', 'images', 'fulltitle', 'colophon', 'publishers', 'note']
         # filter_horizontal = ('publishers',)
         widgets = {
@@ -250,6 +250,7 @@ class EditionAdminForm(forms.ModelForm):
             'prologue':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'dedicatory':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'contents':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'sermonlist':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'othertexts':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'images':       forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'fulltitle':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
