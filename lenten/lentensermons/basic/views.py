@@ -354,16 +354,22 @@ def make_ordering(qs, qd, order_default, order_cols, order_heads):
                         order_heads[idx]['order'] = order_heads[idx]['order'].replace("-", "")
         else:
             orderings = []
-            for order_item in order_default:
+            for idx, order_item in enumerate(order_default):
+                # Get the type
+                sType = order_heads[idx]['type']
                 if ";" in order_item:
                     for sub_item in order_item.split(";"):
-                        orderings.append(sub_item)
+                        orderings.append(dict(type=sType, item=sub_item))
                 else:
-                    orderings.append(order_item)
-            for order_item in orderings:
+                    orderings.append(dict(type=sType, item=order_item))
+            for item in orderings:
+                sType = item['type']
+                order_item = item['item']
                 if order_item != "":
-                    order.append(Lower(order_item))
-
+                    if sType == "int":
+                        order.append(order_item)
+                    else:
+                        order.append(Lower(order_item))
            #  order.append(Lower(order_cols[0]))
         if sType == 'str':
             if len(order) > 0:
@@ -422,6 +428,7 @@ class BasicList(ListView):
     delete_line = False
     none_on_empty = False
     use_team_group = False
+    admin_editable = False
     lst_typeaheads = []
     sort_order = ""
     page_function = "ru.basic.search_paged_start"
@@ -511,6 +518,8 @@ class BasicList(ListView):
 
         context['new_button'] = self.new_button
         context['add_text'] = self.add_text
+
+        context['admin_editable'] = self.admin_editable
 
         # Adapt possible downloads
         if len(self.downloads) > 0:
@@ -667,6 +676,12 @@ class BasicList(ListView):
                 fields.append(fobj)
             # Make the list of field-values available
             result['fields'] = fields
+            admindetails = "admin:seeker_{}_change".format(self.basic_name)
+            try:
+                result['admindetails'] = reverse(admindetails, args=[obj.id])
+            except:
+                pass
+
             # Add to the list of results
             result_list.append(result)
         return result_list

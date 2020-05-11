@@ -310,17 +310,37 @@ def make_ordering(qs, qd, orders, order_cols, order_heads):
                 iOrderCol = int(colnum)
                 bAscending = (iOrderCol>0)
                 iOrderCol = abs(iOrderCol)
-                for order_item in order_cols[iOrderCol-1].split(";"):
-                    order.append(Lower(order_item))
                 sType = order_heads[iOrderCol-1]['type']
+                for order_item in order_cols[iOrderCol-1].split(";"):
+                    if sType == "int":
+                        order.append(order_item)
+                    else:
+                        order.append(Lower(order_item))
                 if bAscending:
                     order_heads[iOrderCol-1]['order'] = 'o=-{}'.format(iOrderCol)
                 else:
                     # order = "-" + order
                     order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
         else:
-            for order_item in order_cols[0].split(";"):
-                order.append(Lower(order_item))
+            orderings = []
+            for idx, order_item in enumerate(orders):
+                # Get the type
+                sType = order_heads[idx]['type']
+                if ";" in order_item:
+                    for sub_item in order_item.split(";"):
+                        orderings.append(dict(type=sType, item=sub_item))
+                else:
+                    orderings.append(dict(type=sType, item=order_item))
+            for item in orderings:
+                sType = item['type']
+                order_item = item['item']
+                if order_item != "":
+                    if sType == "int":
+                        order.append(order_item)
+                    else:
+                        order.append(Lower(order_item))
+            #for order_item in order_cols[0].split(";"):
+            #    order.append(Lower(order_item))
         if sType == 'str':
             if len(order) > 0:
                 qs = qs.order_by(*order)
@@ -3057,21 +3077,21 @@ class EditionListView(BasicListView):
     prefix = "edi" 
     template_name = 'seeker/edition_list.html'
     plural_name = "Editions"
-    order_default = ['code', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date']
+    order_default = ['sermoncollection__idno;idno', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date']
     order_cols = order_default
-    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'str'}, 
+    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'int'}, 
                    {'name': 'Authors',    'order': 'o=2', 'type': 'str'}, 
                    {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
                    {'name': 'Place',      'order': 'o=4', 'type': 'str'},
                    {'name': 'Publishers', 'order': 'o=5', 'type': 'str'},
                    {'name': 'Year',       'order': 'o=6', 'type': 'str'}]
-    filters = [ {"name": "Code",    "id": "filter_code",    "enabled": False},
-                {"name": "Author",  "id": "filter_author",  "enabled": False},
-                {"name": "Place",   "id": "filter_place",   "enabled": False}
+    filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
+                {"name": "Author",      "id": "filter_author",      "enabled": False},
+                {"name": "Place",       "id": "filter_place",       "enabled": False}
                 ]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
+            {'filter': 'collection','fkfield': 'sermoncollection', 'keyFk': 'title'},
             {'filter': 'author',    'fkfield': 'sermoncollection__authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
             {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }
             ]},
@@ -3079,6 +3099,66 @@ class EditionListView(BasicListView):
             {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
             ]}
         ]
+
+
+class EditionList(BasicList):
+    """Listview of editions"""
+
+    model = Edition
+    listform = EditionListForm
+    prefix = "edi" 
+    admin_editable = True
+    has_select2 = True
+    plural_name = "Editions"
+    order_default = ['sermoncollection__idno;idno', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date', '']
+    order_cols = order_default
+    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'int', 'custom': 'code',      'linkdetails': True}, 
+                   {'name': 'Authors',    'order': 'o=2', 'type': 'str', 'custom': 'authors'}, 
+                   {'name': 'Collection', 'order': 'o=3', 'type': 'str', 'custom': 'coltitle',  'main': True}, 
+                   {'name': 'Place',      'order': 'o=4', 'type': 'str', 'custom': 'place'},
+                   {'name': 'Publishers', 'order': 'o=5', 'type': 'str', 'custom': 'publishers'},
+                   {'name': 'Year',       'order': 'o=6', 'type': 'str', 'custom': 'year'},
+                   {'name': 'Notes?',     'order': '',    'type': 'str', 'custom': 'hasnotes'}]
+    filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
+                {"name": "Author",      "id": "filter_author",      "enabled": False},
+                {"name": "Place",       "id": "filter_place",       "enabled": False}
+                ]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'collection','fkfield': 'sermoncollection',          'keyS': 'colltitle',  'keyFk': 'title', 'keyList': 'colllist', 'infield': 'id'},
+            {'filter': 'author',    'fkfield': 'sermoncollection__authors', 'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
+            {'filter': 'place',     'fkfield': 'place',                     'keyS': 'placename',  'keyFk': 'name',  'keyList': 'placelist', 'infield': 'id' }
+            ]},
+        {'section': 'other', 'filterlist': [
+            {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
+            ]}
+        ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "code":
+            html.append(instance.get_code())
+            sTitle = "view the edition"
+        elif custom == "authors":
+            html.append(instance.sermoncollection.get_authors())
+        elif custom == 'coltitle':
+            url = reverse( 'collection_details', kwargs={'pk': instance.sermoncollection.id})
+            html.append("<span><a class='nostyle' href='{}'>{}</a></span>".format(url, instance.sermoncollection.title))
+            sTitle = "view the collection"
+        elif custom == 'place':
+            html.append(instance.place.name)
+        elif custom == 'publishers':
+            sTitle = instance.get_publisher()
+            html.append('<span style="font-size: smaller;">{}</span>'.format(sTitle[:20]))
+        elif custom == 'year':
+            html.append(instance.get_date())
+        elif custom == "hasnotes":
+            html.append(instance.has_notes())
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
 
 class EditionDetailsView(PassimDetails):

@@ -704,7 +704,7 @@ class NewsItem(models.Model):
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
       # Adapt the save date
-      self.saved = datetime.now()
+      self.saved = get_current_datetime()
       response = super(NewsItem, self).save(force_insert, force_update, using, update_fields)
       return response
 
@@ -1595,6 +1595,9 @@ class Edition(tagtext.models.TagtextModel):
     # [0-1] Code: first number collection, second edition
     code = models.CharField("Code", max_length=MEDIUM_LENGTH, null=True, blank=True)
 
+    # [0-1] Identification number assigned by the researcher
+    idno = models.IntegerField("Identification", blank=True, null=True)
+
     # ------------ DATE DEFINITION -----------------
     # [0-1] Date when this edition was published
     date = models.IntegerField("Year of publication (earliest)", blank=True, null=True)
@@ -1670,6 +1673,22 @@ class Edition(tagtext.models.TagtextModel):
         # Adapt the information in sermoncollection
         self.sermoncollection.adapt_editions()
         return response
+
+    def get_code(self):
+        """Get the code of collection/edition"""
+
+        sBack = ""
+        if self.sermoncollection == None or self.sermoncollection.idno == None:
+            collnum = "-"
+        else:
+            collnum = self.sermoncollection.idno
+        if self.idno == None:
+            idno = "-"
+        else:
+            idno = self.idno
+        sBack = "{}/{}".format(collnum, idno)
+
+        return sBack
 
     def get_sermons(self):
         """Recover all the sermons that fall under this edition"""

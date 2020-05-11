@@ -545,11 +545,15 @@ class CollectionListForm(forms.ModelForm):
 
 class EditionListForm(forms.ModelForm):
     authorname = forms.CharField(label=_("Author"), required=False, 
-                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Author...', 'style': 'width: 100%;'}))
-    authorlist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching authors input-sm', 'placeholder': 'Author...', 'style': 'width: 100%;'}))
+    authorlist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=AuthorWidget(attrs={'data-placeholder': 'Select multiple authors...', 'style': 'width: 100%;', 'class': 'searching'}))
-    placename = forms.CharField(label=_("Author"), required=False, 
-                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}))
+    colltitle  = forms.CharField(label=_("Collection"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
+    colllist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=CollectionWidget(attrs={'data-placeholder': 'Select multiple collections...', 'style': 'width: 100%;', 'class': 'searching'}))
+    placename = forms.CharField(label=_("Place"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching locations input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}))
     placelist  = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=LocationWidget(attrs={'data-placeholder': 'Select multiple places...', 'style': 'width: 100%;', 'class': 'searching'}))
     tagnoteid = forms.CharField(label=_("Note tag"), required = False)
@@ -571,8 +575,10 @@ class EditionListForm(forms.ModelForm):
         self.fields['code'].required = False
         self.fields['date'].required = False
         self.fields['place'].required = False
+        self.fields['colltitle'].required = False
         self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
         self.fields['placelist'].queryset = Location.objects.all().order_by('name')
+        self.fields['colllist'].queryset = SermonCollection.objects.all().order_by('title')
 
         # Get the instance
         if 'instance' in kwargs:
