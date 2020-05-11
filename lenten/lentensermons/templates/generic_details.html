@@ -34,8 +34,9 @@
                   <tbody>
                     {% for mainitem in mainitems %}
                       <tr class="view-row">
-                        <td class="tdnowrap" valign="top">{{mainitem.label}}</td>
-                        <td class="hoverable" {% if mainitem.align %}align="{{mainitem.align}}"{% endif %}>
+                        <td class="tdnowrap" valign="top" {% if mainitem.title %}title="{{mainitem.title}}"{% endif %}>{{mainitem.label}}</td>
+                        <td class="hoverable" {% if mainitem.align %}align="{{mainitem.align}}"{% endif %}
+                            {% if mainitem.title %}title="{{mainitem.title}}"{% endif %}>
                           {% if mainitem.multiple %}
                             <!-- Multiple instances choosing using Select2 -->
                             {% if mainitem.value|length > 0 %}

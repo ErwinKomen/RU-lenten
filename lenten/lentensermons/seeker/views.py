@@ -2128,9 +2128,9 @@ class SermonListView(BasicListView):
     prefix = "sermo"
     template_name = 'seeker/sermon_list.html'
     plural_name = "Sermons"
-    order_default = ['code', 'collection__authors__name' 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
-    order_cols = ['code', 'collection__authors__name' 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
-    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
+    order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
+    order_cols = order_default
+    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'int'}, 
                    {'name': 'Authors', 'order': 'o=2', 'type': 'str'}, 
                    {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
                    {'name': 'Liturgical day', 'order': 'o=4', 'type': 'str'},
@@ -2228,7 +2228,7 @@ class CollectionDetailsView(PassimDetails):
         rel_list =[]
         for item in qs:
             rel_item = []
-            rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
             rel_item.append({'value': item.litday})
             rel_item.append({'value': item.get_bibref()})
             rel_item.append({'value': item.get_topics()})
@@ -2258,7 +2258,7 @@ class CollectionDetailsView(PassimDetails):
         rel_list = []
         for item in qs:
             rel_item = []
-            rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
             rel_item.append({'value': item.get_place()})
             rel_item.append({'value': item.get_editors()})
             rel_item.append({'value': item.get_date()})
@@ -3069,36 +3069,36 @@ class SermonDetailsView(PassimDetails):
         return context
 
 
-class EditionListView(BasicListView):
-    """Listview of editions"""
+#class EditionListView(BasicListView):
+#    """Listview of editions"""
 
-    model = Edition
-    listform = EditionListForm
-    prefix = "edi" 
-    template_name = 'seeker/edition_list.html'
-    plural_name = "Editions"
-    order_default = ['sermoncollection__idno;idno', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date']
-    order_cols = order_default
-    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'int'}, 
-                   {'name': 'Authors',    'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Place',      'order': 'o=4', 'type': 'str'},
-                   {'name': 'Publishers', 'order': 'o=5', 'type': 'str'},
-                   {'name': 'Year',       'order': 'o=6', 'type': 'str'}]
-    filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
-                {"name": "Author",      "id": "filter_author",      "enabled": False},
-                {"name": "Place",       "id": "filter_place",       "enabled": False}
-                ]
-    searches = [
-        {'section': '', 'filterlist': [
-            {'filter': 'collection','fkfield': 'sermoncollection', 'keyFk': 'title'},
-            {'filter': 'author',    'fkfield': 'sermoncollection__authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
-            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }
-            ]},
-        {'section': 'other', 'filterlist': [
-            {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
-            ]}
-        ]
+#    model = Edition
+#    listform = EditionListForm
+#    prefix = "edi" 
+#    template_name = 'seeker/edition_list.html'
+#    plural_name = "Editions"
+#    order_default = ['sermoncollection__idno;idno', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date']
+#    order_cols = order_default
+#    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'int'}, 
+#                   {'name': 'Authors',    'order': 'o=2', 'type': 'str'}, 
+#                   {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
+#                   {'name': 'Place',      'order': 'o=4', 'type': 'str'},
+#                   {'name': 'Publishers', 'order': 'o=5', 'type': 'str'},
+#                   {'name': 'Year',       'order': 'o=6', 'type': 'str'}]
+#    filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
+#                {"name": "Author",      "id": "filter_author",      "enabled": False},
+#                {"name": "Place",       "id": "filter_place",       "enabled": False}
+#                ]
+#    searches = [
+#        {'section': '', 'filterlist': [
+#            {'filter': 'collection','fkfield': 'sermoncollection', 'keyFk': 'title'},
+#            {'filter': 'author',    'fkfield': 'sermoncollection__authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
+#            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }
+#            ]},
+#        {'section': 'other', 'filterlist': [
+#            {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
+#            ]}
+#        ]
 
 
 class EditionList(BasicList):
@@ -3175,6 +3175,7 @@ class EditionDetailsView(PassimDetails):
         if instance.place:
             sLocation = instance.place.name
         context['mainitems'] = [
+            {'type': 'plain', 'label': "Code:", 'value': instance.get_code(), 'title': 'Collection number / Edition number within that collection'},
             {'type': 'plain', 'label': "Date:", 'value': instance.get_full_date()},
             {'type': 'plain', 'label': "Place:", 'value': sLocation},
             {'type': 'plain', 'label': "Publisher:", 'value': instance.get_publisher() },

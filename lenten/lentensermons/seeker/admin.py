@@ -243,7 +243,7 @@ class DbcodeInline(admin.TabularInline):
 class EditionAdminForm(forms.ModelForm):
     class Meta:
         model = Edition
-        fields = ['sermoncollection', 'code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', \
+        fields = ['sermoncollection', 'idno', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', \
                  'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents', 'sermonlist', \
                  'othertexts', 'images', 'fulltitle', 'colophon', 'publishers', 'note']
         # filter_horizontal = ('publishers',)
@@ -487,7 +487,7 @@ class BookAdmin(admin.ModelAdmin):
 class SermonAdminForm(forms.ModelForm):
     class Meta:
         model = Sermon
-        fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
+        fields = ['collection', 'edition', 'idno', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
         widgets = {
             'thema':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'divisionL':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
@@ -500,10 +500,10 @@ class SermonAdminForm(forms.ModelForm):
 class SermonAdmin(admin.ModelAdmin):
     form = SermonAdminForm
 
-    list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection']
+    list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection', 'edition']
     search_fields = ['code', 'litday', 'book']
     list_filter = ['litday', 'book']
-    fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
+    fields = ['collection', 'edition', 'idno', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
 
     filter_horizontal = ('topics', 'concepts',)
 

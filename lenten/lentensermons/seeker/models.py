@@ -1451,134 +1451,6 @@ class Concept(models.Model):
         return combi
 
 
-class Sermon(tagtext.models.TagtextModel):
-    """The layout of one particular sermon (level three)"""
-
-    # [0-1] Each sermon must be recognizable by a particular code
-    #       The code x/y/z of the sermon refers to the collection, the edition used for the analysis, the number of the sermon
-    code = models.CharField("Code", max_length=MEDIUM_LENGTH, null=True, blank=True)
-    # [0-1] Liturgical day (e.g. T18/4 = sermon 'de tempore', week 18, day 4)
-    litday = models.CharField("Liturgical day", max_length=MEDIUM_LENGTH, null=True, blank=True)
-    # [0-1] Thema = initial line of a sermon
-    thema = models.TextField("Thema", null=True, blank=True)
-    # [0-1] Biblical reference (optional), consisting of three parts: book, chapter, verse
-    book = models.ForeignKey(Book, related_name="book_sermons", null=True, on_delete=models.SET_NULL)
-    chapter = models.IntegerField("Chapter", null=True, blank=True)
-    verse = models.IntegerField("Verse", null=True, blank=True)
-    # [0-1] The main division of the sermon: both in Latin as well as in English
-    divisionL = models.TextField("Division (Latin)", null=True, blank=True)
-    divisionE = models.TextField("Division (English)", null=True, blank=True)
-    # [0-1] Summary of the sermon
-    summary = models.TextField("Summary", null=True, blank=True)
-    # [0-1] Notes on this sermon
-    note = models.TextField("Note", null=True, blank=True)
-
-    # [1] Each sermon belongs to a collection
-    collection = models.ForeignKey(SermonCollection, related_name="collection_sermons", on_delete=models.CASCADE)
-
-    # =================== many-to-many fields =================================================
-    # [0-n] zero or more topics
-    topics = models.ManyToManyField(Topic, blank=True)
-    # [0-n] Zero or more concepts linked to each Sermon
-    concepts = models.ManyToManyField(Concept, blank=True)
-    # [0-n] = zero or more qsource tags in the summary field
-    # summarytags = models.ManyToManyField(TagQsource, blank=True, related_name="sermon_summarytags")
-    summarynotetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_summarynotes")
-    # [0-n] = zero or more notetags in the note field
-    notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_notetags")
-
-    mixed_tag_fields = [
-            {"textfield": "summary",    "m2mfield": "summarynotetags",  "class": TagKeyword,    "url": "tagkeyword_details"},
-            {"textfield": "note",       "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"}
-        ]
-
-    def tagtext_url(self):
-        url = reverse('api_tributes')
-        return url
-
-    def __str__(self):
-        return self.code if self.code else ""
-
-    def get_bibref(self):
-        sRef = "-"
-        if self.book != None:
-            sBook = self.book.name
-            if self.chapter:
-                if self.verse:
-                    sRef = "{} {}:{}".format(sBook, self.chapter, self.verse)
-                else:
-                    sRef = "{} {}".format(sBook, self.chapter)
-            else:
-                sRef = sBook
-        return sRef
-
-    def get_concepts(self):
-        cnc_list = [x.name for x in self.concepts.all()]
-        return ", ".join(cnc_list)
-
-    def get_concepts_markdown(self):
-        lHtml = []
-        # Visit all concepts
-        for concept in self.concepts.all():
-            # Determine where clicking should lead to
-            url = "{}?sermo-cnclist={}".format(reverse('sermon_list'), concept.id)
-            # Create a display for this concept
-            lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,concept.name))
-
-        sBack = ", ".join(lHtml)
-        return sBack
-
-    def get_full_thema(self):
-        sBack = ""
-        if self.thema: 
-            sBack = "_{}_ ({})".format(self.thema, self.get_bibref())
-        else:
-            sBack = self.get_bibref()
-        sBack = markdown(sBack.strip())
-        return sBack
-
-    def get_topics(self):
-        """Get a list of topics"""
-
-        topics = [x.name for x in self.topics.all()]
-        sBack = ", ".join(topics)
-        return sBack
-
-    def get_topics_markdown(self):
-        lHtml = []
-        # Visit all topics
-        for topic in self.topics.all():
-            # Determine where clicking should lead to
-            url = "{}?sermo-toplist={}".format(reverse('sermon_list'), topic.id)
-            # Create a display for this topic
-            lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,topic.name))
-
-        sBack = ", ".join(lHtml)
-        return sBack
-
-    def get_authors(self):
-        """Get the name of the author"""
-
-        sBack = "-"
-        if self.collection:
-            lCombi = []
-            for obj in self.collection.authors.all():
-                lCombi.append(obj.name)
-            sBack = ", ".join(lCombi)
-        return sBack
-
-    def get_summary_markdown(self, obj=None):
-        sBack = ""
-        if self.summary:
-            # Retrieve the whole
-            sWhole = markdown(self.get_summary_display).strip()
-            if obj:
-                sWhole = tag_combine_html(obj, self.summary, sWhole)
-            # Combine everything
-            sBack = sWhole
-        return sBack
-
-
 class Publisher(models.Model):
     """A publisher is defined by a name"""
 
@@ -1596,7 +1468,7 @@ class Edition(tagtext.models.TagtextModel):
     code = models.CharField("Code", max_length=MEDIUM_LENGTH, null=True, blank=True)
 
     # [0-1] Identification number assigned by the researcher
-    idno = models.IntegerField("Identification", blank=True, null=True)
+    idno = models.IntegerField("Edition number", blank=True, null=True)
 
     # ------------ DATE DEFINITION -----------------
     # [0-1] Date when this edition was published
@@ -1767,6 +1639,160 @@ class Edition(tagtext.models.TagtextModel):
 
         sBack = ""
         if self.note: sBack = "*"
+        return sBack
+
+
+class Sermon(tagtext.models.TagtextModel):
+    """The layout of one particular sermon (level three)"""
+
+    # [0-1] Each sermon must be recognizable by a particular code
+    #       The code x/y/z of the sermon refers to the collection, the edition used for the analysis, the number of the sermon
+    code = models.CharField("Code", max_length=MEDIUM_LENGTH, null=True, blank=True)
+
+    # [0-1] Identification number assigned by the researcher
+    idno = models.IntegerField("Sermon number", blank=True, null=True)
+
+    # [0-1] Liturgical day (e.g. T18/4 = sermon 'de tempore', week 18, day 4)
+    litday = models.CharField("Liturgical day", max_length=MEDIUM_LENGTH, null=True, blank=True)
+    # [0-1] Thema = initial line of a sermon
+    thema = models.TextField("Thema", null=True, blank=True)
+    # [0-1] Biblical reference (optional), consisting of three parts: book, chapter, verse
+    book = models.ForeignKey(Book, related_name="book_sermons", null=True, on_delete=models.SET_NULL)
+    chapter = models.IntegerField("Chapter", null=True, blank=True)
+    verse = models.IntegerField("Verse", null=True, blank=True)
+    # [0-1] The main division of the sermon: both in Latin as well as in English
+    divisionL = models.TextField("Division (Latin)", null=True, blank=True)
+    divisionE = models.TextField("Division (English)", null=True, blank=True)
+    # [0-1] Summary of the sermon
+    summary = models.TextField("Summary", null=True, blank=True)
+    # [0-1] Notes on this sermon
+    note = models.TextField("Note", null=True, blank=True)
+
+    # [1] Each sermon belongs to a collection
+    collection = models.ForeignKey(SermonCollection, related_name="collection_sermons", on_delete=models.CASCADE)
+    # [0-1] Each sermon *MAY* belong to an edition
+    edition = models.ForeignKey(Edition, related_name="collection_editions", null=True, blank=True, on_delete=models.SET_NULL)
+
+    # =================== many-to-many fields =================================================
+    # [0-n] zero or more topics
+    topics = models.ManyToManyField(Topic, blank=True)
+    # [0-n] Zero or more concepts linked to each Sermon
+    concepts = models.ManyToManyField(Concept, blank=True)
+    # [0-n] = zero or more qsource tags in the summary field
+    # summarytags = models.ManyToManyField(TagQsource, blank=True, related_name="sermon_summarytags")
+    summarynotetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_summarynotes")
+    # [0-n] = zero or more notetags in the note field
+    notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_notetags")
+
+    mixed_tag_fields = [
+            {"textfield": "summary",    "m2mfield": "summarynotetags",  "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "note",       "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"}
+        ]
+
+    def tagtext_url(self):
+        url = reverse('api_tributes')
+        return url
+
+    def __str__(self):
+        return self.code if self.code else ""
+
+    def get_code(self):
+        """Get the code of collection/edition/sermon"""
+
+        sBack = ""
+        if self.collection == None or self.collection.idno == None:
+            collnum = "0"
+        else:
+            collnum = self.collection.idno
+        if self.edition == None or self.edition.idno == None:
+            edinum = "0"
+        else:
+            edinum = self.edition.idno
+        if self.idno == None:
+            idno = "-"
+        else:
+            idno = self.idno
+        sBack = "{}/{}/{}".format(collnum, edinum, idno)
+
+        return sBack
+
+    def get_bibref(self):
+        sRef = "-"
+        if self.book != None:
+            sBook = self.book.name
+            if self.chapter:
+                if self.verse:
+                    sRef = "{} {}:{}".format(sBook, self.chapter, self.verse)
+                else:
+                    sRef = "{} {}".format(sBook, self.chapter)
+            else:
+                sRef = sBook
+        return sRef
+
+    def get_concepts(self):
+        cnc_list = [x.name for x in self.concepts.all()]
+        return ", ".join(cnc_list)
+
+    def get_concepts_markdown(self):
+        lHtml = []
+        # Visit all concepts
+        for concept in self.concepts.all():
+            # Determine where clicking should lead to
+            url = "{}?sermo-cnclist={}".format(reverse('sermon_list'), concept.id)
+            # Create a display for this concept
+            lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,concept.name))
+
+        sBack = ", ".join(lHtml)
+        return sBack
+
+    def get_full_thema(self):
+        sBack = ""
+        if self.thema: 
+            sBack = "_{}_ ({})".format(self.thema, self.get_bibref())
+        else:
+            sBack = self.get_bibref()
+        sBack = markdown(sBack.strip())
+        return sBack
+
+    def get_topics(self):
+        """Get a list of topics"""
+
+        topics = [x.name for x in self.topics.all()]
+        sBack = ", ".join(topics)
+        return sBack
+
+    def get_topics_markdown(self):
+        lHtml = []
+        # Visit all topics
+        for topic in self.topics.all():
+            # Determine where clicking should lead to
+            url = "{}?sermo-toplist={}".format(reverse('sermon_list'), topic.id)
+            # Create a display for this topic
+            lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,topic.name))
+
+        sBack = ", ".join(lHtml)
+        return sBack
+
+    def get_authors(self):
+        """Get the name of the author"""
+
+        sBack = "-"
+        if self.collection:
+            lCombi = []
+            for obj in self.collection.authors.all():
+                lCombi.append(obj.name)
+            sBack = ", ".join(lCombi)
+        return sBack
+
+    def get_summary_markdown(self, obj=None):
+        sBack = ""
+        if self.summary:
+            # Retrieve the whole
+            sWhole = markdown(self.get_summary_display).strip()
+            if obj:
+                sWhole = tag_combine_html(obj, self.summary, sWhole)
+            # Combine everything
+            sBack = sWhole
         return sBack
 
 
