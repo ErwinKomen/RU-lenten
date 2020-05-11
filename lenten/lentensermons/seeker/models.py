@@ -1171,7 +1171,8 @@ class Author(tagtext.models.TagtextModel):
 class SermonCollection(tagtext.models.TagtextModel):
 
     # [0-1] Identification number assigned by the researcher
-    idno = models.CharField("Identification", max_length=MEDIUM_LENGTH, blank=True, null=True)
+    # idno = models.CharField("Identification", max_length=MEDIUM_LENGTH, blank=True, null=True)
+    idno = models.IntegerField("Identification", blank=True, null=True)
     # [1] Title is obligatory for any sermon collection
     title = models.CharField("Title", max_length=MEDIUM_LENGTH)
     # [0-1] Author information and bibliography
@@ -1183,6 +1184,9 @@ class SermonCollection(tagtext.models.TagtextModel):
                             max_length=5)
     # [0-1] Place of manuscript: may be city or country
     place = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL)
+
+    # FOr sorting purposes: automatically add the FIRST author in a list of authors
+    firstauthor = models.ForeignKey(Author, blank=True, null=True, on_delete=models.SET_NULL, related_name="collection_firstauthor")
 
     # Edition information: editions are linked to [SermonCollection]
     #   - first edition' information is derived by first_edition()
@@ -1211,7 +1215,7 @@ class SermonCollection(tagtext.models.TagtextModel):
 
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Author: each sermoncollection may have 1 or more authors
-    authors = models.ManyToManyField(Author, blank=True)
+    authors = models.ManyToManyField(Author, blank=True, related_name="collection_authors")
     # [n-n] Liturgical tags
     liturtags = models.ManyToManyField(TagLiturgical, blank=True, related_name="collection_liturtags")
     # [n-n] Communicative tags
@@ -1235,6 +1239,14 @@ class SermonCollection(tagtext.models.TagtextModel):
     def __str__(self):
         sBack = "{} {}".format(self.idno, self.title)
         return sBack
+
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+        # CHeck who the 'firstauthor' is and adapt
+        obj = self.authors.all().first()
+        if self.firstauthor == None or (obj != None and self.firstauthor is not obj):
+            self.firstauthor = obj
+        response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
+        return None
 
     def tagtext_url(self):
         url = reverse('api_tributes')
@@ -1356,7 +1368,7 @@ class Manuscript(tagtext.models.TagtextModel):
     # [1] Name of the manuscript
     name = models.TextField("Name", default="-")
     # [1] If there are manuscripts there must be information on them
-    info = models.TextField("Info on manuscripts", default="-")
+    info = models.TextField("Info on manuscripts", blank=True, null=True, default="-")
     # [0-1] Possibly provide a link to the manuscript online
     link = models.TextField("Link (if available)", blank=True, null=True)
     # [0-1] And the associated URL for this link

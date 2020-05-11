@@ -2177,7 +2177,7 @@ class CollectionDetailsView(PassimDetails):
     def add_to_context(self, context, instance):
         # Show the main items of this sermon collection
         context['mainitems'] = [
-            {'type': 'plain', 'label': "Identifier (Code):", 'value': instance.idno},
+            {'type': 'plain', 'label': "Identifier (Code):", 'value': str(instance.idno)},
             {'type': 'bold',  'label': "Title:", 'value': instance.title},
             {'type': 'plain', 'label': "Authors:", 'value': instance.get_authors()},
             {'type': 'plain', 'label': "Date of composition:", 'value': "{} ({})".format(instance.datecomp, instance.get_datetype_display()) },
@@ -2264,7 +2264,7 @@ class CollectionListView(BasicListView):
     entrycount = 0
     order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
     order_cols = order_default
-    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'str'}, 
+    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int'}, 
                    {'name': 'Authors',       'order': 'o=2', 'type': 'str'}, 
                    {'name': 'Title',         'order': 'o=3', 'type': 'str'}, 
                    {'name': 'Year',          'order': 'o=4', 'type': 'str'},
@@ -2319,27 +2319,29 @@ class CollectionList(BasicList):
     basic_name = "collection"
     plural_name = "Sermon collections"
     sg_name = "Sermon collection"
-    # template_name = 'seeker/collection_list.html'
+    has_select2 = True
     entrycount = 0
-    order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
+    order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
     order_cols = order_default
-    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'str'}, 
-                   {'name': 'Authors',       'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Title',         'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Year',          'order': 'o=4', 'type': 'str'},
-                   {'name': 'Place',         'order': 'o=5', 'type': 'str'},
-                   {'name': 'First Edition', 'order': 'o=6', 'type': 'str'},
-                   {'name': 'Editions',      'order': 'o=7', 'type': 'str'}]
-    filters = [ {"name": "Identifier",  "id": "filter_idno",    "enabled": False},
-                {"name": "Author",      "id": "filter_author",  "enabled": False},
-                {"name": "Title",       "id": "filter_title",   "enabled": False},
-                {"name": "Place",       "id": "filter_place",   "enabled": False}]
+    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int', 'field': 'idno'}, 
+                   {'name': 'Authors',       'order': 'o=2', 'type': 'str', 'custom': 'author'}, 
+                   {'name': 'Title',         'order': 'o=3', 'type': 'str', 'field': 'title', 'main': True, 'linkdetails': True}, 
+                   {'name': 'Year',          'order': 'o=4', 'type': 'str', 'field': 'datecomp'},
+                   {'name': 'Place',         'order': 'o=5', 'type': 'str', 'custom': 'place'},
+                   {'name': 'First Edition', 'order': 'o=6', 'type': 'str', 'field': 'firstedition'},
+                   {'name': 'Editions',      'order': 'o=7', 'type': 'int', 'field': 'numeditions'}]
+    filters = [ {"name": "Identifier",      "id": "filter_idno",    "enabled": False},
+                {"name": "Author",          "id": "filter_author",  "enabled": False},
+                {"name": "Title",           "id": "filter_title",   "enabled": False},
+                {"name": "Place",           "id": "filter_place",   "enabled": False},
+                {"name": "Has manuscripts", "id": "filter_hasmanu", "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'idno',      'dbfield': 'code',      'keyS': 'code'},
+            {'filter': 'idno',      'dbfield': 'idno',      'keyS': 'idno'},
             {'filter': 'author',    'fkfield': 'authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
             {'filter': 'title',     'dbfield': 'title',     'keyS': 'title'},
-            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }
+            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' },
+            {'filter': 'hasmanu',   'dbfield': 'nummanu',   'keyS': 'hasmanu',   'keyType': 'has'}
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid',     'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
@@ -2349,6 +2351,19 @@ class CollectionList(BasicList):
             {'filter': 'tagexmpid',     'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
             ]}
         ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        # FIgure out what to return
+        if custom == "author":
+            html.append(instance.get_authors())
+        elif custom == "place":
+            html.append(instance.place.name)
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
 
 class ConceptListView(BasicListView):

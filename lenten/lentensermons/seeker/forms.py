@@ -519,7 +519,7 @@ class CollectionListForm(forms.ModelForm):
 
         model = SermonCollection
         fields = ['idno', 'title', 'datecomp', 'place' ]
-        widgets={'idno':        forms.TextInput(attrs={'class': 'typeahead searching codes input-sm', 'placeholder': 'Identifier...', 'style': 'width: 100%;'}),
+        widgets={'idno':        forms.NumberInput(attrs={'class': 'typeahead searching codes input-sm', 'placeholder': 'Identifier...', 'style': 'width: 100%;'}),
                  'title':       forms.TextInput(attrs={'class': 'typeahead searching titles input-sm', 'placeholder': 'Title...', 'style': 'width: 100%;'}),
                  'datecomp':    forms.TextInput(attrs={'class': 'typeahead searching litdays input-sm', 'placeholder': 'Year of composition...', 'style': 'width: 100%;'}),
                  'place':       forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'})

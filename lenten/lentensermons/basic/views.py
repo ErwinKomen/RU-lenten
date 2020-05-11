@@ -247,8 +247,17 @@ def make_search_list(filters, oFields, search_list, qd):
                 elif dbfield:
                     # We are dealing with a plain direct field for the model
                     # OR: it is also possible we are dealing with a m2m field -- that gets the same treatment
+                    if keyType == "has":
+                        # Check the count for the db field
+                        val = oFields[filter_type]
+                        if val == "yes" or val == "no":
+                            enable_filter(filter_type, head_id)
+                            if val == "yes":
+                                s_q = Q(**{"{}__gt".format(dbfield): 0})
+                            else:
+                                s_q = Q(**{"{}".format(dbfield): 0})
                     # Check for keyS
-                    if has_string_value(keyS, oFields):
+                    elif has_string_value(keyS, oFields):
                         # Check for ID field
                         if has_string_value(keyId, oFields):
                             val = oFields[keyId]
@@ -268,15 +277,6 @@ def make_search_list(filters, oFields, search_list, qd):
                                 s_q = Q(**{"{}__iregex".format(dbfield): val})
                             else:
                                 s_q = Q(**{"{}__iexact".format(dbfield): val})
-                    elif keyType == "has":
-                        # Check the count for the db field
-                        val = oFields[filter_type]
-                        if val == "yes" or val == "no":
-                            enable_filter(filter_type, head_id)
-                            if val == "yes":
-                                s_q = Q(**{"{}__gt".format(dbfield): 0})
-                            else:
-                                s_q = Q(**{"{}".format(dbfield): 0})
 
                 # Check for list of specific signatures
                 if has_list_value(keyList, oFields):
