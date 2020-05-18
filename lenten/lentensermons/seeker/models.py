@@ -876,15 +876,6 @@ class Tgroup(models.Model):
     def __str__(self):
         return "-" if self == None else  self.name
 
-    #def save(self, *args, **kwargs):
-    #    # Check if the value doesn't exist yet
-    #    if 'name' in kwargs:
-    #        name = kwargs['name']
-    #        obj = Tgroup.objects.filter(name=name).first()
-    #        if obj != None:
-    #            raise ValueError("Cannot have two instances of the same Tag group")
-    #    return super(Tgroup, self).save(*args, **kwargs)
-
     def get_url_edit(self):
         url = reverse('admin:seeker_tgroup_change', args=[self.id])
         return url

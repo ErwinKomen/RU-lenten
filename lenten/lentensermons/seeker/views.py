@@ -3289,6 +3289,7 @@ class ManuscriptListView(BasicList):
     order_heads = [{'name': 'Author',       'order': 'o=1', 'type': 'str', 'custom': 'author'},
                    {'name': 'Collection',   'order': 'o=2', 'type': 'str', 'custom': 'collection'},
                    {'name': 'Name',         'order': 'o=3', 'type': 'str', 'custom': 'name',       'linkdetails': True,  'main': True},
+                   {'name': 'Link?',        'order': '',    'type': 'str', 'custom': 'link'},
                    {'name': 'Notes?',       'order': '',    'type': 'str', 'custom': 'notes'}]
     filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
                 {"name": "Name",        "id": "filter_name",        "enabled": False},
@@ -3332,6 +3333,9 @@ class ManuscriptListView(BasicList):
             html.append(instance.get_info_markdown())
         elif custom == "notes":
             if instance.info and instance.info != "":
+                html.append("*")
+        elif custom == "link":
+            if instance.has_link():
                 html.append("*")
         # Combine the HTML code
         sBack = "\n".join(html)
