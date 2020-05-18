@@ -1676,6 +1676,9 @@ class Sermon(tagtext.models.TagtextModel):
     # [0-1] Notes on this sermon
     note = models.TextField("Note", null=True, blank=True)
 
+    # [0-1] This is a helper field that gets automatically filled with the first topic in 'topics'
+    firsttopic = models.ForeignKey(Topic, blank=True, null=True)
+
     # [1] Each sermon belongs to a collection
     collection = models.ForeignKey(SermonCollection, related_name="collection_sermons", on_delete=models.CASCADE)
     # [0-1] Each sermon *MAY* belong to an edition
@@ -1683,7 +1686,7 @@ class Sermon(tagtext.models.TagtextModel):
 
     # =================== many-to-many fields =================================================
     # [0-n] zero or more topics
-    topics = models.ManyToManyField(Topic, blank=True)
+    topics = models.ManyToManyField(Topic, blank=True, related_name="sermon_topics")
     # [0-n] Zero or more concepts linked to each Sermon
     concepts = models.ManyToManyField(Concept, blank=True)
     # [0-n] = zero or more qsource tags in the summary field
@@ -1703,6 +1706,14 @@ class Sermon(tagtext.models.TagtextModel):
 
     def __str__(self):
         return self.code if self.code else ""
+
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+        # CHeck who the 'firstauthor' is and adapt
+        obj = self.topics.all().first()
+        if self.firsttopic == None or (obj != None and self.firsttopic is not obj):
+            self.firsttopic = obj
+        response = super(Sermon, self).save(force_insert, force_update, using, update_fields)
+        return None
 
     def get_code(self):
         """Get the code of collection/edition/sermon"""

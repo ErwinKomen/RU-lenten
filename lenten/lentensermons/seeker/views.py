@@ -2128,14 +2128,14 @@ class SermonListView(BasicListView):
     prefix = "sermo"
     template_name = 'seeker/sermon_list.html'
     plural_name = "Sermons"
-    order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
+    order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 'litday', 'book;chapter;verse', 'firsttopic__name']
     order_cols = order_default
-    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'int'}, 
-                   {'name': 'Authors', 'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Liturgical day', 'order': 'o=4', 'type': 'str'},
-                   {'name': 'Thema', 'order': 'o=5', 'type': 'str'},
-                   {'name': 'Main topic', 'order': 'o=6', 'type': 'str'}]
+    order_heads = [{'name': 'Code',             'order': 'o=1', 'type': 'int'}, 
+                   {'name': 'Authors',          'order': 'o=2', 'type': 'str'}, 
+                   {'name': 'Collection',       'order': 'o=3', 'type': 'str'}, 
+                   {'name': 'Liturgical day',   'order': 'o=4', 'type': 'str'},
+                   {'name': 'Thema',            'order': 'o=5', 'type': 'str'},
+                   {'name': 'Main topic',       'order': 'o=6', 'type': 'str'}]
     filters = [ {"name": "Code",           "id": "filter_code",         "enabled": False},
                 {"name": "Collection",     "id": "filter_collection",   "enabled": False},
                 {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
@@ -3012,38 +3012,6 @@ class SermonDetailsView(PassimDetails):
             ]
 
         return context
-
-
-#class EditionListView(BasicListView):
-#    """Listview of editions"""
-
-#    model = Edition
-#    listform = EditionListForm
-#    prefix = "edi" 
-#    template_name = 'seeker/edition_list.html'
-#    plural_name = "Editions"
-#    order_default = ['sermoncollection__idno;idno', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date']
-#    order_cols = order_default
-#    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'int'}, 
-#                   {'name': 'Authors',    'order': 'o=2', 'type': 'str'}, 
-#                   {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
-#                   {'name': 'Place',      'order': 'o=4', 'type': 'str'},
-#                   {'name': 'Publishers', 'order': 'o=5', 'type': 'str'},
-#                   {'name': 'Year',       'order': 'o=6', 'type': 'str'}]
-#    filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
-#                {"name": "Author",      "id": "filter_author",      "enabled": False},
-#                {"name": "Place",       "id": "filter_place",       "enabled": False}
-#                ]
-#    searches = [
-#        {'section': '', 'filterlist': [
-#            {'filter': 'collection','fkfield': 'sermoncollection', 'keyFk': 'title'},
-#            {'filter': 'author',    'fkfield': 'sermoncollection__authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
-#            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }
-#            ]},
-#        {'section': 'other', 'filterlist': [
-#            {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
-#            ]}
-#        ]
 
 
 class EditionList(BasicList):
