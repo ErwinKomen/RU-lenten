@@ -2224,7 +2224,7 @@ class CollectionDetailsView(PassimDetails):
         # Show the SERMONS of this collection
         sermons = {'prefix': 'srm', 'title': 'Sermons of this collection (based on the year/place edition code)'}
         # Show the list of sermons that are part of this collection
-        qs = Sermon.objects.filter(collection=instance).order_by('code')
+        qs = Sermon.objects.filter(collection=instance).order_by('collection__idno', 'edition__idno', 'idno')
         rel_list =[]
         for item in qs:
             rel_item = []
@@ -2256,7 +2256,7 @@ class CollectionDetailsView(PassimDetails):
         # Show the EDITIONS that point to this collection
         editions = {'prefix': 'edi', 'title': 'Printed editions that contain this collection'}
         # Get the list of editions
-        qs = Edition.objects.filter(sermoncollection=instance).order_by('code')
+        qs = Edition.objects.filter(sermoncollection=instance).order_by('sermoncollection__idno', 'idno')
         rel_list = []
         for item in qs:
             rel_item = []
@@ -3226,7 +3226,7 @@ class AuthorDetailsView(PassimDetails):
             rel_item.append({'value': item.get_place()})
             rel_list.append(rel_item)
         collections['rel_list'] = rel_list
-        collections['columns'] = ['Idno', 'Title', 'Date', 'Place']
+        collections['columns'] = ['Collection', 'Title', 'Date', 'Place']
         related_objects.append(collections)
 
         context['related_objects'] = related_objects
