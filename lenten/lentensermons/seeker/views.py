@@ -2415,6 +2415,20 @@ class TgroupListView(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def initializations(self):
+        general = Information.get_kvalue("taggroup_general")
+        if general == None or general == "" or general != "done":
+            old = Tgroup.objects.filter(name="general").first()
+            new = Tgroup.objects.filter(name="New").first()
+            if old and new:
+                # Change the 'general' into 'General'
+                with transaction.atomic():
+                    for obj in TagKeyword.objects.filter(tgroup=old):
+                        obj.tgroup = new
+                        obj.save()
+            Information.set_kvalue("taggroup_general", "done")
+        return None
+
 
 class TgroupEdit(BasicDetails):
     model = Tgroup
@@ -2433,6 +2447,16 @@ class TgroupEdit(BasicDetails):
             ]
         # Return the context we have made
         return context
+
+    def before_save(self, form, instance):
+        bResult = True
+        msg = ""
+        name = form.instance.name
+        obj = Tgroup.objects.filter(name__iexact=name).first()
+        if obj != None:
+            msg = "Sorry, group [{}] already exists. Cannot have two instances of the same Tag group.".format(obj.name)
+            bResult = False
+        return bResult, msg
 
 
 class TgroupDetails(TgroupEdit):
