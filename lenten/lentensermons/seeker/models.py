@@ -1412,6 +1412,14 @@ class Manuscript(tagtext.models.TagtextModel):
             sBack = markdown(self.get_info_display)
             sBack = sBack.strip()
         return sBack
+
+    def has_link(self):
+        """Return '*' if a link is defined"""
+        return "*" if self.url and self.url != "" else ""
+    
+    def has_info(self):
+        """Return '*' if info is defined"""
+        return "*" if self.info and self.info != "" and self.info != "-" else ""
     
 
 class Book(models.Model):

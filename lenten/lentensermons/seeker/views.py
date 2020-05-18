@@ -2244,11 +2244,13 @@ class CollectionDetailsView(PassimDetails):
         rel_list = []
         for item in qs:
             rel_item = []
-            rel_item.append({'value': item.info, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
-            rel_item.append({'value': item.link})
+            rel_item.append({'value': item.name, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
+            # OLD: rel_item.append({'value': item.get_info_display, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.has_link()})
+            rel_item.append({'value': item.has_info()})
             rel_list.append(rel_item)
         manuscripts['rel_list'] = rel_list
-        manuscripts['columns'] = ['Information', 'Link']
+        manuscripts['columns'] = ['Manuscript', 'Link', 'Information']
         related_objects.append(manuscripts)
 
         # Show the EDITIONS that point to this collection
@@ -2272,63 +2274,6 @@ class CollectionDetailsView(PassimDetails):
         # Return the context we have made
         return context
 
-
-#class CollectionListView(BasicListView):
-#    """Listview of sermon collections"""
-
-#    model = SermonCollection
-#    listform = CollectionListForm
-#    prefix = "coll"
-#    template_name = 'seeker/collection_list.html'
-#    plural_name = "Sermon collections"
-#    entrycount = 0
-#    order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
-#    order_cols = order_default
-#    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int'}, 
-#                   {'name': 'Authors',       'order': 'o=2', 'type': 'str'}, 
-#                   {'name': 'Title',         'order': 'o=3', 'type': 'str'}, 
-#                   {'name': 'Year',          'order': 'o=4', 'type': 'str'},
-#                   {'name': 'Place',         'order': 'o=5', 'type': 'str'},
-#                   {'name': 'First Edition', 'order': 'o=6', 'type': 'str'},
-#                   {'name': 'Editions',      'order': 'o=7', 'type': 'str'}]
-#    filters = [ {"name": "Identifier",      "id": "filter_idno",    "enabled": False},
-#                {"name": "Author",          "id": "filter_author",  "enabled": False},
-#                {"name": "Title",           "id": "filter_title",   "enabled": False},
-#                {"name": "Place",           "id": "filter_place",   "enabled": False},
-#                {"name": "Has manuscripts", "id": "filter_hasmanu", "enabled": False}]
-#    searches = [
-#        {'section': '', 'filterlist': [
-#            {'filter': 'idno',      'dbfield': 'code',      'keyS': 'code'},
-#            {'filter': 'author',    'fkfield': 'authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
-#            {'filter': 'title',     'dbfield': 'title',     'keyS': 'title'},
-#            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' },
-#            {'filter': 'hasmanu',   'dbfield': 'nummanu',   'keyType': 'has'}
-#            ]},
-#        {'section': 'other', 'filterlist': [
-#            {'filter': 'tagnoteid', 'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
-#            {'filter': 'taglituid', 'fkfield': 'liturtags',     'keyS': 'taglituid',    'keyFk': 'id' },
-#            {'filter': 'tagcommid', 'fkfield': 'commutags',     'keyS': 'tagcommid',    'keyFk': 'id' },
-#            {'filter': 'tagqsrcid', 'fkfield': 'sourcenotetags','keyS': 'tagqsrcid',    'keyFk': 'id' },
-#            {'filter': 'tagexmpid', 'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
-#            ]}
-#        ]
-
-#    def add_to_context(self, context, initial):
-#        # Check if counting has been done
-#        if Information.get_kvalue("manucount") == "":
-#            # Calculate
-#            if SermonCollection.do_manu_count():
-#                Information.set_kvalue("manucount", "done")
-
-#        ## Check if processing of tags has been done
-#        #if Information.get_kvalue("tagqsource") == "":
-#        #    # Calculate
-#        #    if SermonCollection.do_qsources():
-#        #        Information.set_kvalue("tagqsource", "done")
-
-
-#        return context
-    
 
 class CollectionList(BasicList):
     """Listview of sermon collections"""
