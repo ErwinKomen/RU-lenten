@@ -1537,8 +1537,8 @@ class Edition(tagtext.models.TagtextModel):
         ]
 
     def __str__(self):
-        response = "-" if self.code == None else self.code
-        return response
+        code = self.get_code()
+        return code
 
     def tagtext_url(self):
         url = reverse('api_tributes')
@@ -1667,7 +1667,7 @@ class Sermon(tagtext.models.TagtextModel):
     # [0-1] Thema = initial line of a sermon
     thema = models.TextField("Thema", null=True, blank=True)
     # [0-1] Biblical reference (optional), consisting of three parts: book, chapter, verse
-    book = models.ForeignKey(Book, related_name="book_sermons", null=True, on_delete=models.SET_NULL)
+    book = models.ForeignKey(Book, related_name="book_sermons", null=True, blank=True, on_delete=models.SET_NULL)
     chapter = models.IntegerField("Chapter", null=True, blank=True)
     verse = models.IntegerField("Verse", null=True, blank=True)
     # [0-1] The main division of the sermon: both in Latin as well as in English
@@ -1711,9 +1711,10 @@ class Sermon(tagtext.models.TagtextModel):
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
         # CHeck who the 'firstauthor' is and adapt
-        obj = self.topics.all().first()
-        if self.firsttopic == None or (obj != None and self.firsttopic is not obj):
-            self.firsttopic = obj
+        if self.id:
+            obj = self.topics.all().first()
+            if self.firsttopic == None or (obj != None and self.firsttopic is not obj):
+                self.firsttopic = obj
         response = super(Sermon, self).save(force_insert, force_update, using, update_fields)
         return None
 
