@@ -3048,7 +3048,7 @@ class EditionList(BasicList):
     basic_add = 'edition_add'
     has_select2 = True
     plural_name = "Editions"
-    order_default = ['sermoncollection__idno;idno', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date', '']
+    order_default = ['sermoncollection__idno;idno', 'sermoncollection__firstauthor__name', 'sermoncollection__title', 'place__name', 'firstpublisher__name', 'date', '']
     order_cols = order_default
     order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'int', 'custom': 'code',      'linkdetails': True}, 
                    {'name': 'Authors',    'order': 'o=2', 'type': 'str', 'custom': 'authors'}, 
@@ -3097,6 +3097,14 @@ class EditionList(BasicList):
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
+
+    def initializations(self):
+        publishers_done = Information.get_kvalue("publishers")
+        if publishers_done != "done":
+            if Edition.do_publishers():
+                Information.set_kvalue("publishers", "done")
+
+        return None
 
 
 class EditionDetailsView(PassimDetails):

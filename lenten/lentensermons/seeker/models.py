@@ -1564,6 +1564,9 @@ class Edition(tagtext.models.TagtextModel):
     # [0-1] Other texts
     colophon = models.TextField("Colophon", blank=True, null=True)
 
+    # ======================== HELPER ===============================
+    firstpublisher = models.ForeignKey(Publisher, blank=True, null=True, related_name="firstpublisher_editions")
+
     # [1] Each edition belongs to a sermoncollection. 
     #     (When the SermonCollection is deleted, I should be deleted too - CASCADE)
     sermoncollection = models.ForeignKey(SermonCollection, related_name="editions", on_delete=models.CASCADE)
@@ -1587,6 +1590,9 @@ class Edition(tagtext.models.TagtextModel):
         return url
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+        # CHeck who the 'firstpublisher' is and adapt
+        self.firstpublisher = self.get_firstpublisher()
+
         response = super(Edition, self).save(force_insert, force_update, using, update_fields)
         # Adapt the information in sermoncollection
         self.sermoncollection.adapt_editions()
@@ -1597,6 +1603,16 @@ class Edition(tagtext.models.TagtextModel):
         # Adapt the information in sermoncollection
         self.sermoncollection.adapt_editions()
         return response
+
+    def do_publishers():
+        qs = Edition.objects.all()
+        with transaction.atomic():
+            for edi in qs:
+                obj = edi.get_firstpublisher()
+                if obj != edi.firstpublisher:
+                    edi.firstpublisher = obj
+                    edi.save()
+        return True
 
     def get_code(self):
         """Get the code of collection/edition"""
@@ -1613,6 +1629,11 @@ class Edition(tagtext.models.TagtextModel):
         sBack = "{}/{}".format(collnum, idno)
 
         return sBack
+
+    def get_firstpublisher(self):
+        # CHeck who the 'firstpublisher' is and adapt
+        obj = self.publishers.all().order_by('name').first()
+        return obj
 
     def get_sermons(self):
         """Recover all the sermons that fall under this edition"""
