@@ -408,7 +408,7 @@ def tag_combine_html(obj, sParts, sWhole):
             if item['type'] == 'tag' and item['tagid'] == obj_id:
                 if method == "word-based":
                     # Get preceding and following parts
-                    prev_item = parts_to_string(parts, 0, idx, CUTOFF, "from_end")
+                    prev_item = parts_to_string(parts, 0, idx-1, CUTOFF, "from_end")
                     next_item = parts_to_string(parts, idx+1, len(parts), CUTOFF, "from_start")
                 elif method == "character-based":
                     # Just get the single one preceding and following part
@@ -1779,7 +1779,8 @@ class Sermon(tagtext.models.TagtextModel):
         return url
 
     def __str__(self):
-        return self.code if self.code else ""
+        sBack = self.get_code()
+        return sBack
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
         # CHeck who the 'firstauthor' is and adapt

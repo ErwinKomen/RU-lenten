@@ -2753,7 +2753,7 @@ class TagKeywordDetailView(PassimDetails):
             rel_list =[]
             for item in qs:
                 rel_item = []
-                rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
                 rel_item.append({'value': item.litday})
                 rel_item.append({'value': item.get_authors()})
                 rel_item.append({'value': item.get_summary_markdown(instance)})
@@ -2770,7 +2770,7 @@ class TagKeywordDetailView(PassimDetails):
             rel_list =[]
             for item in qs:
                 rel_item = []
-                rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
                 rel_item.append({'value': item.litday})
                 rel_item.append({'value': item.get_authors()})
                 rel_item.append({'value': item.get_note_display})
@@ -2841,7 +2841,7 @@ class TagKeywordDetailView(PassimDetails):
             rel_list =[]
             for item in qs:
                 rel_item = []
-                rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
                 rel_item.append({'value': item.get_place()})
                 rel_item.append({'value': item.get_editors()})
                 rel_item.append({'value': item.get_date()})
@@ -3017,7 +3017,7 @@ class SermonDetailsView(PassimDetails):
         sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
         context['mainitems'] = [
             {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title, 'link': sc},
-            {'type': 'plain', 'label': "Code:", 'value': instance.code},
+            {'type': 'plain', 'label': "Code:", 'value': instance.get_code()},
             {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
             {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
             {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
