@@ -361,7 +361,39 @@ def tag_combine_html(obj, sParts, sWhole):
 
     # Initialisations
     lHtml = []
+    CUTOFF = 50
     oErr = ErrHandle()
+
+    def parts_to_string(parts, idxBeg, idxEnd, size, type):
+        """COmbine parts from idxBeg until idxEnd into a string"""
+
+        if idxBeg <0 or idxEnd == 0 or idxEnd < idxBeg:
+            combi = ""
+        else:
+            lst_combi = []
+            mysize = 0
+            # Action depends on type
+            if type == "from_end":
+                idx = idxEnd
+                while idx >=0:
+                    contents = parts[idx]['value'].strip().replace('\n', ' ').replace('*', '')
+                    lst_combi.insert(0,contents)
+                    mysize += len(contents)
+                    if mysize > size:
+                        break
+                    idx -= 1
+            else:
+                for part in parts[idxBeg:idxEnd]:
+                    contents = part['value'].strip().replace('\n', ' ').replace('*', '')
+                    lst_combi.append(contents)
+                    mysize += len(contents)
+                    if mysize > size:
+                        break
+
+            
+            # lst_combi = [x['value'].strip().replace('\n', ' ').replace('*', '') for x in parts[idxBeg:idxEnd] ]
+            combi = " ".join(lst_combi)
+        return combi
 
     try:
         # Get the id as a string
@@ -375,10 +407,16 @@ def tag_combine_html(obj, sParts, sWhole):
         for idx, item in enumerate(parts):
             # Check if this is a focus item
             if item['type'] == 'tag' and item['tagid'] == obj_id:
-                prev_item = "" if idx == 0 else parts[idx-1]
-                next_item = "" if idx+1 >= len(parts) else parts[idx+1]
-                prev_item = prev_item['value'].strip().replace('\n', ' ').replace('*', '')[-50:]
-                next_item = next_item['value'].strip().replace('\n', ' ').replace('*', '')[:50]
+                # Get preceding parts
+                prev_item = parts_to_string(parts, 0, idx, CUTOFF, "from_end")
+                next_item = parts_to_string(parts, idx+1, len(parts), CUTOFF, "from_start")
+                #prev_item = prev_item[-50:]
+                #next_item = next_item[:50]
+                # x = parts[10:11]
+                #prev_item = "" if idx == 0 else parts[idx-1]
+                #next_item = "" if idx+1 >= len(parts) else parts[idx+1]
+                #if len(prev_item) > 0: prev_item = prev_item['value'].strip().replace('\n', ' ').replace('*', '')[-50:]
+                #if len(next_item) > 0: next_item = next_item['value'].strip().replace('\n', ' ').replace('*', '')[:50]
                 this_item = item['value']
                 lFound.append("<tr class='clickable' onclick='ru.lenten.seeker.toggle_tag(this);'><td align='right'>...{}</td><td align='center'><b>{}</b></td><td>{}...</td></tr>".format(prev_item, this_item, next_item ))
         if len(lFound) > 0:

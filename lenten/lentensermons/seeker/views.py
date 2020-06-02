@@ -2773,7 +2773,7 @@ class TagKeywordDetailView(PassimDetails):
                 rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
                 rel_item.append({'value': item.litday})
                 rel_item.append({'value': item.get_authors()})
-                rel_item.append({'value': item.get_note_display()})
+                rel_item.append({'value': item.get_note_display})
                 rel_list.append(rel_item)
             sermons['rel_list'] = rel_list
             sermons['columns'] = ['Code', 'Liturgical day', 'Authors', 'Context: Note']
