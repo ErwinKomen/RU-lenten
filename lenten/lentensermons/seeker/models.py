@@ -362,6 +362,7 @@ def tag_combine_html(obj, sParts, sWhole):
     # Initialisations
     lHtml = []
     CUTOFF = 50
+    method = "word-based"   # Or: "character-based"
     oErr = ErrHandle()
 
     def parts_to_string(parts, idxBeg, idxEnd, size, type):
@@ -390,8 +391,6 @@ def tag_combine_html(obj, sParts, sWhole):
                     if mysize > size:
                         break
 
-            
-            # lst_combi = [x['value'].strip().replace('\n', ' ').replace('*', '') for x in parts[idxBeg:idxEnd] ]
             combi = " ".join(lst_combi)
         return combi
 
@@ -407,18 +406,23 @@ def tag_combine_html(obj, sParts, sWhole):
         for idx, item in enumerate(parts):
             # Check if this is a focus item
             if item['type'] == 'tag' and item['tagid'] == obj_id:
-                # Get preceding parts
-                prev_item = parts_to_string(parts, 0, idx, CUTOFF, "from_end")
-                next_item = parts_to_string(parts, idx+1, len(parts), CUTOFF, "from_start")
-                #prev_item = prev_item[-50:]
-                #next_item = next_item[:50]
-                # x = parts[10:11]
-                #prev_item = "" if idx == 0 else parts[idx-1]
-                #next_item = "" if idx+1 >= len(parts) else parts[idx+1]
-                #if len(prev_item) > 0: prev_item = prev_item['value'].strip().replace('\n', ' ').replace('*', '')[-50:]
-                #if len(next_item) > 0: next_item = next_item['value'].strip().replace('\n', ' ').replace('*', '')[:50]
+                if method == "word-based":
+                    # Get preceding and following parts
+                    prev_item = parts_to_string(parts, 0, idx, CUTOFF, "from_end")
+                    next_item = parts_to_string(parts, idx+1, len(parts), CUTOFF, "from_start")
+                elif method == "character-based":
+                    # Just get the single one preceding and following part
+                    prev_item = "" if idx == 0 else parts[idx-1]
+                    next_item = "" if idx+1 >= len(parts) else parts[idx+1]
+                    # And then cut it off to 50 chars before and after
+                    if len(prev_item) > 0: prev_item = prev_item['value'].strip().replace('\n', ' ').replace('*', '')[-50:]
+                    if len(next_item) > 0: next_item = next_item['value'].strip().replace('\n', ' ').replace('*', '')[:50]
+                # Get the focus item
                 this_item = item['value']
-                lFound.append("<tr class='clickable' onclick='ru.lenten.seeker.toggle_tag(this);'><td align='right'>...{}</td><td align='center'><b>{}</b></td><td>{}...</td></tr>".format(prev_item, this_item, next_item ))
+                # Add the line to the table that shows the results
+                lFound.append("<tr class='clickable' onclick='ru.lenten.seeker.toggle_tag(this);'>")
+                lFound.append("<td align='right'>...{}</td><td align='center'><b>{}</b></td><td>{}...</td></tr>".format(
+                    prev_item, this_item, next_item ))
         if len(lFound) > 0:
             lHtml.append("<table class='no-border-table'>{}</table>".format("\n".join(lFound)))
         # Finish this off
