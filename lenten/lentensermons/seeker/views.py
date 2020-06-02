@@ -2262,12 +2262,12 @@ class CollectionDetailsView(PassimDetails):
             rel_item = []
             rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
             rel_item.append({'value': item.get_place()})
-            rel_item.append({'value': item.get_editors()})
+            rel_item.append({'value': item.get_publishers()})
             rel_item.append({'value': item.get_date()})
             rel_item.append({'value': item.has_notes()})
             rel_list.append(rel_item)
         editions['rel_list'] = rel_list
-        editions['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
+        editions['columns'] = ['Code', 'Place', 'Publishers', 'Date', 'Notes']
         related_objects.append(editions)
 
         context['related_objects'] = related_objects

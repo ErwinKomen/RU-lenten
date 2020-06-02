@@ -1707,6 +1707,15 @@ class Edition(tagtext.models.TagtextModel):
             lPublisher.append(obj.name)
         return "; ".join(lPublisher)
 
+    def get_publishers(self):
+        """Return the publishers (printable)"""
+
+        lPublisher = []
+        for obj in self.publishers.all():
+            url = reverse('publisher_details', kwargs={'pk': obj.id})
+            lPublisher.append("<a href='{}'><span class='publisher'>{}</span></a>".format(url, obj.name))
+        return ", ".join(lPublisher)
+
     def has_notes(self):
         """Return asterisk if has notes"""
 

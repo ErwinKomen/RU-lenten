@@ -1292,4 +1292,18 @@ span[contenteditable=false] > a:hover, span.topic > a:hover {
     cursor: pointer;
 }
 
+.publisher {
+    color: darkmagenta;
+    font-family: monospace;
+    background-color: aliceblue;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-size: 90%;
+    padding: 0px 4px;
+}
+.publisher:hover {
+    color: whitesmoke;
+    background-color: darkmagenta;
+    cursor: pointer;
+}
 
