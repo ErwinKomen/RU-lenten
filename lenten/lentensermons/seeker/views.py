@@ -3045,6 +3045,7 @@ class EditionList(BasicList):
     listform = EditionListForm
     prefix = "edi" 
     admin_editable = True
+    basic_add = 'edition_add'
     has_select2 = True
     plural_name = "Editions"
     order_default = ['sermoncollection__idno;idno', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date', '']
@@ -3109,7 +3110,7 @@ class EditionDetailsView(PassimDetails):
 
     def add_to_context(self, context, instance):
         sLocation = ""
-        if instance.place:
+        if hasattr(instance, 'place') and instance.place:
             sLocation = instance.place.name
         context['mainitems'] = [
             {'type': 'plain', 'label': "Code:", 'value': instance.get_code(), 'title': 'Collection number / Edition number within that collection'},
