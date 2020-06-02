@@ -1,6 +1,7 @@
 import sys
 from django.db import models
 from django.shortcuts import redirect, reverse
+from markdown import markdown
 import json
 
 
@@ -135,17 +136,22 @@ class TagtextModel(models.Model):
                 arPart = json.loads(sText)
                 html = []
                 for item in arPart:
+                    # Make sure to get the markdown of the item
+                    mditem = item['value']
+                    # Now look further...
                     if item['type'] == "text":
-                        html.append(item['value'])
+                        html.append(mditem)
                     elif item['type'] == "new":
-                        html.append('@{}@'.format(item['value']))
+                        html.append('@{}@'.format(mditem))
                     else:
                         if url:
                             href = reverse(url, kwargs= {'pk': item['tagid']})
-                            html.append('<span tagid="{}" contenteditable="false"><a href="{}">{}</a></span>'.format(item['tagid'], href, item['value']))
+                            html.append('<span tagid="{}" contenteditable="false"><a href="{}">{}</a></span>'.format(item['tagid'], href, mditem))
                         else:
-                            html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], item['value']))
+                            html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], mditem))
                 showvalue = "".join(html)
+                # Now perform MD
+                showvalue = markdown(showvalue).replace("<p>", "").replace("</p>", "")
             setattr(self, "get_{}_display".format(textfield), showvalue)
             return True
         except:

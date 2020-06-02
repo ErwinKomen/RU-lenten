@@ -1292,77 +1292,6 @@ class SermonCollection(tagtext.models.TagtextModel):
         response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
         return None
 
-    def tagtext_url(self):
-        url = reverse('api_tributes')
-        return url
-
-    def first_edition_obj(self):
-        """Find the first edition from those linked to me"""
-
-        # Order the editions by ascending date and then take the first
-        hit = self.editions.all().order("date").first()
-        return hit
-
-    def edicount(self):
-        """Calculate the number of editions linked to me"""
-
-        return self.editions.all().count()
-
-    def authorlist(self):
-
-        lst_author = [x.id for x in self.authors.all()]
-        qs = Author.objects.filter(id__in=lst_author)
-        return qs
-
-    def authorbadges(self):
-        """Get HTML code for a series of badges with author names"""
-
-        lHtml = []
-        qs = self.authors.all()
-        for obj in qs:
-            sBadge = "<span class='badge jumbo-1'>{}</span>".format(obj.name)
-            lHtml.append(sBadge)
-
-        return "\n".join(lHtml)
-
-    def get_firstauthor(self):
-        f = self.authors.all().first()
-        sBack = "" if f == None else f.name
-        return sBack
-
-    def get_authors(self):
-        auth_list = [x.name for x in self.authors.all()]
-        return ", ".join(auth_list)
-
-    def get_place(self):
-        place = "-"
-        if self.place != None:
-            place = self.place.name
-        return place
-
-    def num_editions(self):
-        count = self.editions.all().count()
-        return count
-
-    def first_edition(self):
-        obj = self.editions.all().order_by('date', 'date_late').first()
-        year = "-"
-        if obj != None:
-            year = obj.date
-            if year == None:
-                year = obj.date_late
-        return year
-
-    def get_firstedition(self):
-        """Get the first edition and its author"""
-
-        sBack = ""
-        year = self.firstedition
-        author = self.get_firstauthor()
-        if author == "": author = "(unknown)"
-        sBack = "{} {}".format(author, year)
-        return sBack
-
     def adapt_editions(self):
         """This gets called when an edition changes"""
 
@@ -1391,6 +1320,23 @@ class SermonCollection(tagtext.models.TagtextModel):
             self.save()
         return True
 
+    def authorbadges(self):
+        """Get HTML code for a series of badges with author names"""
+
+        lHtml = []
+        qs = self.authors.all()
+        for obj in qs:
+            sBadge = "<span class='badge jumbo-1'>{}</span>".format(obj.name)
+            lHtml.append(sBadge)
+
+        return "\n".join(lHtml)
+
+    def authorlist(self):
+
+        lst_author = [x.id for x in self.authors.all()]
+        qs = Author.objects.filter(id__in=lst_author)
+        return qs
+
     def do_manu_count():
         """Count manuscripts for all collections"""
 
@@ -1404,6 +1350,60 @@ class SermonCollection(tagtext.models.TagtextModel):
         except:
             msg = oErr.get_error_message()
             return False
+
+    def edicount(self):
+        """Calculate the number of editions linked to me"""
+
+        return self.editions.all().count()
+
+    def first_edition_obj(self):
+        """Find the first edition from those linked to me"""
+
+        # Order the editions by ascending date and then take the first
+        hit = self.editions.all().order("date").first()
+        return hit
+
+    def first_edition(self):
+        obj = self.editions.all().order_by('date', 'date_late').first()
+        year = "-"
+        if obj != None:
+            year = obj.date
+            if year == None:
+                year = obj.date_late
+        return year
+
+    def get_firstauthor(self):
+        f = self.authors.all().first()
+        sBack = "" if f == None else f.name
+        return sBack
+
+    def get_firstedition(self):
+        """Get the first edition and its author"""
+
+        sBack = ""
+        year = self.firstedition
+        author = self.get_firstauthor()
+        if author == "": author = "(unknown)"
+        sBack = "{} {}".format(author, year)
+        return sBack
+
+    def get_authors(self):
+        auth_list = [x.name for x in self.authors.all()]
+        return ", ".join(auth_list)
+
+    def get_place(self):
+        place = "-"
+        if self.place != None:
+            place = self.place.name
+        return place
+
+    def num_editions(self):
+        count = self.editions.all().count()
+        return count
+
+    def tagtext_url(self):
+        url = reverse('api_tributes')
+        return url
 
 
 class Manuscript(tagtext.models.TagtextModel):
@@ -1630,32 +1630,6 @@ class Edition(tagtext.models.TagtextModel):
 
         return sBack
 
-    def get_firstpublisher(self):
-        # CHeck who the 'firstpublisher' is and adapt
-        obj = self.publishers.all().order_by('name').first()
-        return obj
-
-    def get_sermons(self):
-        """Recover all the sermons that fall under this edition"""
-
-        oErr = ErrHandle()
-        qs = []
-        try:
-            # Get the basic collection/sermons
-            qs = self.sermoncollection.sermons.all()
-            # TODO: order the sermons somehow??
-        except:
-            sMsg = oErr.get_error_message()
-            oErr.DoError("Edition/get_sermons")
-            qs = None
-        return qs
-
-    def sermon_count(self):
-        """The number of sermons under this edition"""
-
-        count = self.sermoncollection.sermons.all().count()
-        return count
-
     def get_date(self):
         """Combine the date fields into a listview-showable version"""
 
@@ -1672,6 +1646,18 @@ class Edition(tagtext.models.TagtextModel):
         lCombi.append(self.get_datetype_display())
         date = " ".join(lCombi)
         return date
+
+    def get_editors(self):
+        """Get a list of editors"""
+
+        sBack = ""
+
+        return sBack
+
+    def get_firstpublisher(self):
+        # CHeck who the 'firstpublisher' is and adapt
+        obj = self.publishers.all().order_by('name').first()
+        return obj
 
     def get_full_date(self):
         """Combine the date fields including datecomment and so on"""
@@ -1692,13 +1678,6 @@ class Edition(tagtext.models.TagtextModel):
             place = self.place.name
         return place
 
-    def get_editors(self):
-        """Get a list of editors"""
-
-        sBack = ""
-
-        return sBack
-
     def get_publisher(self):
         """Return the publisher(s)"""
 
@@ -1716,12 +1695,33 @@ class Edition(tagtext.models.TagtextModel):
             lPublisher.append("<a href='{}'><span class='publisher'>{}</span></a>".format(url, obj.name))
         return ", ".join(lPublisher)
 
+    def get_sermons(self):
+        """Recover all the sermons that fall under this edition"""
+
+        oErr = ErrHandle()
+        qs = []
+        try:
+            # Get the basic collection/sermons
+            qs = self.sermoncollection.sermons.all()
+            # TODO: order the sermons somehow??
+        except:
+            sMsg = oErr.get_error_message()
+            oErr.DoError("Edition/get_sermons")
+            qs = None
+        return qs
+
     def has_notes(self):
         """Return asterisk if has notes"""
 
         sBack = ""
         if self.note: sBack = "*"
         return sBack
+
+    def sermon_count(self):
+        """The number of sermons under this edition"""
+
+        count = self.sermoncollection.sermons.all().count()
+        return count
 
 
 class Sermon(tagtext.models.TagtextModel):
