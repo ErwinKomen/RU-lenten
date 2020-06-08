@@ -368,7 +368,7 @@ def tag_combine_html(obj, sParts, sWhole):
     def parts_to_string(parts, idxBeg, idxEnd, size, type):
         """COmbine parts from idxBeg until idxEnd into a string"""
 
-        if idxBeg <0 or idxEnd == 0 or idxEnd < idxBeg:
+        if idxBeg <0 or idxEnd < 0 or idxEnd < idxBeg:
             combi = ""
         else:
             lst_combi = []
@@ -392,6 +392,19 @@ def tag_combine_html(obj, sParts, sWhole):
                         break
 
             combi = " ".join(lst_combi)
+            # Is this larger than 'size'?
+            if len(combi) > size:
+                # Find the first SPACE depending on the type
+                if type == "from_end":
+                    # Look for first space backwards
+                    idx = combi.rfind(' ',0, len(combi)-size)
+                    if idx > 0:
+                        combi = combi[idx:]
+                else:
+                    # Look for first space forwards
+                    idx = combi.find(' ', size)
+                    if idx > 0:
+                        combi = combi[:idx]
         return combi
 
     try:
@@ -405,7 +418,7 @@ def tag_combine_html(obj, sParts, sWhole):
         lFound = []
         for idx, item in enumerate(parts):
             # Check if this is a focus item
-            if item['type'] == 'tag' and item['tagid'] == obj_id:
+            if item['type'] == 'tag' and str(item['tagid']) == obj_id:
                 if method == "word-based":
                     # Get preceding and following parts
                     prev_item = parts_to_string(parts, 0, idx-1, CUTOFF, "from_end")
@@ -1298,7 +1311,7 @@ class SermonCollection(tagtext.models.TagtextModel):
         bNeedSaving = False
         firstedition = self.first_edition()
         numeditions = self.num_editions()
-        if firstedition != self.firstedition:
+        if firstedition != None and firstedition != "-" and firstedition != self.firstedition:
             self.firstedition = firstedition
             bNeedSaving = True
         if numeditions != self.numeditions:
@@ -1527,7 +1540,7 @@ class Edition(tagtext.models.TagtextModel):
     date = models.IntegerField("Year of publication (earliest)", blank=True, null=True)
     date_late = models.IntegerField("Year of publication (latest)", blank=True, null=True)
     # [0-1] Type of this date: fixed, approximate?
-    datetype = models.CharField("Date type", choices=build_abbr_list(DATE_TYPE), max_length=5)
+    datetype = models.CharField("Date type", choices=build_abbr_list(DATE_TYPE), max_length=5, default="und")
     # [0-1] Comment on the date
     datecomment = models.TextField("Comment on the date", blank=True, null=True)
 
@@ -1590,12 +1603,19 @@ class Edition(tagtext.models.TagtextModel):
         return url
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
-        # CHeck who the 'firstpublisher' is and adapt
-        self.firstpublisher = self.get_firstpublisher()
 
+        # First perform saving
         response = super(Edition, self).save(force_insert, force_update, using, update_fields)
-        # Adapt the information in sermoncollection
-        self.sermoncollection.adapt_editions()
+
+        # CHeck who the 'firstpublisher' is and adapt
+        fp = self.get_firstpublisher()
+        if self.firstpublisher != fp:
+            self.firstpublisher = self.get_firstpublisher()
+            response = super(Edition, self).save(force_insert, force_update, using, update_fields)
+
+        if self.sermoncollection != None:
+            # Adapt the information in sermoncollection
+            self.sermoncollection.adapt_editions()
         return response
 
     def delete(self, using = None, keep_parents = False):

@@ -3080,13 +3080,21 @@ class EditionList(BasicList):
             html.append(instance.get_code())
             sTitle = "view the edition"
         elif custom == "authors":
-            html.append(instance.sermoncollection.get_authors())
+            if instance.sermoncollection:
+                html.append(instance.sermoncollection.get_authors())
+            else:
+                html.append("-")
         elif custom == 'coltitle':
-            url = reverse( 'collection_details', kwargs={'pk': instance.sermoncollection.id})
-            html.append("<span><a class='nostyle' href='{}'>{}</a></span>".format(url, instance.sermoncollection.title))
-            sTitle = "view the collection"
+            if instance.sermoncollection:
+                url = reverse( 'collection_details', kwargs={'pk': instance.sermoncollection.id})
+                html.append("<span><a class='nostyle' href='{}'>{}</a></span>".format(url, instance.sermoncollection.title))
+                sTitle = "view the collection"
+            else:
+                html.append("-")
+                sTitle = "no collection"
         elif custom == 'place':
-            html.append(instance.place.name)
+            place = "-" if instance.place == None else instance.place.name
+            html.append(place)
         elif custom == 'publishers':
             sTitle = instance.get_publisher()
             html.append('<span style="font-size: smaller;">{}</span>'.format(sTitle[:20]))
