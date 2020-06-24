@@ -57,6 +57,13 @@ class TagtextModel(models.Model):
                     tagname = tagobj['value']
                     # Check if this is a new tag or an existing tag
                     if tagobj['type'] == "new":
+                        # Check if there is a representation followed by a lexical entry
+                        arTagname = tagname.split("|")
+                        visual = ""
+                        if len(arTagname) > 1:
+                            tagname = arTagname[1]
+                            visual = arTagname[0]
+                            tagobj['value'] = visual
                         # Add this tag, if the lower case comparison yields nothing
                         obj = cls.objects.filter(name__iexact=tagname.lower()).first()
                         if obj == None:
@@ -174,29 +181,37 @@ class TagtextModel(models.Model):
     
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
 
-        # Perform the actual saving
-        response = super(TagtextModel, self).save(force_insert, force_update, using, update_fields)
+        response = None
+        try:
+            # Perform the actual saving
+            response = super(TagtextModel, self).save(force_insert, force_update, using, update_fields)
 
-        bChanged = False
-        # Process all the mixed_tag_fields
-        for item in self.mixed_tag_fields:
-            textfield = item['textfield']
-            m2mfield = item['m2mfield']
-            cls = item['class']
-            url = None if 'url' not in item else item['url']
+            bChanged = False
+            # Process all the mixed_tag_fields
+            for item in self.mixed_tag_fields:
+                textfield = item['textfield']
+                m2mfield = item['m2mfield']
+                cls = item['class']
+                url = None if 'url' not in item else item['url']
 
-            # Note: this is only possible of there already is a saved ID
-            if self.id:
-                bOkay, sText = self.process_tags(textfield, getattr(self, m2mfield), cls, url)
-                if bOkay:
-                    if getattr(self, textfield) != sText:
-                        setattr(self, textfield, sText)
-                        bChanged  = True
+                # Note: this is only possible of there already is a saved ID
+                if self.id:
+                    bOkay, sText = self.process_tags(textfield, getattr(self, m2mfield), cls, url)
+                    if bOkay:
+                        if getattr(self, textfield) != sText:
+                            setattr(self, textfield, sText)
+                            bChanged  = True
+                    else:
+                        # SOmething is not okay
+                        err = "Notokay"
 
         
-        # Perform additional saving if something changed
-        if bChanged:
-            response = super(TagtextModel, self).save(force_insert, force_update, using, update_fields)
+            # Perform additional saving if something changed
+            if bChanged:
+                response = super(TagtextModel, self).save(force_insert, force_update, using, update_fields)
+        except:
+            sMsg = self.get_error_message()
+            response = None
 
         # Return the saving result
         return response

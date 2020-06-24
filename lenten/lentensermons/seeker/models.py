@@ -1814,12 +1814,17 @@ class Sermon(tagtext.models.TagtextModel):
         return sBack
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
-        # CHeck who the 'firstauthor' is and adapt
-        if self.id:
-            obj = self.topics.all().first()
-            if self.firsttopic == None or (obj != None and self.firsttopic is not obj):
-                self.firsttopic = obj
-        response = super(Sermon, self).save(force_insert, force_update, using, update_fields)
+        oErr = ErrHandle()
+        try:
+            # CHeck who the 'firstauthor' is and adapt
+            if self.id:
+                obj = self.topics.all().first()
+                if self.firsttopic == None or (obj != None and self.firsttopic is not obj):
+                    self.firsttopic = obj
+            response = super(Sermon, self).save(force_insert, force_update, using, update_fields)
+        except:
+            msg = oErr.get_error_message()
+            bError = True
         return None
 
     def get_code(self):
