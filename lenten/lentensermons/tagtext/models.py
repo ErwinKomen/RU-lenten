@@ -37,7 +37,7 @@ class TagtextModel(models.Model):
         
         This assumes we receive a (stringified) JSON list with three types of elements:
         1 - text            {"type": "text",    "value": "this is some text"                }
-        2 - existing tag    {"type": "tag",     "value": "my tag text",      "tagid": 21,   }
+        2 - existing tag    {"type": "tag",     "value": "my tag text",      "tagid": 21, "style": "italic"   }
         3 - new tag         {"type": "new",     "value": "new tag text"                     }
         """
 
@@ -57,8 +57,8 @@ class TagtextModel(models.Model):
                     tagname = tagobj['value']
                     # Check if this is a new tag or an existing tag
                     if tagobj['type'] == "new":
-                        # Add this tag
-                        obj = cls.objects.filter(name=tagname).first()
+                        # Add this tag, if the lower case comparison yields nothing
+                        obj = cls.objects.filter(name__iexact=tagname.lower()).first()
                         if obj == None:
                             # Create a new tag
                             obj = cls.objects.create(name=tagname)
@@ -67,6 +67,8 @@ class TagtextModel(models.Model):
                         # Repair the entry in arPart
                         tagobj['tagid'] = obj.id
                         tagobj['type'] = "tag"
+                        style = obj.get_style()
+                        if style != None and style != "": tagobj['style'] = style
                         # Make sure to add it to [tagitems]
                         tagitems.add(obj)
                     elif tagobj['type'] == "tag":
@@ -76,6 +78,11 @@ class TagtextModel(models.Model):
                             obj = cls.objects.create(name=tagname)
                             # Repair the id
                             tagobj['tagid'] = obj.id
+                            style = obj.get_style()
+                            if style != None and style != "": tagobj['style'] = style
+                        else:
+                            style = obj.get_style()
+                            if style != None and style != "": tagobj['style'] = style
                         taglist.append(obj)
                         # Check if it is in the m2m tagitems
                         if obj not in tagitems.all():
@@ -144,11 +151,18 @@ class TagtextModel(models.Model):
                     elif item['type'] == "new":
                         html.append('@{}@'.format(mditem))
                     else:
+                        # This means the field type is 'tag'
                         if url:
                             href = reverse(url, kwargs= {'pk': item['tagid']})
-                            html.append('<span tagid="{}" contenteditable="false"><a href="{}">{}</a></span>'.format(item['tagid'], href, mditem))
+                            if 'style' in item and item['style'] == "italic":
+                                html.append('<span tagid="{}" contenteditable="false"><a href="{}"><i>{}</i></a></span>'.format(item['tagid'], href, mditem))
+                            else:
+                                html.append('<span tagid="{}" contenteditable="false"><a href="{}">{}</a></span>'.format(item['tagid'], href, mditem))
                         else:
-                            html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], mditem))
+                            if 'style' in item and item['style'] == "italic":
+                                html.append('<span tagid="{}" contenteditable="false"><i>{}</i></span>'.format(item['tagid'], mditem))
+                            else:
+                                html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], mditem))
                 showvalue = "".join(html)
                 # Now perform MD
                 showvalue = markdown(showvalue).replace("<p>", "").replace("</p>", "")

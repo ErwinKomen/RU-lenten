@@ -950,6 +950,12 @@ class Tgroup(models.Model):
             obj.save()
         return obj
 
+    def is_latin(self):
+        bFound = False
+        if self.name and self.name != "":
+            bFound = "Latin" in self.name
+        return bFound
+
 
 class TagLiturgical(models.Model):
     """The field 'liturgical' can have [0-n] tag words associated with it"""
@@ -1150,6 +1156,11 @@ class TagKeyword(models.Model):
         if obj == None:
             obj = TagKeyword.objects.create(name=sName)
         return obj
+
+    def get_style(self):
+        style = ""
+        if self.tgroup.is_latin(): style = "italic"
+        return style
 
 
 
