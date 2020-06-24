@@ -3026,13 +3026,13 @@ class SermonDetailsView(PassimDetails):
 
         context['sections'] = [
             {'name': 'Main division', 'id': 'sermo_division', 'fields': [
-                {'type': 'safeline',    'label': "Division (Latin):", 'value': instance.divisionL.strip()},
-                {'type': 'safeline',    'label': "Division (English):", 'value': instance.divisionE.strip()},
+                {'type': 'safeline',    'label': "Original:", 'value': instance.divisionL.strip()},
+                {'type': 'safeline',    'label': "Translation:", 'value': instance.divisionE.strip()},
                 ]},
             {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
-                {'type': 'line',    'label': "Summary:", 'value': instance.get_summary_markdown()}                ]},
+                {'type': 'line',    'label': "", 'value': instance.get_summary_markdown()}                ]},
             {'name': 'General notes', 'id': 'sermo_general', 'fields': [
-                {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
+                {'type': 'safeline',    'label': "", 'value': instance.get_note_display.strip()}                ]}
             ]
 
         return context
