@@ -1384,7 +1384,7 @@ class SermonCollection(tagtext.models.TagtextModel):
         """Find the first edition from those linked to me"""
 
         # Order the editions by ascending date and then take the first
-        hit = self.editions.all().order("date").first()
+        hit = self.editions.all().order_by("date", 'date_late').first()
         return hit
 
     def first_edition(self):

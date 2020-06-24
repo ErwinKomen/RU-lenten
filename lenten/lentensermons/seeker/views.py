@@ -2286,15 +2286,19 @@ class CollectionList(BasicList):
     sg_name = "Sermon collection"
     has_select2 = True
     entrycount = 0
-    order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
+    order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'numeditions', 'firstedition', '', '']
     order_cols = order_default
     order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int', 'field': 'idno'}, 
                    {'name': 'Authors',       'order': 'o=2', 'type': 'str', 'custom': 'author'}, 
                    {'name': 'Title',         'order': 'o=3', 'type': 'str', 'field': 'title', 'main': True, 'linkdetails': True}, 
                    {'name': 'Year',          'order': 'o=4', 'type': 'str', 'field': 'datecomp'},
                    {'name': 'Place',         'order': 'o=5', 'type': 'str', 'custom': 'place'},
-                   {'name': 'First Edition', 'order': 'o=6', 'type': 'str', 'field': 'firstedition'},
-                   {'name': 'Editions',      'order': 'o=7', 'type': 'int', 'field': 'numeditions'}]
+                   {'name': 'Editions',      'order': 'o=6', 'type': 'int', 'field': 'numeditions'},
+                   {'name': 'First Edition', 'order': 'o=7', 'type': 'str', 'field': 'firstedition'},
+                   {'name': '...place',      'order': '',    'type': 'str', 'custom': 'firstedition_place',
+                    'title': 'Place of the first edition'},
+                   {'name': '...publisher',  'order': '',    'type': 'str', 'custom': 'firstedition_publisher',
+                    'title': 'First publisher of the first edition'}]
     filters = [ {"name": "Identifier",      "id": "filter_idno",    "enabled": False},
                 {"name": "Author",          "id": "filter_author",  "enabled": False},
                 {"name": "Title",           "id": "filter_title",   "enabled": False},
@@ -2326,6 +2330,14 @@ class CollectionList(BasicList):
             html.append(instance.get_authors())
         elif custom == "place":
             html.append(instance.place.name)
+        elif custom == "firstedition_place":
+            edi = instance.first_edition_obj()
+            place = "" if edi == None else edi.place.name
+            html.append(place)
+        elif custom == "firstedition_publisher":
+            edi = instance.first_edition_obj()
+            publisher = "" if edi == None else edi.firstpublisher.name
+            html.append(publisher)
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
