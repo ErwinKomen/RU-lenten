@@ -147,6 +147,11 @@ class TagtextModel(models.Model):
                 # Plain text, not something else...
                 showvalue = sText
             else:
+                # Double check: are there parts in here?
+                if "{" not in sText:
+                    # Automatically convert into one huge part
+                    item = dict(type="text", value=sText)
+                    sText = json.dumps([item])
                 arPart = json.loads(sText)
                 html = []
                 for item in arPart:

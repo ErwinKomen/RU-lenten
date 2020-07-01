@@ -142,12 +142,12 @@ class TagWidget(ModelSelect2MultipleWidget):
         return self.model.objects.all().order_by('name').distinct()
 
 
-class TagLiturWidget(TagWidget):
-    model = TagLiturgical
+#class TagLiturWidget(TagWidget):
+#    model = TagLiturgical
 
 
-class TagCommWidget(TagWidget):
-    model = TagCommunicative
+#class TagCommWidget(TagWidget):
+#    model = TagCommunicative
 
 
 class TagKeywordWidget(TagWidget):
@@ -618,22 +618,22 @@ class TagForm(forms.ModelForm):
         self.fields['tgrlist'].queryset = Tgroup.objects.all().order_by('name')
 
 
-class TagLiturListForm(TagForm):
-    ta_class = "liturtags"
-    plural_name = "liturgical tags"
-    tag_widget = TagLiturWidget
-    class Meta(TagForm.Meta):
-        model = TagLiturgical
-        ta_class = "liturtags"
+#class TagLiturListForm(TagForm):
+#    ta_class = "liturtags"
+#    plural_name = "liturgical tags"
+#    tag_widget = TagLiturWidget
+#    class Meta(TagForm.Meta):
+#        model = TagLiturgical
+#        ta_class = "liturtags"
         
 
-class TagCommListForm(TagForm):
-    ta_class = "commtags"
-    plural_name = "communicative tags"
-    tag_widget = TagCommWidget
-    class Meta(TagForm.Meta):
-        model = TagCommunicative
-        ta_class = "commtags"
+#class TagCommListForm(TagForm):
+#    ta_class = "commtags"
+#    plural_name = "communicative tags"
+#    tag_widget = TagCommWidget
+#    class Meta(TagForm.Meta):
+#        model = TagCommunicative
+#        ta_class = "commtags"
 
 
 class TagKeywordListForm(TagForm):

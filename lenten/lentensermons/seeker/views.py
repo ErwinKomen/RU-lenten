@@ -42,12 +42,12 @@ from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, ConceptListForm, \
-    TagLiturListForm, TagCommListForm, TagKeywordListForm, PublisherListForm, NewsForm, \
+    TagKeywordListForm, PublisherListForm, NewsForm, \
     LitrefForm, AuthorListForm, TgroupForm, ManuscriptForm  # , TagQsourceListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Concept, FieldChoice, Information, \
-    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagKeyword,  \
+    Sermon, SermonCollection, Edition, Manuscript, TagKeyword,  \
     Publisher, Consulting, Litref, Tgroup   # , TagQsource
 
 # Some constants that can be used
@@ -928,13 +928,13 @@ def get_tributes(request):
                 lstQ = []
                 lstQ.append(Q(name__icontains=sQuery))
                 clsThis = None
-                if sTclass == "communicative":
-                    clsThis = TagCommunicative
-                elif sTclass == "liturgical":
-                    clsThis = TagLiturgical
+                #if sTclass == "communicative":
+                #    clsThis = TagCommunicative
+                #elif sTclass == "liturgical":
+                #    clsThis = TagLiturgical
                 #elif sTclass == "qsource":
                 #    clsThis = TagQsource
-                elif sTclass == "notes":
+                if sTclass == "notes":
                     clsThis = TagKeyword
                 if clsThis != None:
                     qs = clsThis.objects.filter(*lstQ).order_by('name')
@@ -2284,6 +2284,7 @@ class CollectionList(BasicList):
     basic_name = "collection"
     plural_name = "Sermon collections"
     sg_name = "Sermon collection"
+    basic_add = 'collection_add'
     has_select2 = True
     entrycount = 0
     order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'numeditions', 'firstedition', '', '']
@@ -2313,13 +2314,43 @@ class CollectionList(BasicList):
             {'filter': 'hasmanu',   'dbfield': 'nummanu',   'keyS': 'hasmanu',   'keyType': 'has'}
             ]},
         {'section': 'other', 'filterlist': [
-            {'filter': 'tagnoteid',     'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
-            {'filter': 'taglituid',     'fkfield': 'liturtags',     'keyS': 'taglituid',    'keyFk': 'id' },
-            {'filter': 'tagcommid',     'fkfield': 'commutags',     'keyS': 'tagcommid',    'keyFk': 'id' },
-            {'filter': 'tagqsrcid',     'fkfield': 'sourcetags',    'keyS': 'tagqsrcid',    'keyFk': 'id' },
-            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
+            {'filter': 'tagnoteid',     'fkfield': 'notetags',          'keyS': 'tagnoteid',    'keyFk': 'id' },
+            {'filter': 'taglituid',     'fkfield': 'liturgicaltags',    'keyS': 'taglituid',    'keyFk': 'id' },
+            {'filter': 'tagcommid',     'fkfield': 'communicativetags', 'keyS': 'tagcommid',    'keyFk': 'id' },
+            {'filter': 'tagqsrcid',     'fkfield': 'sourcetags',        'keyS': 'tagqsrcid',    'keyFk': 'id' },
+            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',       'keyS': 'tagexmpid',    'keyFk': 'id' }
             ]}
         ]
+
+    def initializations(self):
+        # Change TagLiturgical + TagCommunicative into TagKeyword
+        litucomm = Information.get_kvalue("taglitucomm")
+        if litucomm == None or litucomm == "" or litucomm != "done":
+            # Convert liturtags into liturgical tags
+            for coll in SermonCollection.objects.all():
+                # GO through the liturgical tags
+                for litur in coll.liturtags.all():
+                    # Convert the TagLiturgical
+                    word = litur.name
+                    tgroup = litur.tgroup
+                    tagkw = TagKeyword.objects.filter(name=word, tgroup=tgroup).first()
+                    if tagkw == None:
+                        tagkw = TagKeyword.objects.create(name=word, tgroup=tgroup)
+                    # Add this to coll.liturgicaltags
+                    coll.liturgicaltags.add(tagkw)
+                # Go through the communicative tags
+                for commu in coll.commutags.all():
+                    # Convert the TagCommunicative
+                    word = commu.name
+                    tgroup = commu.tgroup
+                    tagkw = TagKeyword.objects.filter(name=word, tgroup=tgroup).first()
+                    if tagkw == None:
+                        tagkw = TagKeyword.objects.create(name=word, tgroup=tgroup)
+                    # Add this to coll.communicativetags
+                    coll.communicativetags.add(tagkw)
+
+            Information.set_kvalue("taglitucomm", "done")
+        return None
 
     def get_field_value(self, instance, custom):
         sBack = ""
@@ -2332,11 +2363,11 @@ class CollectionList(BasicList):
             html.append(instance.place.name)
         elif custom == "firstedition_place":
             edi = instance.first_edition_obj()
-            place = "" if edi == None else edi.place.name
+            place = "" if edi == None or edi.place == None else edi.place.name
             html.append(place)
         elif custom == "firstedition_publisher":
             edi = instance.first_edition_obj()
-            publisher = "" if edi == None else edi.firstpublisher.name
+            publisher = "" if edi == None or edi.firstpublisher == None else edi.firstpublisher.name
             html.append(publisher)
         # Combine the HTML code
         sBack = "\n".join(html)
@@ -2529,28 +2560,6 @@ class TagListView(BasicList):
         return sBack, sTitle
 
 
-class TagLiturListView(TagListView):
-    model = TagLiturgical
-    listform = TagLiturListForm
-    prefix = "tagl"
-    urldef = "tagliturgical_list"
-
-    basic_name = "tagliturgical"
-    plural_name = "Liturgical tags"
-    sg_name = "Liturgical tag"
-
-
-class TagCommListView(TagListView):
-    model = TagCommunicative
-    listform = TagCommListForm
-    prefix = "tagc"
-    urldef = "tagcommunicative_list"
-
-    basic_name = "tagcommunicative"
-    plural_name = "Communicative tags"
-    sg_name = "Communicative tag"
-
-
 class TagKeywordListView(TagListView):
     model = TagKeyword
     listform = TagKeywordListForm
@@ -2560,146 +2569,6 @@ class TagKeywordListView(TagListView):
     basic_name = "tagkeyword"
     plural_name = "Keyword tags"
     sg_name = "Keyword tag"
-
-
-class TagLiturDetailView_New(BasicDetails):
-    model = TagLiturgical
-    mForm = None
-    prefix = "tagl"
-    title = "LiturgicalTagDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        # The main item of the view is the name of the tag itself
-        context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag",   'value': instance.name, 'link': ""},
-            {'type': 'bold',  'label': "Group", 'value': instance.name, 'link': ""}
-            ]
-        # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
-        lst_count = instance.get_list()
-        for oCount in lst_count:
-            oItem = dict(type='plain', label=oCount['type'], value=oCount['count'], align='right')
-            context['mainitems'].append(oItem)
-
-        # Make sure to show each of the sections in [lst_count] separately
-        related_objects = []
-
-        # This tag in: collection.communicative
-        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their relastionship with [Liturgical] texts'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_liturtags.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_liturgical_display})
-                rel_list.append(rel_item)
-            collections['rel_list'] = rel_list
-            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Liturgical']
-            related_objects.append(collections)
-
-        context['related_objects'] = related_objects
-        # Return the resulting context
-        return context    
-
-
-class TagLiturDetailView(PassimDetails):
-    model = TagLiturgical
-    mForm = None
-    template_name = 'generic_details.html'
-    prefix = "tagl"
-    title = "LiturgicalTagDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        # The main item of the view is the name of the tag itself
-        context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""},
-            {'type': 'plain',  'label': "Group", 'value': instance.tgroup.name, 'link': ""}
-            ]
-        # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
-        lst_count = instance.get_list()
-        for oCount in lst_count:
-            oItem = dict(type='plain', label=oCount['type'], value=oCount['count'], align='right')
-            context['mainitems'].append(oItem)
-
-        # Make sure to show each of the sections in [lst_count] separately
-        related_objects = []
-
-        # This tag in: collection.communicative
-        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their relastionship with [Liturgical] texts'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_liturtags.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_liturgical_display})
-                rel_list.append(rel_item)
-            collections['rel_list'] = rel_list
-            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Liturgical']
-            related_objects.append(collections)
-
-        context['related_objects'] = related_objects
-        # Return the resulting context
-        return context    
-
-
-class TagCommDetailView(PassimDetails):
-    model = TagCommunicative
-    mForm = None
-    template_name = 'generic_details.html'
-    prefix = "tagc"
-    title = "CommunicativeTagDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        # The main item of the view is the name of the tag itself
-        context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""},
-            {'type': 'plain',  'label': "Group", 'value': instance.tgroup.name, 'link': ""}
-            ]
-        # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
-        lst_count = instance.get_list()
-        for oCount in lst_count:
-            oItem = dict(type='plain', label=oCount['type'], value=oCount['count'], align='right')
-            context['mainitems'].append(oItem)
-
-        # Make sure to show each of the sections in [lst_count] separately
-        related_objects = []
-
-        # This tag in: collection.communicative
-        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Communicative strategy]'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_commtags.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_communicative_display})
-                rel_list.append(rel_item)
-            collections['rel_list'] = rel_list
-            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Communicative strategy']
-            related_objects.append(collections)
-
-        context['related_objects'] = related_objects
-        # Return the resulting context
-        return context    
 
 
 class TagKeywordDetailView(PassimDetails):
@@ -2757,111 +2626,118 @@ class TagKeywordDetailView(PassimDetails):
             infos['columns'] = ['Name', 'Information', 'Link']
             related_objects.append(infos)
 
-        # This tag in: sermon.summaries
-        summaries = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Summary]'}
-        # Show the list of sermons that contain this tag
-        qs = instance.sermon_summarynotes.all().order_by('code')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.litday})
-                rel_item.append({'value': item.get_authors()})
-                rel_item.append({'value': item.get_summary_markdown(instance)})
-                rel_list.append(rel_item)
-            summaries['rel_list'] = rel_list
-            summaries['columns'] = ['Code', 'Liturgical day', 'Authors', 'Context: Summary']
-            related_objects.append(summaries)
+        # Sermon listviews
+        sermondescriptions = [
+            {'field': 'DivisionL',   'head': 'Division (Latin)',    'display': 'divisionL',
+                'qs': instance.sermon_divisionltags.all().order_by('code')},
+            {'field': 'DivisionE',   'head': 'Division (English)',  'display': 'divisionE',
+                'qs': instance.sermon_divisionetags.all().order_by('code')},
+            {'field': 'Summary',   'head': 'Context: Summary',      'display': '',
+                'qs': instance.sermon_summarynotes.all().order_by('code')},
+            {'field': 'Notes',     'head': 'Context:  Note',        'display': 'note', 
+                'qs': instance.sermon_notetags.all().order_by('code')}
+            ]
+        for description in sermondescriptions:
+            base = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [{}]'.format(description['field'])}
+            qs = description['qs']
+            if qs.count() > 0:
+                rel_list =[]
+                displayfieldname = "get_{}_display".format(description['display'])
+                for item in qs:
+                    rel_item = []
+                    rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+                    rel_item.append({'value': item.litday})
+                    rel_item.append({'value': item.get_authors()})
+                    if description['field'] == "Summary":
+                        rel_item.append({'value': item.get_summary_markdown(instance)})
+                    else:
+                        rel_item.append({'value': getattr(item, displayfieldname)})
+                    rel_list.append(rel_item)
+                base['rel_list'] = rel_list
+                base['columns'] = ['Code', 'Liturgical day', 'Authors', description['head']]
+                related_objects.append(base)
 
-        # This tag in: sermon.notes
-        sermons = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Notes]'}
-        # Show the list of sermons that contain this tag
-        qs = instance.sermon_notetags.all().order_by('code')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.litday})
-                rel_item.append({'value': item.get_authors()})
-                rel_item.append({'value': item.get_note_display})
-                rel_list.append(rel_item)
-            sermons['rel_list'] = rel_list
-            sermons['columns'] = ['Code', 'Liturgical day', 'Authors', 'Context: Note']
-            related_objects.append(sermons)
+        # Collection listviews
+        collectiondescriptions = [
+            {'field': 'relationship with [Liturgical] texts',   'display': 'liturgical',    'head': 'Liturgical',
+                'qs': instance.collection_liturgicaltags.all().order_by('idno')},
+            {'field': '[Communicative strategy]',               'display': 'communicative', 'head': 'Communicative strategy', 
+                'qs': instance.collection_communicativetags.all().order_by('idno')},
+            {'field': '[Sources]',                              'display': 'sources',       'head': 'Sources',                 
+                'qs': instance.collection_sourcenotes.all().order_by('idno')},
+            {'field': '[Notes]',                                'display': 'notes',         'head': 'Notes',                   
+                'qs': instance.collection_notes.all().order_by('idno')},
+            {'field': '[Exempla]',                              'display': 'exempla',       'head': 'Exempla',                
+                'qs': instance.collection_exempla.all().order_by('idno')}
+            ]
+        for description in collectiondescriptions:
+            base = {'prefix': 'col', 'title': 'Collections that use this tag in their {}'.format(description['field'])}
+            qs = description['qs']
+            if qs.count() > 0:
+                rel_list =[]
+                displayfieldname = "get_{}_display".format(description['display'])
+                for item in qs:
+                    rel_item = []
+                    rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
+                    rel_item.append({'value': item.title})
+                    rel_item.append({'value': item.datecomp})
+                    rel_item.append({'value': item.get_place()})
+                    rel_item.append({'value': getattr(item, displayfieldname)})
+                    rel_list.append(rel_item)
+                base['rel_list'] = rel_list
+                base['columns'] = ['Idno', 'Title', 'Date', 'Place', description['head']]
+                related_objects.append(base)
+ 
+        # Edition listviews
+        editiondescriptions = [
+            {'field': 'DateComment',    'qs': instance.edition_datecommenttags.all().order_by('code')},
+            {'field': 'Notes',          'qs': instance.edition_notetags.all().order_by('code')},
+            {'field': 'Frontpage',      'qs': instance.edition_frontpagetags.all().order_by('code')},
+            {'field': 'Prologue',       'qs': instance.edition_prologuetags.all().order_by('code')},
+            {'field': 'Dedicatory',     'qs': instance.edition_dedicatorytags.all().order_by('code')},
+            {'field': 'Contents',       'qs': instance.edition_contentstags.all().order_by('code')},
+            {'field': 'Sermonlist',     'qs': instance.edition_sermonlisttags.all().order_by('code')},
+            {'field': 'OtherTexts',     'qs': instance.edition_othertextstags.all().order_by('code')},
+            {'field': 'Images',         'qs': instance.edition_imagestags.all().order_by('code')},
+            {'field': 'Fulltitle',      'qs': instance.edition_fulltitletags.all().order_by('code')},
+            {'field': 'Colophon',       'qs': instance.edition_colophontags.all().order_by('code')}
+            ]
+        for description in editiondescriptions:
+            base = {'prefix': 'edi', 'title': 'Editions that use this tag in their [{}]'.format(description['field'])}
+            qs = description['qs']
+            if qs.count() > 0:
+                rel_list =[]
+                for item in qs:
+                    rel_item = []
+                    rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+                    rel_item.append({'value': item.get_place()})
+                    rel_item.append({'value': item.get_editors()})
+                    rel_item.append({'value': item.get_date()})
+                    rel_item.append({'value': item.has_notes()})
+                    rel_list.append(rel_item)
+                base['rel_list'] = rel_list
+                base['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
+                related_objects.append(base)
 
-        # This tag in: collection.sources
-        sources = {'prefix': 'col', 'title': 'Collections that use this tag in their [Sources]'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_sourcenotes.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_notes_display})
-                rel_list.append(rel_item)
-            sources['rel_list'] = rel_list
-            sources['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Note']
-            related_objects.append(sources)
-
-        # This tag in: collection.notes
-        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Notes]'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_notes.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_notes_display})
-                rel_list.append(rel_item)
-            collections['rel_list'] = rel_list
-            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Note']
-            related_objects.append(collections)
-
-        # This tag in: collection.exempla
-        exempla = {'prefix': 'exm', 'title': 'Collections that use this tag in their [Exempla]'}
-        # Show the list of sermons that contain this tag
-        qs = instance.collection_exempla.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_exempla_display})
-                rel_list.append(rel_item)
-            exempla['rel_list'] = rel_list
-            exempla['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Exempla']
-            related_objects.append(exempla)
-
-        # This tag in: edition.notes
-        editions = {'prefix': 'edi', 'title': 'Editions that use this tag in their [Notes]'}
-        # Show the list of editions that contain this tag
-        qs = instance.edition_notetags.all().order_by('code')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_editors()})
-                rel_item.append({'value': item.get_date()})
-                rel_item.append({'value': item.has_notes()})
-                rel_list.append(rel_item)
-            editions['rel_list'] = rel_list
-            editions['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
-            related_objects.append(editions)
+        # Publisher listviews
+        publisherdescriptions = [
+            {'field': 'Information',    'display': 'info',    'head': 'Information',
+             'qs': instance.publisher_infotags.all().order_by('name')}
+            ]
+        for description in publisherdescriptions:
+            base = {'prefix': 'pub', 'title': 'Publisher descriptions that use this tag in their [{}]'.format(description['field'])}
+            qs = description['qs']
+            if qs.count() > 0:
+                rel_list =[]
+                displayfieldname = "get_{}_display".format(description['display'])
+                for item in qs:
+                    rel_item = []
+                    rel_item.append({'value': item.name, 'title': 'View this publisher', 'link': reverse('publisher_details', kwargs={'pk': item.id})})
+                    rel_item.append({'value': item.get_info_display})
+                    rel_list.append(rel_item)
+                base['rel_list'] = rel_list
+                base['columns'] = ['Name', description['head']]
+                related_objects.append(base)
 
         context['related_objects'] = related_objects
         # Return the resulting context
@@ -3038,8 +2914,8 @@ class SermonDetailsView(PassimDetails):
 
         context['sections'] = [
             {'name': 'Main division', 'id': 'sermo_division', 'fields': [
-                {'type': 'safeline',    'label': "Original:", 'value': instance.divisionL.strip()},
-                {'type': 'safeline',    'label': "Translation:", 'value': instance.divisionE.strip()},
+                {'type': 'safeline',    'label': "Original:", 'value': instance.get_divisionL_display.strip()},
+                {'type': 'safeline',    'label': "Translation:", 'value': instance.get_divisionE_display.strip()},
                 ]},
             {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
                 {'type': 'line',    'label': "", 'value': instance.get_summary_markdown()}                ]},
@@ -3141,29 +3017,29 @@ class EditionDetailsView(PassimDetails):
         if hasattr(instance, 'place') and instance.place:
             sLocation = instance.place.name
         context['mainitems'] = [
-            {'type': 'plain', 'label': "Code:", 'value': instance.get_code(), 'title': 'Collection number / Edition number within that collection'},
-            {'type': 'plain', 'label': "Date:", 'value': instance.get_full_date()},
-            {'type': 'plain', 'label': "Place:", 'value': sLocation},
-            {'type': 'plain', 'label': "Publisher:", 'value': instance.get_publisher() },
-            {'type': 'plain', 'label': "Format:", 'value': instance.get_format_display() },
-            {'type': 'plain', 'label': "Folia:", 'value': instance.folia},
-            {'type': 'plain', 'label': "Number of sermons:", 'value': instance.numsermons},
-            {'type': 'plain', 'label': "External databases:", 'value': instance.dbcodes.all().order_by('name'),
+            {'type': 'plain',   'label': "Code:", 'value': instance.get_code(), 'title': 'Collection number / Edition number within that collection'},
+            {'type': 'safeline', 'label': "Date:", 'value': instance.get_full_date()},
+            {'type': 'plain',   'label': "Place:", 'value': sLocation},
+            {'type': 'plain',   'label': "Publisher:", 'value': instance.get_publisher() },
+            {'type': 'plain',   'label': "Format:", 'value': instance.get_format_display() },
+            {'type': 'plain',   'label': "Folia:", 'value': instance.folia},
+            {'type': 'plain',   'label': "Number of sermons:", 'value': instance.numsermons},
+            {'type': 'plain',   'label': "External databases:", 'value': instance.dbcodes.all().order_by('name'),
              'multiple': True}
             # MORE INFORMATION SHOULD FOLLOW
             ]
         
         context['sections'] = [
             {'name': 'Paratextual elements', 'id': 'edi_paratextual', 'fields': [
-                {'type': 'safeline', 'label': "Front page:", 'value': instance.frontpage , 'title': 'Front page / Title page' },
-                {'type': 'safeline', 'label': "Prologue:", 'value': instance.prologue},
-                {'type': 'safeline', 'label': "Dedicatory letter:", 'value': instance.dedicatory},
-                {'type': 'safeline', 'label': "Table of contents:", 'value': instance.contents},
-                {'type': 'safeline', 'label': "List of sermons:", 'value': instance.sermonlist},
-                {'type': 'safeline', 'label': "Other texts:", 'value': instance.othertexts},
-                {'type': 'safeline', 'label': "Images:", 'value': instance.images},
-                {'type': 'safeline', 'label': "Full title:", 'value': instance.fulltitle},
-                {'type': 'safeline', 'label': "Colophon:", 'value': instance.colophon},
+                {'type': 'safeline', 'label': "Front page:", 'value': instance.get_frontpage_display.strip() , 'title': 'Front page / Title page' },
+                {'type': 'safeline', 'label': "Prologue:", 'value': instance.get_prologue_display.strip()},
+                {'type': 'safeline', 'label': "Dedicatory letter:", 'value': instance.get_dedicatory_display.strip()},
+                {'type': 'safeline', 'label': "Table of contents:", 'value': instance.get_contents_display.strip()},
+                {'type': 'safeline', 'label': "List of sermons:", 'value': instance.get_sermonlist_display.strip()},
+                {'type': 'safeline', 'label': "Other texts:", 'value': instance.get_othertexts_display.strip()},
+                {'type': 'safeline', 'label': "Images:", 'value': instance.get_images_display.strip()},
+                {'type': 'safeline', 'label': "Full title:", 'value': instance.get_fulltitle_display.strip()},
+                {'type': 'safeline', 'label': "Colophon:", 'value': instance.get_colophon_display.strip()},
                 ]},
             {'name': 'General notes', 'id': 'coll_general', 'fields': [
                 {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
@@ -3211,7 +3087,8 @@ class PublisherDetailsView(PassimDetails):
 
     def add_to_context(self, context, instance):
         context['mainitems'] = [
-            {'type': 'plain', 'label': "Name:", 'value': instance.name}
+            {'type': 'plain', 'label': "Name:",         'value': instance.name},
+            {'type': 'line',  'label': "Information:",  'value': instance.get_info_markdown()}
             ]
         return context
 

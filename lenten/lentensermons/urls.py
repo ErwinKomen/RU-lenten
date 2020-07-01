@@ -74,16 +74,8 @@ urlpatterns = [
     url(r'^tag/group/edit(?:/(?P<pk>\d+))?/$', TgroupEdit.as_view(), name='tgroup_edit'),
     url(r'^tag/group/view(?:/(?P<pk>\d+))?/$', TgroupDetails.as_view(), name='tgroup_details'),
 
-    url(r'^tag/liturgical/list',  TagLiturListView.as_view(), name='tagliturgical_list'),
-    url(r'^tag/communicative/list',  TagCommListView.as_view(), name='tagcommunicative_list'),
     url(r'^tag/keyword/list',  TagKeywordListView.as_view(), name='tagkeyword_list'),
-
-    url(r'^tag/liturgical/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/tagliturgical/add'), name='taglitu_add'),
-    url(r'^tag/communicative/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/tagcommunicative/add'), name='tagcomm_add'),
     url(r'^tag/keyword/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/tagkeyword/add'), name='tagkeyw_add'),
-
-    url(r'^tag/liturgical/view(?:/(?P<pk>\d+))?/$', TagLiturDetailView.as_view(), name='tagliturgical_details'),
-    url(r'^tag/communicative/view(?:/(?P<pk>\d+))?/$', TagCommDetailView.as_view(), name='tagcommunicative_details'),
     url(r'^tag/keyword/view(?:/(?P<pk>\d+))?/$', TagKeywordDetailView.as_view(), name='tagkeyword_details'),
 
     url(r'^publisher/list',  PublisherListView.as_view(), name='publisher_list'),
