@@ -1311,11 +1311,13 @@ class SermonCollection(tagtext.models.TagtextModel):
         return sBack
 
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+        # Initial response: save
+        response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
         # CHeck who the 'firstauthor' is and adapt
         obj = self.authors.all().first()
         if self.firstauthor == None or (obj != None and self.firstauthor is not obj):
             self.firstauthor = obj
-        response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
+            response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
         return None
 
     def adapt_editions(self):
@@ -1755,7 +1757,7 @@ class Edition(tagtext.models.TagtextModel):
     def get_place(self):
         """Combine the place/location fields into a listview-showable version"""
 
-        place = ""
+        place = "-"
         if self.place != None:
             place = self.place.name
         return place
@@ -1873,12 +1875,15 @@ class Sermon(tagtext.models.TagtextModel):
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
         oErr = ErrHandle()
         try:
+            # initially: save
+            response = super(Sermon, self).save(force_insert, force_update, using, update_fields)
             # CHeck who the 'firstauthor' is and adapt
             if self.id:
                 obj = self.topics.all().first()
                 if self.firsttopic == None or (obj != None and self.firsttopic is not obj):
                     self.firsttopic = obj
-            response = super(Sermon, self).save(force_insert, force_update, using, update_fields)
+                    # Save these changes
+                    response = super(Sermon, self).save(force_insert, force_update, using, update_fields)
         except:
             msg = oErr.get_error_message()
             bError = True

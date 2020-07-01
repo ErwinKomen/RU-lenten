@@ -2201,7 +2201,7 @@ class CollectionDetailsView(PassimDetails):
             {'type': 'bold',  'label': "Title:", 'value': instance.title},
             {'type': 'plain', 'label': "Authors:", 'value': instance.get_authors()},
             {'type': 'plain', 'label': "Date of composition:", 'value': "{} ({})".format(instance.datecomp, instance.get_datetype_display()) },
-            {'type': 'plain', 'label': "Place of composition:", 'value': instance.place.name },
+            {'type': 'plain', 'label': "Place of composition:", 'value': instance.get_place() },
             {'type': 'plain', 'label': "First edition:", 'value': instance.get_firstedition() },
             {'type': 'plain', 'label': "Number of editions:", 'value': instance.numeditions }
 
@@ -2360,10 +2360,12 @@ class CollectionList(BasicList):
         if custom == "author":
             html.append(instance.get_authors())
         elif custom == "place":
-            html.append(instance.place.name)
+            place = instance.get_place()
+            html.append(place)
         elif custom == "firstedition_place":
             edi = instance.first_edition_obj()
-            place = "" if edi == None or edi.place == None else edi.place.name
+            # place = "" if edi == None or edi.place == None else edi.place.name
+            place = "" if edi == None else edi.get_place()
             html.append(place)
         elif custom == "firstedition_publisher":
             edi = instance.first_edition_obj()
