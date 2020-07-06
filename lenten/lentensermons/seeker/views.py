@@ -2444,18 +2444,20 @@ class TgroupListView(BasicList):
         # FIgure out what to return
         if custom == "counts":
             # Get the number of tgroups for each of the tag types
-            iLitu = instance.tgroupslitu.all().count()
-            iComm = instance.tgroupscomm.all().count()
             iKeyw = instance.tgroupskeyw.all().count()
-            if iLitu > 0:
-                url = "{}?tagl-tgrlist={}".format(reverse('tagliturgical_list'), instance.id)
-                html.append("<span class='badge' title='liturgical tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iLitu))
-            if iComm > 0:
-                url = "{}?tagc-tgrlist={}".format(reverse('tagcommunicative_list'), instance.id)
-                html.append("<span class='badge' title='communicative tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iComm))
             if iKeyw > 0:
                 url = "{}?tagk-tgrlist={}".format(reverse('tagkeyword_list'), instance.id)
                 html.append("<span class='badge' title='keyword tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iKeyw))
+
+            # Extinct: iLitu = instance.tgroupslitu.all().count()
+            # Extinct: iComm = instance.tgroupscomm.all().count()
+            #if iLitu > 0:
+            #    url = "{}?tagl-tgrlist={}".format(reverse('tagliturgical_list'), instance.id)
+            #    html.append("<span class='badge' title='liturgical tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iLitu))
+            #if iComm > 0:
+            #    url = "{}?tagc-tgrlist={}".format(reverse('tagcommunicative_list'), instance.id)
+            #    html.append("<span class='badge' title='communicative tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iComm))
+
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
@@ -2571,6 +2573,7 @@ class TagKeywordListView(TagListView):
     basic_name = "tagkeyword"
     plural_name = "Keyword tags"
     sg_name = "Keyword tag"
+    basic_add = 'tagkw_add'
 
 
 class TagKeywordDetailView(PassimDetails):
@@ -3102,6 +3105,7 @@ class AuthorListView(BasicList):
     listform = AuthorListForm
     prefix = "auth"
     # template_name = 'seeker/author_list.html'
+    basic_add = 'author_add'
     admin_editable = True
     order_cols = ['name', 'info']
     order_default = order_cols
