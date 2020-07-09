@@ -147,7 +147,7 @@ def adapt_search(val):
     val = '^' + fnmatch.translate(val) + '$'
     return val
 
-def make_search_list(filters, oFields, search_list, qd):
+def make_search_list(filters, oFields, search_list, qd, lstExclude):
     """Using the information in oFields and search_list, produce a revised filters array and a lstQ for a Queryset"""
 
     def enable_filter(filter_id, head_id=None):
@@ -248,7 +248,7 @@ def make_search_list(filters, oFields, search_list, qd):
                     # We are dealing with a plain direct field for the model
                     # OR: it is also possible we are dealing with a m2m field -- that gets the same treatment
                     if keyType == "has":
-                        # Check the count for the db field
+                        # Check the count or the availability for the db field
                         val = oFields[filter_type]
                         if val == "yes" or val == "no":
                             enable_filter(filter_type, head_id)
@@ -256,6 +256,17 @@ def make_search_list(filters, oFields, search_list, qd):
                                 s_q = Q(**{"{}__gt".format(dbfield): 0})
                             else:
                                 s_q = Q(**{"{}".format(dbfield): 0})
+                    elif keyType == "exists":
+                        # Check the count or the availability for the db field
+                        val = oFields[filter_type]
+                        if val == "yes" or val == "no":
+                            enable_filter(filter_type, head_id)
+                            if val == "yes":
+                                s_q = Q(**{"{}__exact".format(dbfield): ""})
+                                lstExclude.append(s_q)
+                                s_q = ""
+                            else:
+                                s_q = Q(**{"{}__exact".format(dbfield): ""})
                     # Check for keyS
                     elif has_string_value(keyS, oFields):
                         # Check for ID field
@@ -308,7 +319,7 @@ def make_search_list(filters, oFields, search_list, qd):
         lstQ = []
 
     # Return what we have created
-    return filters, lstQ, qd
+    return filters, lstQ, qd, lstExclude
 
 def make_ordering(qs, qd, order_default, order_cols, order_heads):
 
@@ -754,7 +765,7 @@ class BasicList(ListView):
                 # Allow user to adapt the list of search fields
                 oFields, lstExclude, qAlternative = self.adapt_search(oFields)
                 
-                self.filters, lstQ, self.initial = make_search_list(self.filters, oFields, self.searches, self.qd)
+                self.filters, lstQ, self.initial, lstExclude = make_search_list(self.filters, oFields, self.searches, self.qd, lstExclude)
                 
                 # Calculate the final qs
                 if len(lstQ) == 0 and not self.none_on_empty:

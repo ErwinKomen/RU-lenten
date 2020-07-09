@@ -957,96 +957,6 @@ class Tgroup(models.Model):
         return bFound
 
 
-#class TagLiturgical(models.Model):
-#    """The field 'liturgical' can have [0-n] tag words associated with it"""
-
-#    # [1] Any tag has a name
-#    name = models.CharField("Name", max_length=LONG_STRING)
-#    # [1] Each tag must be part of a group
-#    tgroup = models.ForeignKey(Tgroup, on_delete=models.CASCADE, related_name="tgroupslitu")
-
-#    class Meta:
-#        verbose_name_plural = "Liturgical Tags"
-
-#    def __str__(self):
-#        return "-" if self == None else  self.name
-
-#    def save(self, *args, **kwargs):
-#        if not self.pk and not self.tgroup_id:
-#            # Get the default tgroup
-#            tgroup = Tgroup.get_default()
-#            self.tgroup = tgroup
-#        super(TagLiturgical, self).save(*args, **kwargs)
-#        return None
-
-#    def get_list(self):
-#        """Get a list of type/count items"""
-
-#        lst_back = []
-#        # Communicative counts
-#        count = self.collection_liturtags.all().count()
-#        url = reverse("collection_list")
-#        params = "coll-taglituid={}".format(self.id)
-#        css ="jumbo-1"
-#        item = dict(count=count, type="Collection Liturgical tags", url=url, params=params, css=css)
-#        lst_back.append(item)
-
-#        return lst_back
-
-#    def get_url_edit(self):
-#        url = reverse('admin:seeker_tagliturgical_change', args=[self.id])
-#        return url
-
-#    def get_url_view(self):
-#        url = reverse('taglitu_details', kwargs={'pk': self.id})
-#        return url
-
-
-#class TagCommunicative(models.Model):
-#    """The field 'communicative' can have [0-n] tag words associated with it"""
-
-#    # [1] Any tag has a name
-#    name = models.CharField("Name", max_length=LONG_STRING)
-#    # [1] Each tag must be part of a group
-#    tgroup = models.ForeignKey(Tgroup, on_delete=models.CASCADE, related_name="tgroupscomm")
-
-#    class Meta:
-#        verbose_name_plural = "Communicative Tags"
-
-#    def __str__(self):
-#        return "-" if self == None else  self.name
-
-#    def save(self, *args, **kwargs):
-#        if not self.pk and not self.tgroup_id:
-#            # Get the default tgroup
-#            tgroup = Tgroup.get_default()
-#            self.tgroup = tgroup
-#        super(TagCommunicative, self).save(*args, **kwargs)
-#        return None
-
-#    def get_list(self):
-#        """Get a list of type/count items"""
-
-#        lst_back = []
-#        # Communicative counts
-#        count = self.collection_commtags.all().count()
-#        url = reverse("collection_list")
-#        params = "coll-tagcommid={}".format(self.id)
-#        css ="jumbo-1"
-#        item = dict(count=count, type="Collection Communicative tags", url=url, params=params, css=css)
-#        lst_back.append(item)
-
-#        return lst_back
-
-#    def get_url_edit(self):
-#        url = reverse('admin:seeker_tagcommunicative_change', args=[self.id])
-#        return url
-
-#    def get_url_view(self):
-#        url = reverse('tagcomm_details', kwargs={'pk': self.id})
-#        return url
-
-
 class TagKeyword(models.Model):
     """The field 'notes' can have [0-n] tag words associated with it"""
 
@@ -1236,6 +1146,33 @@ class Author(tagtext.models.TagtextModel):
         return sBack
 
 
+class Publisher(tagtext.models.TagtextModel):
+    """A publisher is defined by a name"""
+
+    # [1]
+    name = models.CharField("name", max_length=MEDIUM_LENGTH, null=True, blank=True)
+    # [0-1] Information per author and bibliography
+    info = models.TextField("Information", blank=True, null=True)
+
+    # --------- MANY-TO-MANY connections ------------------
+    # [0-n] = zero or more notetags in the 'info' field
+    infotags = models.ManyToManyField(TagKeyword, blank=True, related_name="publisher_infotags")
+
+    mixed_tag_fields = [
+            {"textfield": "info", "m2mfield": "infotags",     "class": TagKeyword, "url": "tagkeyword_details"}
+        ]
+
+    def __str__(self):
+        return "-" if self == None else  self.name
+
+    def get_info_markdown(self):
+        sBack = ""
+        if self.info:
+            sBack = markdown(self.get_info_display)
+            sBack = sBack.strip()
+        return sBack
+
+
 class SermonCollection(tagtext.models.TagtextModel):
 
     # [0-1] Identification number assigned by the researcher
@@ -1251,7 +1188,7 @@ class SermonCollection(tagtext.models.TagtextModel):
     datetype = models.CharField("Composition date type", choices=build_abbr_list(DATE_TYPE), 
                             max_length=5)
     # [0-1] Place of manuscript: may be city or country
-    place = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL)
+    place = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL, related_name="placecollections")
 
     # FOr sorting purposes: automatically add the FIRST author in a list of authors
     firstauthor = models.ForeignKey(Author, blank=True, null=True, on_delete=models.SET_NULL, related_name="collection_firstauthor")
@@ -1280,6 +1217,7 @@ class SermonCollection(tagtext.models.TagtextModel):
     firstedition = models.IntegerField("First edition date", default=0)
     numeditions = models.IntegerField("number of editions", default=0)
     nummanu = models.IntegerField("number of manuscripts", default=0)
+    firstedi = models.ForeignKey("Edition", blank=True, null=True, on_delete=models.SET_NULL, related_name="firstedicollections")
 
     # --------- MANY-TO-MANY connections ------------------
     # [n-n] Author: each sermoncollection may have 1 or more authors
@@ -1325,9 +1263,15 @@ class SermonCollection(tagtext.models.TagtextModel):
 
         bNeedSaving = False
         firstedition = self.first_edition()
+        firstedi = self.first_edition_obj()
         numeditions = self.num_editions()
         if firstedition != None and firstedition != "-" and firstedition != self.firstedition:
             self.firstedition = firstedition
+            bNeedSaving = True
+        if firstedi != None and firstedi != "-" and firstedi != self.firstedi:
+            # adapt the field  
+            self.firstedi = firstedi
+            self.firstedition = firstedi.get_year()
             bNeedSaving = True
         if numeditions != self.numeditions:
             self.numeditions = numeditions
@@ -1529,33 +1473,6 @@ class Concept(models.Model):
     def __str__(self):
         combi = "{} - {}".format(self.name, self.language)
         return combi
-
-
-class Publisher(tagtext.models.TagtextModel):
-    """A publisher is defined by a name"""
-
-    # [1]
-    name = models.CharField("name", max_length=MEDIUM_LENGTH, null=True, blank=True)
-    # [0-1] Information per author and bibliography
-    info = models.TextField("Information", blank=True, null=True)
-
-    # --------- MANY-TO-MANY connections ------------------
-    # [0-n] = zero or more notetags in the 'info' field
-    infotags = models.ManyToManyField(TagKeyword, blank=True, related_name="publisher_infotags")
-
-    mixed_tag_fields = [
-            {"textfield": "info", "m2mfield": "infotags",     "class": TagKeyword, "url": "tagkeyword_details"}
-        ]
-
-    def __str__(self):
-        return "-" if self == None else  self.name
-
-    def get_info_markdown(self):
-        sBack = ""
-        if self.info:
-            sBack = markdown(self.get_info_display)
-            sBack = sBack.strip()
-        return sBack
 
 
 class Edition(tagtext.models.TagtextModel):
@@ -1793,6 +1710,15 @@ class Edition(tagtext.models.TagtextModel):
             oErr.DoError("Edition/get_sermons")
             qs = None
         return qs
+
+    def get_year(self):
+        """Get the year of this edition or a hyphen if it is not available"""
+        year = "-"
+        if obj != None:
+            year = obj.date
+            if year == None:
+                year = obj.date_late
+        return year
 
     def has_notes(self):
         """Return asterisk if has notes"""

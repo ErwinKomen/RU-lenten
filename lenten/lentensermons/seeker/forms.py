@@ -8,10 +8,12 @@ from django.utils.translation import ugettext_lazy as _
 from django.forms import ModelMultipleChoiceField
 from django.forms.utils import flatatt
 from django.forms.widgets import *
-from django_select2.forms import Select2MultipleWidget, ModelSelect2MultipleWidget, ModelSelect2TagWidget, Select2Widget
+from django_select2.forms import Select2MultipleWidget, ModelSelect2Widget, ModelSelect2MultipleWidget, ModelSelect2TagWidget, Select2Widget
 
 # Application specific
 from lentensermons.seeker.models import *
+
+CHOICE_YESNO = ( ("undefined", "----"), ("yes", "Yes"), ("no", "No") )
 
 def init_choices(obj, sFieldName, sSet, maybe_empty=False, bUseAbbr=False):
     if (obj.fields != None and sFieldName in obj.fields):
@@ -63,6 +65,17 @@ class PublisherWidget(ModelSelect2MultipleWidget):
 
     def get_queryset(self):
         return Publisher.objects.all().order_by('name').distinct()
+
+
+class YesNoWidget(ModelSelect2Widget):
+    model = FieldChoice
+    search_fields = ['english_name__icontains']
+
+    def label_from_instance(self, obj):
+        return obj.english_name
+
+    def get_queryset(self):
+        return FieldChoice.objects.filter(field='seeker.yesno').order_by('english_name').distinct()
 
 
 class LanguageWidget(ModelSelect2MultipleWidget):
@@ -511,8 +524,7 @@ class CollectionListForm(forms.ModelForm):
     tagnoteid = forms.CharField(label=_("Note tag"), required = False)
     tagexmpid = forms.CharField(label=_("Exemplar tag"), required = False)
     tagqsrcid = forms.CharField(label=_("Quoted source tag"), required = False)
-    hasmanu = forms.ChoiceField(label=_(""), required=False,
-                                widget=forms.Select(attrs={'style': 'width: 100%;'}))
+    hasmanu = forms.ChoiceField(label=_(""), required=False, widget=forms.Select(attrs={'style': 'width: 100%;'}))
 
     class Meta:
         ATTRS_FOR_FORMS = {'class': 'form-control'};
@@ -536,7 +548,7 @@ class CollectionListForm(forms.ModelForm):
         self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
         self.fields['placelist'].queryset = Location.objects.all().order_by('name')
         # Initialise the choices for [hasmanu]
-        self.fields['hasmanu'].choices = ( ("undefined", "----"), ("yes", "Yes"), ("no", "No") )
+        self.fields['hasmanu'].choices = CHOICE_YESNO
 
         # Get the instance
         if 'instance' in kwargs:
@@ -562,10 +574,23 @@ class EditionListForm(forms.ModelForm):
         ATTRS_FOR_FORMS = {'class': 'form-control'};
 
         model = Edition
-        fields = ['code', 'date', 'place' ]
+        fields = ['code', 'date', 'place', 'format', 'folia', 'numsermons', 'format', 'folia', 'numsermons',
+                 'frontpage', 'prologue', 'dedicatory', 'contents', 'sermonlist', 'othertexts', 'images', 'fulltitle', 'colophon' ]
         widgets={'code':        forms.TextInput(attrs={'class': 'typeahead searching codes input-sm', 'placeholder': 'Code...', 'style': 'width: 100%;'}),
                  'date':        forms.TextInput(attrs={'class': 'typeahead searching titles input-sm', 'placeholder': 'Year of publicstion...', 'style': 'width: 100%;'}),
-                 'place':       forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'})
+                 'place':       forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}),
+                 'format':      forms.TextInput(attrs={'class': 'typeahead searching input-sm', 'placeholder': 'Format...', 'style': 'width: 100%;'}),
+                 'folia':       forms.TextInput(attrs={'class': 'typeahead searching input-sm', 'placeholder': 'Number of folia...', 'style': 'width: 100%;'}),
+                 'numsermons':  forms.TextInput(attrs={'class': 'typeahead searching input-sm', 'placeholder': 'Number of sermons...', 'style': 'width: 100%;'}),
+                 'frontpage':   YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
+                 'prologue':    YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
+                 'dedicatory':  YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
+                 'contents':    YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
+                 'sermonlist':  YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
+                 'othertexts':  YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
+                 'images':      YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
+                 'fulltitle':   YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
+                 'colophon':    YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
                  }
 
     def __init__(self, *args, **kwargs):
@@ -575,7 +600,21 @@ class EditionListForm(forms.ModelForm):
         self.fields['code'].required = False
         self.fields['date'].required = False
         self.fields['place'].required = False
+        self.fields['format'].required = False
+        self.fields['folia'].required = False
+        self.fields['numsermons'].required = False
         self.fields['colltitle'].required = False
+
+        self.fields['frontpage'].initial = "und"
+        self.fields['prologue'].initial = "und"
+        self.fields['dedicatory'].initial = "und"
+        self.fields['contents'].initial = "und"
+        self.fields['sermonlist'].initial = "und"
+        self.fields['othertexts'].initial = "und"
+        self.fields['images'].initial = "und"
+        self.fields['fulltitle'].initial = "und"
+        self.fields['colophon'].initial = "und"
+
         self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
         self.fields['placelist'].queryset = Location.objects.all().order_by('name')
         self.fields['colllist'].queryset = SermonCollection.objects.all().order_by('title')

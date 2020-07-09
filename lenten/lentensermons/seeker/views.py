@@ -2128,7 +2128,8 @@ class SermonListView(BasicListView):
     prefix = "sermo"
     template_name = 'seeker/sermon_list.html'
     plural_name = "Sermons"
-    order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 'litday', 'book;chapter;verse', 'firsttopic__name']
+    order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
+                     'litday', 'book;chapter;verse', 'firsttopic__name']
     order_cols = order_default
     order_heads = [{'name': 'Code',             'order': 'o=1', 'type': 'int'}, 
                    {'name': 'Authors',          'order': 'o=2', 'type': 'str'}, 
@@ -2145,11 +2146,15 @@ class SermonListView(BasicListView):
     searches = [
         {'section': '', 'filterlist': [
             {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
-            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
+            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 
+             'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
             {'filter': 'litday',    'dbfield': 'litday',    'keyS': 'litday'},
-            {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
-            {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
-            {'filter': 'topic',     'fkfield': 'topics',                        'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
+            {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 
+             'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
+            {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  
+             'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
+            {'filter': 'topic',     'fkfield': 'topics',                        
+             'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid',  'fkfield': 'notetags',         'keyS': 'tagnoteid', 'keyFk': 'id' },
@@ -2287,7 +2292,8 @@ class CollectionList(BasicList):
     basic_add = 'collection_add'
     has_select2 = True
     entrycount = 0
-    order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'numeditions', 'firstedition', '', '']
+    order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'numeditions', 
+                     'firstedition', 'firstedi__place__name', 'firstedi__firstpublisher__name']
     order_cols = order_default
     order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int', 'field': 'idno'}, 
                    {'name': 'Authors',       'order': 'o=2', 'type': 'str', 'custom': 'author'}, 
@@ -2296,9 +2302,9 @@ class CollectionList(BasicList):
                    {'name': 'Place',         'order': 'o=5', 'type': 'str', 'custom': 'place'},
                    {'name': 'Editions',      'order': 'o=6', 'type': 'int', 'field': 'numeditions'},
                    {'name': 'First Edition', 'order': 'o=7', 'type': 'str', 'field': 'firstedition'},
-                   {'name': '...place',      'order': '',    'type': 'str', 'custom': 'firstedition_place',
+                   {'name': 'Ed. place',     'order': 'o=8', 'type': 'str', 'custom': 'firstediplace',
                     'title': 'Place of the first edition'},
-                   {'name': '...publisher',  'order': '',    'type': 'str', 'custom': 'firstedition_publisher',
+                   {'name': 'Publisher',     'order': 'o=9', 'type': 'str', 'custom': 'firstedipubli',
                     'title': 'First publisher of the first edition'}]
     filters = [ {"name": "Identifier",      "id": "filter_idno",    "enabled": False},
                 {"name": "Author",          "id": "filter_author",  "enabled": False},
@@ -2350,6 +2356,24 @@ class CollectionList(BasicList):
                     coll.communicativetags.add(tagkw)
 
             Information.set_kvalue("taglitucomm", "done")
+
+        # Check firstedi
+        firstedi = Information.get_kvalue("firstedi")
+        if firstedi == None or firstedi == "" or firstedi!= "done":
+            # Walk all sermon collections
+            for coll in SermonCollection.objects.all():
+                bNeedSaving = False
+                # Get the first edition
+                firstedition = coll.editions.all().order_by('date', 'date_late').first()
+                if firstedition != None:
+                    # adapt the field 'firstediplace' 
+                    coll.firstedi = firstedition
+                    bNeedSaving = True
+                # Save if needed
+                if bNeedSaving:
+                    coll.save()
+            Information.set_kvalue("firstedi", "done")
+
         return None
 
     def get_field_value(self, instance, custom):
@@ -2362,14 +2386,15 @@ class CollectionList(BasicList):
         elif custom == "place":
             place = instance.get_place()
             html.append(place)
-        elif custom == "firstedition_place":
-            edi = instance.first_edition_obj()
-            # place = "" if edi == None or edi.place == None else edi.place.name
-            place = "" if edi == None else edi.get_place()
+        elif custom == "firstediplace":
+            place = "" 
+            if instance.firstedi != None and instance.firstedi.place != None:
+                place = instance.firstedi.place.name
             html.append(place)
-        elif custom == "firstedition_publisher":
-            edi = instance.first_edition_obj()
-            publisher = "" if edi == None or edi.firstpublisher == None else edi.firstpublisher.name
+        elif custom == "firstedipubli":
+            publisher = "" 
+            if instance.firstedi != None and instance.firstedi.firstpublisher != None:
+                publisher = instance.firstedi.firstpublisher.name
             html.append(publisher)
         # Combine the HTML code
         sBack = "\n".join(html)
@@ -2952,13 +2977,43 @@ class EditionList(BasicList):
                    {'name': 'Notes?',     'order': '',    'type': 'str', 'custom': 'hasnotes'}]
     filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
                 {"name": "Author",      "id": "filter_author",      "enabled": False},
-                {"name": "Place",       "id": "filter_place",       "enabled": False}
+                {"name": "Place",       "id": "filter_place",       "enabled": False},
+                {"name": "Format",      "id": "filter_format",      "enabled": False},
+                {"name": "Number of folia",     "id": "filter_folia",       "enabled": False},
+                {"name": "Number of sermons",   "id": "filter_sermons",     "enabled": False},
+                {"name": "Paratextual...",      "id": "filter_paratextual", "enabled": False, "head_id": "none"},
+                {"name": "Frontpage",           "id": "filter_frontpage",   "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Prologue",            "id": "filter_prologue",    "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Dedicatory letter",   "id": "filter_dedicatory",  "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Table of Contents",   "id": "filter_contents",    "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "List of sermons",     "id": "filter_sermonlist",  "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Other texts",         "id": "filter_othertexts",  "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Images",              "id": "filter_images",      "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Full title",          "id": "filter_fulltitle",   "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Colophon",            "id": "filter_colophon",    "enabled": False, "head_id": "filter_paratextual"}
                 ]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'collection','fkfield': 'sermoncollection',          'keyS': 'colltitle',  'keyFk': 'title', 'keyList': 'colllist', 'infield': 'id'},
-            {'filter': 'author',    'fkfield': 'sermoncollection__authors', 'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
-            {'filter': 'place',     'fkfield': 'place',                     'keyS': 'placename',  'keyFk': 'name',  'keyList': 'placelist', 'infield': 'id' }
+            {'filter': 'collection','fkfield': 'sermoncollection',          'keyS': 'colltitle',  
+             'keyFk': 'title', 'keyList': 'colllist', 'infield': 'id'},
+            {'filter': 'author',    'fkfield': 'sermoncollection__authors', 'keyS': 'authorname', 
+             'keyFk': 'name', 'keyList': 'authorlist', 'infield': 'id'},
+            {'filter': 'place',     'fkfield': 'place',                     'keyS': 'placename',  
+             'keyFk': 'name',  'keyList': 'placelist', 'infield': 'id' },
+            {'filter': 'format',    'dbfield': 'format',    'keyS': 'format'  },
+            {'filter': 'folia',     'dbfield': 'folia',     'keyS': 'folia'  },
+            {'filter': 'sermons',   'dbfield': 'numsermons','keyS': 'numsermons'  } 
+            ]},
+        {'section': 'paratextual', 'filterlist': [
+            {'filter': 'frontpage',     'dbfield': 'frontpage',     'keyS': 'frontpage',    'keyType': 'exists'  },
+            {'filter': 'prologue',      'dbfield': 'prologue',      'keyS': 'prologue',     'keyType': 'exists'  },
+            {'filter': 'dedicatory',    'dbfield': 'dedicatory',    'keyS': 'dedicatory',   'keyType': 'exists'  },
+            {'filter': 'contents',      'dbfield': 'contents',      'keyS': 'contents',     'keyType': 'exists'  },
+            {'filter': 'sermonlist',    'dbfield': 'sermonlist',    'keyS': 'sermonlist',   'keyType': 'exists'  },
+            {'filter': 'othertexts',    'dbfield': 'othertexts',    'keyS': 'othertexts',   'keyType': 'exists'  },
+            {'filter': 'images',        'dbfield': 'images',        'keyS': 'images',       'keyType': 'exists'  },
+            {'filter': 'fulltitle',     'dbfield': 'fulltitle',     'keyS': 'fulltitle',    'keyType': 'exists'  },
+            {'filter': 'colophon',      'dbfield': 'colophon',      'keyS': 'colophon',     'keyType': 'exists'  }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
@@ -3095,6 +3150,26 @@ class PublisherDetailsView(PassimDetails):
             {'type': 'plain', 'label': "Name:",         'value': instance.name},
             {'type': 'line',  'label': "Information:",  'value': instance.get_info_markdown()}
             ]
+        related_objects = []
+
+        # Show the collections containing this author
+        collections = {'prefix': 'col', 'title': 'Sermon collections for this publisher'}
+        # Show the list of collections using this author
+        qs = SermonCollection.objects.filter(collection_sermons__edition__publishers__id=instance.id).order_by('idno').distinct()
+        rel_list =[]
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.title})
+            rel_item.append({'value': item.datecomp})
+            rel_item.append({'value': item.get_place()})
+            rel_list.append(rel_item)
+        collections['rel_list'] = rel_list
+        collections['columns'] = ['Collection', 'Title', 'Date', 'Place']
+        related_objects.append(collections)
+
+        context['related_objects'] = related_objects
+        # Return the context we have made
         return context
 
 
