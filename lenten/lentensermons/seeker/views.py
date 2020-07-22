@@ -335,7 +335,7 @@ def make_ordering(qs, qd, orders, order_cols, order_heads):
                 sType = item['type']
                 order_item = item['item']
                 if order_item != "":
-                    if sType == "int":
+                    if sType == "int" or "-" in order_item:
                         order.append(order_item)
                     else:
                         order.append(Lower(order_item))
