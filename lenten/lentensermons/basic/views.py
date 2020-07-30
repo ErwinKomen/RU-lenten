@@ -55,6 +55,8 @@ def get_application_name():
 PROJECT_NAME = get_application_name()
 app_uploader = "{}_uploader".format(PROJECT_NAME.lower())
 app_editor = "{}_editor".format(PROJECT_NAME.lower())
+app_userplus = "{}_userplus".format(PROJECT_NAME.lower())
+app_moderator = "{}_moderator".format(PROJECT_NAME.lower())
 
 def user_is_authenticated(request):
     # Is this user authenticated?
@@ -81,6 +83,16 @@ def user_is_ingroup(request, sGroup):
     # Evaluate the list
     bIsInGroup = (sGroup in glist)
     return bIsInGroup
+
+def user_is_superuser(request):
+    bFound = False
+    # Is this user part of the indicated group?
+    username = request.user.username
+    if username != "":
+        user = User.objects.filter(username=username).first()
+        if user != None:
+            bFound = user.is_superuser
+    return bFound
 
 def get_breadcrumbs(request, name, is_menu, lst_crumb=[], **kwargs):
     """Process one visit and return updated breadcrumbs"""
@@ -109,10 +121,13 @@ def action_model_changes(form, instance):
     field_values = model_to_dict(instance)
     changed_fields = form.changed_data
     changes = {}
+    exclude = []
+    if hasattr(form, 'exclude'):
+        exclude = form.exclude
     for item in changed_fields: 
         if item in field_values:
             changes[item] = field_values[item]
-        else:
+        elif item not in exclude:
             # It is a form field
             try:
                 representation = form.cleaned_data[item]
@@ -123,17 +138,32 @@ def action_model_changes(form, instance):
                         rep_str = str(rep)
                         rep_list.append(rep_str)
                     representation = json.dumps(rep_list)
+                elif isinstance(representation, str) or isinstance(representation, int):
+                    representation = representation
+                elif isinstance(representation, object):
+                    try:
+                        representation = representation.__str__()
+                    except:
+                        representation = str(representation)
                 changes[item] = representation
             except:
                 changes[item] = "(unavailable)"
     return changes
 
 def has_string_value(field, obj):
-    response = (field != None and field in obj and obj[field] != None and obj[field] != "")
+    response = (field != None and field in obj and obj[field] != None and obj[field] != "" and \
+                ( isinstance(obj[field], str) or isinstance(obj[field], int) ) )
+    
     return response
 
 def has_list_value(field, obj):
     response = (field != None and field in obj and obj[field] != None and len(obj[field]) > 0)
+    return response
+
+def has_Q_value(field, obj):
+    response = (field != None and field in obj and obj[field] != None and obj[field] != "" and \
+                not isinstance(obj[field], str) and not isinstance(obj[field], int) )
+    
     return response
 
 def has_obj_value(field, obj):
@@ -288,6 +318,8 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                                 s_q = Q(**{"{}__iregex".format(dbfield): val})
                             else:
                                 s_q = Q(**{"{}__iexact".format(dbfield): val})
+                    elif has_Q_value(keyS, oFields):
+                        s_q = oFields[keyS]
 
                 # Check for list of specific signatures
                 if has_list_value(keyList, oFields):
@@ -307,6 +339,8 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                         else:
                             # Just one foreign key
                             s_q_lst = Q(**{"{}__{}__in".format(fkfield, infield): code_list})
+                    elif keyType == "fieldchoice":
+                        s_q_lst = Q(**{"{}__in".format(dbfield): code_list})
                     elif dbfield:
                         s_q_lst = Q(**{"{}__in".format(infield): code_list})
                     s_q = s_q_lst if s_q == "" else s_q | s_q_lst
@@ -381,6 +415,7 @@ def make_ordering(qs, qd, order_default, order_cols, order_heads):
                         order.append(order_item)
                     else:
                         order.append(Lower(order_item))
+
            #  order.append(Lower(order_cols[0]))
         if sType == 'str':
             if len(order) > 0:
@@ -425,6 +460,7 @@ class BasicList(ListView):
     basic_edit = ""
     basic_details = ""
     basic_add = ""
+    basic_filter = None
     add_text = "Add a new"
     prefix = ""
     order_default = []
@@ -440,8 +476,10 @@ class BasicList(ListView):
     none_on_empty = False
     use_team_group = False
     admin_editable = False
+    permission = True
     lst_typeaheads = []
     sort_order = ""
+    qs = None
     page_function = "ru.basic.search_paged_start"
 
     def initializations(self):
@@ -453,7 +491,7 @@ class BasicList(ListView):
 
         oErr = ErrHandle()
 
-        self.initializations()
+        # self.before_context()
 
         # Get parameters for the search
         if self.initial == None:
@@ -463,8 +501,9 @@ class BasicList(ListView):
 
         # Need to load the correct form
         if self.listform:
+            prefix = "" if self.prefix == "any" else self.prefix
             if self.use_team_group:
-                frm = self.listform(initial, prefix=self.prefix, username=self.request.user.username, team_group=app_editor)
+                frm = self.listform(initial, prefix=self.prefix, username=self.request.user.username, team_group=app_editor, userplus=app_userplus)
             else:
                 frm = self.listform(initial, prefix=self.prefix)
             if frm.is_valid():
@@ -562,6 +601,11 @@ class BasicList(ListView):
         context['order_heads'] = self.order_heads
         context['has_filter'] = self.bFilter
         fsections = []
+        # Initialize the adapted filters
+        for filteritem in self.filters:
+            filteritem['fitems'] = []
+            filteritem['count'] = 0
+            filteritem['hasvalue'] = False
         # Adapt filters with the information from searches
         for section in self.searches:
             oFsection = {}
@@ -573,34 +617,42 @@ class BasicList(ListView):
                 # fsections.append(dict(name=section_name))
             # Copy the relevant search filter
             for item in section['filterlist']:
+                bHasItemValue = False
                 # Find the corresponding item in the filters
                 id = "filter_{}".format(item['filter'])
-                for fitem in self.filters:
-                    if id == fitem['id']:
+                for filteritem in self.filters:
+                    if id == filteritem['id']:
                         try:
+                            # Build a new [fitem]
+                            fitem = {}
                             fitem['search'] = item
                             fitem['has_keylist'] = False
                             # Add possible fields
                             if 'keyS' in item and item['keyS'] in frm.cleaned_data: 
                                 fitem['keyS'] = frm[item['keyS']]
                                 if fitem['keyS'].value(): 
-                                    bHasValue = True
+                                    bHasValue = True ; bHasItemValue = True
                             if 'keyList' in item and item['keyList'] in frm.cleaned_data: 
                                 if frm.fields[item['keyList']].initial or frm.cleaned_data[item['keyList']].count() > 0: 
-                                    bHasValue = True
+                                    bHasValue = True ; bHasItemValue = True
                                 fitem['keyList'] = frm[item['keyList']]
                                 fitem['has_keylist'] = True
                             if 'keyS' in item and item['keyS'] in frm.cleaned_data: 
                                 if 'dbfield' in item and item['dbfield'] in frm.cleaned_data:
                                     fitem['dbfield'] = frm[item['dbfield']]
                                     if fitem['dbfield'].value(): 
-                                        bHasValue = True
+                                        bHasValue = True ; bHasItemValue = True
                                 elif 'fkfield' in item and item['fkfield'] in frm.cleaned_data:
                                     fitem['fkfield'] = frm[item['fkfield']]                                    
-                                    if fitem['fkfield'].value(): bHasValue = True
+                                    if fitem['fkfield'].value(): bHasValue = True ; bHasItemValue = True
                                 else:
                                     # There is a keyS without corresponding fkfield or dbfield
                                     pass
+                            # Append the [fitem] to the [fitems]                            
+                            filteritem['fitems'].append(fitem)
+                            filteritem['count'] = len(filteritem['fitems'])
+                            # Make sure we indicate that there is a value
+                            if  bHasItemValue: filteritem['hasvalue'] = True
                             break
                         except:
                             sMsg = oErr.get_error_message()
@@ -622,6 +674,8 @@ class BasicList(ListView):
         context['authenticated'] = context['is_authenticated'] 
         context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
         context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
+        context['is_app_userplus'] = user_is_ingroup(self.request, app_userplus)
+        context['is_app_moderator'] = user_is_superuser(self.request) or user_is_ingroup(self.request, app_moderator)
 
         # Process this visit and get the new breadcrumbs object
         prevpage = reverse('home')
@@ -629,6 +683,8 @@ class BasicList(ListView):
         context['breadcrumbs'] = get_breadcrumbs(self.request, self.plural_name, True)
 
         context['usebasket'] = self.basketview
+
+        context['permission'] = self.permission
 
         # Allow others to add to context
         context = self.add_to_context(context, initial)
@@ -718,10 +774,15 @@ class BasicList(ListView):
         return fields, None, None
   
     def get_queryset(self):
+        self.initializations()
+
         # Get the parameters passed on with the GET or the POST request
         get = self.request.GET if self.request.method == "GET" else self.request.POST
         get = get.copy()
         self.qd = get
+
+        username=self.request.user.username
+        team_group=app_editor
 
         self.bFilter = False
         self.bHasParameters = (len(get) > 0)
@@ -756,7 +817,12 @@ class BasicList(ListView):
             self.bFilter = False
 
             # Read the form with the information
-            thisForm = self.listform(self.qd, prefix=self.prefix)
+            prefix = self.prefix
+            if prefix == "any": prefix = ""
+            if self.use_team_group:
+                thisForm = self.listform(self.qd, prefix=prefix, username=username, team_group=team_group)
+            else:
+                thisForm = self.listform(self.qd, prefix=prefix)
 
             if thisForm.is_valid():
                 # Process the criteria for this form
@@ -798,15 +864,17 @@ class BasicList(ListView):
             elif not self.none_on_empty:
                 # Just show everything
                 qs = self.model.objects.all().distinct()
-
-
+                
             # Do the ordering of the results
             order = self.order_default
             qs, self.order_heads, colnum = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
         else:
             # No filter and no basked: show all
             self.basketview = False
-            qs = self.model.objects.all().distinct()
+            if self.basic_filter:
+                qs = self.model.objects.filter(self.basic_filter).distinct()
+            else:
+                qs = self.model.objects.all().distinct()
             order = self.order_default
             qs, tmp_heads, colnum = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
         self.sort_order = colnum
@@ -815,6 +883,7 @@ class BasicList(ListView):
         self.entrycount = len(qs)
 
         # Return the resulting filtered and sorted queryset
+        self.qs = qs
         return qs
 
     def post(self, request, *args, **kwargs):
@@ -843,11 +912,13 @@ class BasicDetails(DetailView):
     permission = "write"    # Permission can be: (nothing), "read" and "write"
     new_button = False
     do_not_save = False
+    no_delete = False
     newRedirect = False     # Redirect the page name to a correct one after creating
     use_team_group = False
     redirectpage = ""       # Where to redirect to
     add = False             # Are we adding a new record or editing an existing one?
     is_basic = True         # Is this a basic details/edit view?
+    history_button = False  # Show history button for this view
     lst_typeahead = []
 
     def get(self, request, pk=None, *args, **kwargs):
@@ -1015,6 +1086,10 @@ class BasicDetails(DetailView):
     def get_form_kwargs(self, prefix):
         return None
 
+    def get_history(self, instance):
+        """Get the history of this element"""
+        return ""
+
     def get_context_data(self, **kwargs):
         # Get the current context
         context = super(BasicDetails, self).get_context_data(**kwargs)
@@ -1023,13 +1098,18 @@ class BasicDetails(DetailView):
         context['authenticated'] = user_is_authenticated(self.request)
         context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
         context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
+        context['is_app_userplus'] = user_is_ingroup(self.request, app_userplus)
+        context['is_app_moderator'] = user_is_superuser(self.request) or user_is_ingroup(self.request, app_moderator)
         # context['prevpage'] = get_previous_page(self.request) # self.previous
         context['afternewurl'] = ""
 
         context['topleftbuttons'] = ""
+        context['history_button'] = self.history_button
+        context['no_delete'] = self.no_delete
 
-        if context['authenticated']:
-            self.permission = "read"
+        if context['authenticated'] and self.permission != "readonly":
+            if self.permission != "write":
+                self.permission = "read"
             if context['is_app_editor']:
                 self.permission = "write"
         context['permission'] = self.permission
@@ -1073,6 +1153,7 @@ class BasicDetails(DetailView):
         # Get the instance
         instance = self.object
 
+        # Prepare form
         frm = self.prepare_form(instance, context, initial)
 
         if frm:
@@ -1110,7 +1191,17 @@ class BasicDetails(DetailView):
                         # Process all the correct forms in the formset
                         for subform in formset:
                             if subform.is_valid():
+                                # DO the actual saving
                                 subform.save()
+
+                                # Log the SAVE action
+                                details = {'id': instance.id}
+                                details["savetype"] = "add" # if bNew else "change"
+                                details['model'] = subform.instance.__class__.__name__
+                                if subform.changed_data != None and len(subform.changed_data) > 0:
+                                    details['changes'] = action_model_changes(subform, subform.instance)
+                                self.action_add(instance, details, "add")
+
                                 # Signal that the *FORM* needs refreshing, because the formset changed
                                 bFormsetChanged = True
 
@@ -1202,6 +1293,9 @@ class BasicDetails(DetailView):
         # Possibly add to context by the calling function
         if instance.id:
             context = self.add_to_context(context, instance)
+            if self.history_button:
+                # Retrieve history
+                context['history_contents'] = self.get_history(instance)
 
         # fill in the form values
         if frm and 'mainitems' in context:
@@ -1213,6 +1307,17 @@ class BasicDetails(DetailView):
                 if 'field_view' in mobj: mobj['field_view'] = frm[mobj['field_view']]
                 if 'field_ta' in mobj: mobj['field_ta'] = frm[mobj['field_ta']]
                 if 'field_list' in mobj: mobj['field_list'] = frm[mobj['field_list']]
+
+                # Calculate view-mode versus any-mode
+                #  'field_key' in mainitem or 'field_list' in mainitem and permission == "write"  or  is_app_userplus and mainitem.maywrite
+                if self.permission == "write":       # or app_userplus and 'maywrite' in mobj and mobj['maywrite']:
+                    mobj['allowing'] = "edit"
+                else:
+                    mobj['allowing'] = "view"
+                if ('field_key' in mobj or 'field_list' in mobj) and (mobj['allowing'] == "edit"):
+                    mobj['allowing_key_list'] = "edit"
+                else:
+                    mobj['allowing_key_list'] = "view"
 
         # Define where to go to after deletion
         if 'afterdelurl' not in context or context['afterdelurl'] == "":
@@ -1235,6 +1340,7 @@ class BasicDetails(DetailView):
         oErr = ErrHandle()
         username=self.request.user.username
         team_group=app_editor
+        userplus = app_userplus
 
 
         # Determine the prefix
@@ -1290,7 +1396,7 @@ class BasicDetails(DetailView):
             if instance == None:
                 # Saving a new item
                 if self.use_team_group:
-                    frm = mForm(initial, prefix=prefix, username=username, team_group=team_group)
+                    frm = mForm(initial, prefix=prefix, username=username, team_group=team_group, userplus=userplus)
                 else:
                     frm = mForm(initial, prefix=prefix)
                 bNew = True
@@ -1298,13 +1404,13 @@ class BasicDetails(DetailView):
             elif len(initial) == 0:
                 # Create a completely new form, on the basis of the [instance] only
                 if self.use_team_group:
-                    frm = mForm(prefix=prefix, instance=instance, username=username, team_group=team_group)
+                    frm = mForm(prefix=prefix, instance=instance, username=username, team_group=team_group, userplus=userplus)
                 else:
                     frm = mForm(prefix=prefix, instance=instance)
             else:
                 # Editing an existing one
                 if self.use_team_group:
-                    frm = mForm(initial, prefix=prefix, instance=instance, username=username, team_group=team_group)
+                    frm = mForm(initial, prefix=prefix, instance=instance, username=username, team_group=team_group, userplus=userplus)
                 else:
                     frm = mForm(initial, prefix=prefix, instance=instance)
             # Both cases: validation and saving
@@ -1357,13 +1463,13 @@ class BasicDetails(DetailView):
             if instance == None:
                 # Get the form for the sermon
                 if self.use_team_group:
-                    frm = mForm(prefix=prefix, username=username, team_group=team_group)
+                    frm = mForm(prefix=prefix, username=username, team_group=team_group, userplus=userplus)
                 else:
                     frm = mForm(prefix=prefix)
             else:
                 # Get the form for the sermon
                 if self.use_team_group:
-                    frm = mForm(instance=instance, prefix=prefix, username=username, team_group=team_group)
+                    frm = mForm(instance=instance, prefix=prefix, username=username, team_group=team_group, userplus=userplus)
                 else:
                     frm = mForm(instance=instance, prefix=prefix)
             if frm.is_valid():

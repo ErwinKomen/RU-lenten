@@ -560,10 +560,18 @@ class EditionListForm(forms.ModelForm):
                 widget=forms.TextInput(attrs={'class': 'typeahead searching authors input-sm', 'placeholder': 'Author...', 'style': 'width: 100%;'}))
     authorlist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=AuthorWidget(attrs={'data-placeholder': 'Select multiple authors...', 'style': 'width: 100%;', 'class': 'searching'}))
+    publishername = forms.CharField(label=_("Publisher"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'typeahead searching authors input-sm', 'placeholder': 'Publisher...', 'style': 'width: 100%;'}))
+    publisherlist = ModelMultipleChoiceField(queryset=None, required=False, 
+                widget=PublisherWidget(attrs={'data-placeholder': 'Select multiple publishers...', 'style': 'width: 100%;', 'class': 'searching'}))
     colltitle  = forms.CharField(label=_("Collection"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
     colllist  = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=CollectionWidget(attrs={'data-placeholder': 'Select multiple collections...', 'style': 'width: 100%;', 'class': 'searching'}))
+    date_from   = forms.IntegerField(label=_("Year from"), required = False,
+                                     widget=forms.TextInput(attrs={'placeholder': 'Starting from...',  'style': 'width: 30%;', 'class': 'searching'}))
+    date_until  = forms.IntegerField(label=_("Year until"), required = False,
+                                     widget=forms.TextInput(attrs={'placeholder': 'Until (including)...',  'style': 'width: 30%;', 'class': 'searching'}))
     placename = forms.CharField(label=_("Place"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching locations input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}))
     placelist  = ModelMultipleChoiceField(queryset=None, required=False, 
@@ -616,6 +624,7 @@ class EditionListForm(forms.ModelForm):
         self.fields['colophon'].initial = "und"
 
         self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
+        self.fields['publisherlist'].queryset = Publisher.objects.all().order_by('name')
         self.fields['placelist'].queryset = Location.objects.all().order_by('name')
         self.fields['colllist'].queryset = SermonCollection.objects.all().order_by('title')
 
