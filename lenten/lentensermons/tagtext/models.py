@@ -32,6 +32,31 @@ class TagtextModel(models.Model):
     def tagtext_url(self):
         return "/api/tagtext/"
 
+    def get_flat(self, textfield):
+        """Get the flat text"""
+
+        try:
+            sText = getattr(self, textfield)
+            if sText != None and sText != "" and sText[0] == "[":
+
+                # Parse the string into a list
+                arPart = json.loads(sText)
+                lFlat = []
+                # Add new tags where appropriate
+                for tagobj in arPart:
+                    # Get the value
+                    tagname = tagobj['value']
+                    lFlat.append(tagname)
+                # Combine to get the text
+                sText = " ".join(lFlat)
+                sText = sText.strip()
+                # Double check if there is anything in the text
+                if sText in "-": sText = ""
+            return True, sText
+        except:
+            sMsg = self.get_error_message()
+            return False, sMsg
+
     def process_tags(self, textfield, tagitems, cls, url=None):
         """Extract the tags from [sText] and then make sure that the many-to-many field [m2m] only has these tags
         
@@ -45,86 +70,91 @@ class TagtextModel(models.Model):
             sText = getattr(self, textfield)
             if sText != None and sText != "" and sText[0] == "[":
 
-                # Parse the string into a list
-                arPart = json.loads(sText)
+                if sText[0] == "[" and "{" in sText:
 
-                # Start a list of tag ids that are in this text
-                taglist = []
+                    # Parse the string into a list
+                    arPart = json.loads(sText)
 
-                # Add new tags where appropriate
-                for tagobj in arPart:
-                    # Get the value
-                    tagname = tagobj['value']
-                    # Check if this is a new tag or an existing tag
-                    if tagobj['type'] == "new":
-                        # Check if there is a representation followed by a lexical entry
-                        arTagname = tagname.split("|")
-                        visual = ""
-                        if len(arTagname) > 1:
-                            tagname = arTagname[1]
-                            visual = arTagname[0]
-                            tagobj['value'] = visual
-                        # Add this tag, if the lower case comparison yields nothing
-                        obj = cls.objects.filter(name__iexact=tagname.lower()).first()
-                        if obj == None:
-                            # Create a new tag
-                            obj = cls.objects.create(name=tagname)
-                        # Add the tag to the list
-                        taglist.append(obj)
-                        # Repair the entry in arPart
-                        tagobj['tagid'] = obj.id
-                        tagobj['type'] = "tag"
-                        style = obj.get_style()
-                        if style != None and style != "": tagobj['style'] = style
-                        # Make sure to add it to [tagitems]
-                        tagitems.add(obj)
-                    elif tagobj['type'] == "tag":
-                        obj = cls.objects.filter(id=tagobj['tagid']).first()
-                        if obj == None:
-                            # Need to create it anyway
-                            obj = cls.objects.create(name=tagname)
-                            # Repair the id
+                    # Start a list of tag ids that are in this text
+                    taglist = []
+
+                    # Add new tags where appropriate
+                    for tagobj in arPart:
+                        # Get the value
+                        tagname = tagobj['value']
+                        # Check if this is a new tag or an existing tag
+                        if tagobj['type'] == "new":
+                            # Check if there is a representation followed by a lexical entry
+                            arTagname = tagname.split("|")
+                            visual = ""
+                            if len(arTagname) > 1:
+                                tagname = arTagname[1]
+                                visual = arTagname[0]
+                                tagobj['value'] = visual
+                            # Add this tag, if the lower case comparison yields nothing
+                            obj = cls.objects.filter(name__iexact=tagname.lower()).first()
+                            if obj == None:
+                                # Create a new tag
+                                obj = cls.objects.create(name=tagname)
+                            # Add the tag to the list
+                            taglist.append(obj)
+                            # Repair the entry in arPart
                             tagobj['tagid'] = obj.id
+                            tagobj['type'] = "tag"
                             style = obj.get_style()
                             if style != None and style != "": tagobj['style'] = style
-                        else:
-                            style = obj.get_style()
-                            if style != None and style != "": tagobj['style'] = style
-                        taglist.append(obj)
-                        # Check if it is in the m2m tagitems
-                        if obj not in tagitems.all():
+                            # Make sure to add it to [tagitems]
                             tagitems.add(obj)
-                    # Note: no need to do anything with the text items
+                        elif tagobj['type'] == "tag":
+                            obj = cls.objects.filter(id=tagobj['tagid']).first()
+                            if obj == None:
+                                # Need to create it anyway
+                                obj = cls.objects.create(name=tagname)
+                                # Repair the id
+                                tagobj['tagid'] = obj.id
+                                style = obj.get_style()
+                                if style != None and style != "": tagobj['style'] = style
+                            else:
+                                style = obj.get_style()
+                                if style != None and style != "": tagobj['style'] = style
+                            taglist.append(obj)
+                            # Check if it is in the m2m tagitems
+                            if obj not in tagitems.all():
+                                tagitems.add(obj)
+                        # Note: no need to do anything with the text items
 
-                # Break the link with tags that are *not* in my current list
-                tagids = [x.id for x in taglist]
-                for obj in tagitems.all():
-                    if obj.id not in tagids:
-                        # Must be broken
-                        tagitems.remove(obj)
+                    # Break the link with tags that are *not* in my current list
+                    tagids = [x.id for x in taglist]
+                    for obj in tagitems.all():
+                        if obj.id not in tagids:
+                            # Must be broken
+                            tagitems.remove(obj)
 
-                # Process the *first* in the list
-                if len(arPart) > 0:
-                    item = arPart[0]
-                    if item['type'] == "text":
-                        sValue = item['value']
-                        sStripped = sValue.lstrip()
-                        if sValue != sStripped:
-                            item['value'] = sStripped
+                    # Process the *first* in the list
+                    if len(arPart) > 0:
+                        item = arPart[0]
+                        if item['type'] == "text":
+                            sValue = item['value']
+                            sStripped = sValue.lstrip()
+                            if sValue != sStripped:
+                                item['value'] = sStripped
 
-                # Process the *last* in the list if the list is larger
-                if len(arPart) > 1:
-                    item = arPart[-1]
-                    if item['type'] == "text":
-                        sValue = item['value']
-                        sStripped = sValue.rstrip()
-                        if sValue != sStripped:
-                            item['value'] = sStripped
-                            bChanged = True
+                    # Process the *last* in the list if the list is larger
+                    if len(arPart) > 1:
+                        item = arPart[-1]
+                        if item['type'] == "text":
+                            sValue = item['value']
+                            sStripped = sValue.rstrip()
+                            if sValue != sStripped:
+                                item['value'] = sStripped
+                                bChanged = True
 
 
-                # Fix the stringified text
-                sText = json.dumps(arPart)
+                    # Fix the stringified text
+                    sText = json.dumps(arPart)
+                else:
+                    # This is flat text: code it
+                    sText = json.dumps([ dict(type="text", value=sText) ])
 
             # Make sure the get_FIELD_display is adapted
             self.adapt_display(textfield, sText, url)
@@ -134,7 +164,7 @@ class TagtextModel(models.Model):
             sMsg = self.get_error_message()
             return False, sMsg
 
-    def adapt_display(self, textfield, sText, url=None, debug=False):
+    def adapt_display(self, textfield, sText,  url=None, debug=False):
         
         try:
             if debug:
@@ -196,6 +226,7 @@ class TagtextModel(models.Model):
             for item in self.mixed_tag_fields:
                 textfield = item['textfield']
                 m2mfield = item['m2mfield']
+                textflat = item.get('textflat')
                 cls = item['class']
                 url = None if 'url' not in item else item['url']
 
@@ -209,6 +240,15 @@ class TagtextModel(models.Model):
                     else:
                         # SOmething is not okay
                         err = "Notokay"
+                    # Possibly process [textflat]
+                    if textflat != None:
+                        bOkay, sFlat = self.get_flat(textfield)
+                        if bOkay:
+                            if getattr(self, textflat) != sFlat:
+                                setattr(self, textflat, sFlat)
+                                bChanged = True
+                        else:
+                            err = "Notokay"
 
         
             # Perform additional saving if something changed

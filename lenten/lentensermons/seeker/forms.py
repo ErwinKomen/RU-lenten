@@ -78,6 +78,17 @@ class YesNoWidget(ModelSelect2Widget):
         return FieldChoice.objects.filter(field='seeker.yesno').order_by('english_name').distinct()
 
 
+class FormatWidget(ModelSelect2MultipleWidget):
+    model = FieldChoice
+    search_fields = [ 'english_name__icontains']
+
+    def label_from_instance(self, obj):
+        return obj.english_name
+
+    def get_queryset(self):
+        return FieldChoice.objects.filter(field=FORMAT_TYPE).order_by("english_name")
+
+
 class LanguageWidget(ModelSelect2MultipleWidget):
     model = FieldChoice
     search_fields = ['english_name__icontains']
@@ -556,81 +567,109 @@ class CollectionListForm(forms.ModelForm):
 
 
 class EditionListForm(forms.ModelForm):
-    authorname = forms.CharField(label=_("Author"), required=False, 
+    authorname  = forms.CharField(label=_("Author"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching authors input-sm', 'placeholder': 'Author...', 'style': 'width: 100%;'}))
-    authorlist = ModelMultipleChoiceField(queryset=None, required=False, 
+    authorlist  = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=AuthorWidget(attrs={'data-placeholder': 'Select multiple authors...', 'style': 'width: 100%;', 'class': 'searching'}))
     publishername = forms.CharField(label=_("Publisher"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching authors input-sm', 'placeholder': 'Publisher...', 'style': 'width: 100%;'}))
     publisherlist = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=PublisherWidget(attrs={'data-placeholder': 'Select multiple publishers...', 'style': 'width: 100%;', 'class': 'searching'}))
-    colltitle  = forms.CharField(label=_("Collection"), required=False, 
+    colltitle   = forms.CharField(label=_("Collection"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
-    colllist  = ModelMultipleChoiceField(queryset=None, required=False, 
+    colllist    = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=CollectionWidget(attrs={'data-placeholder': 'Select multiple collections...', 'style': 'width: 100%;', 'class': 'searching'}))
+    formatlist  = ModelMultipleChoiceField(queryset=None, required=False, 
+                    widget=FormatWidget(attrs={'data-placeholder': 'Select multiple format types...', 'style': 'width: 100%;'}))
     date_from   = forms.IntegerField(label=_("Year from"), required = False,
                                      widget=forms.TextInput(attrs={'placeholder': 'Starting from...',  'style': 'width: 30%;', 'class': 'searching'}))
     date_until  = forms.IntegerField(label=_("Year until"), required = False,
                                      widget=forms.TextInput(attrs={'placeholder': 'Until (including)...',  'style': 'width: 30%;', 'class': 'searching'}))
-    placename = forms.CharField(label=_("Place"), required=False, 
+    placename   = forms.CharField(label=_("Place"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching locations input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}))
-    placelist  = ModelMultipleChoiceField(queryset=None, required=False, 
+    placelist   = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=LocationWidget(attrs={'data-placeholder': 'Select multiple places...', 'style': 'width: 100%;', 'class': 'searching'}))
-    tagnoteid = forms.CharField(label=_("Note tag"), required = False)
+    tagnoteid   = forms.CharField(label=_("Note tag"), required = False)
+    xfrontpage  = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
+    xprologue   = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
+    xdedicatory = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
+    xcontents   = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
+    xsermonlist = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
+    xothertexts = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
+    ximages     = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
+    xfulltitle  = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
+    xcolophon   = forms.CharField(label=_("Select yes/no"), required=False,
+                widget=YesNoWidget(attrs={'class': 'input-sm', 'data-placeholder': 'Select one option...',  'style': 'width: 100%;'}))
 
     class Meta:
         ATTRS_FOR_FORMS = {'class': 'form-control'};
 
         model = Edition
         fields = ['code', 'date', 'place', 'format', 'folia', 'numsermons', 'format', 'folia', 'numsermons',
-                 'frontpage', 'prologue', 'dedicatory', 'contents', 'sermonlist', 'othertexts', 'images', 'fulltitle', 'colophon' ]
+                 'ffrontpage', 'fprologue', 'fdedicatory', 'fcontents', 'fsermonlist', 'fothertexts', 'fimages', 'ffulltitle', 'fcolophon' ]
         widgets={'code':        forms.TextInput(attrs={'class': 'typeahead searching codes input-sm', 'placeholder': 'Code...', 'style': 'width: 100%;'}),
                  'date':        forms.TextInput(attrs={'class': 'typeahead searching titles input-sm', 'placeholder': 'Year of publicstion...', 'style': 'width: 100%;'}),
                  'place':       forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Place...', 'style': 'width: 100%;'}),
                  'format':      forms.TextInput(attrs={'class': 'typeahead searching input-sm', 'placeholder': 'Format...', 'style': 'width: 100%;'}),
                  'folia':       forms.TextInput(attrs={'class': 'typeahead searching input-sm', 'placeholder': 'Number of folia...', 'style': 'width: 100%;'}),
                  'numsermons':  forms.TextInput(attrs={'class': 'typeahead searching input-sm', 'placeholder': 'Number of sermons...', 'style': 'width: 100%;'}),
-                 'frontpage':   YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
-                 'prologue':    YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
-                 'dedicatory':  YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
-                 'contents':    YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
-                 'sermonlist':  YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
-                 'othertexts':  YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
-                 'images':      YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
-                 'fulltitle':   YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
-                 'colophon':    YesNoWidget(attrs={'data-placeholder': 'Select one option...', 'style': 'width: 100%;', 'class': 'searching'}),
                  }
 
     def __init__(self, *args, **kwargs):
         # Start by executing the standard handling
         super(EditionListForm, self).__init__(*args, **kwargs)
-        # Some fields are not required
-        self.fields['code'].required = False
-        self.fields['date'].required = False
-        self.fields['place'].required = False
-        self.fields['format'].required = False
-        self.fields['folia'].required = False
-        self.fields['numsermons'].required = False
-        self.fields['colltitle'].required = False
+        oErr = ErrHandle()
+        try:
+            # Some fields are not required
+            self.fields['code'].required = False
+            self.fields['date'].required = False
+            self.fields['place'].required = False
+            self.fields['format'].required = False
+            self.fields['folia'].required = False
+            self.fields['numsermons'].required = False
+            self.fields['colltitle'].required = False
 
-        self.fields['frontpage'].initial = "und"
-        self.fields['prologue'].initial = "und"
-        self.fields['dedicatory'].initial = "und"
-        self.fields['contents'].initial = "und"
-        self.fields['sermonlist'].initial = "und"
-        self.fields['othertexts'].initial = "und"
-        self.fields['images'].initial = "und"
-        self.fields['fulltitle'].initial = "und"
-        self.fields['colophon'].initial = "und"
+            self.fields['ffrontpage'].required = False
+            self.fields['fprologue'].required = False
+            self.fields['fdedicatory'].required = False
+            self.fields['fcontents'].required = False
+            self.fields['fsermonlist'].required = False
+            self.fields['fothertexts'].required = False
+            self.fields['fimages'].required = False
+            self.fields['ffulltitle'].required = False
+            self.fields['fcolophon'].required = False
 
-        self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
-        self.fields['publisherlist'].queryset = Publisher.objects.all().order_by('name')
-        self.fields['placelist'].queryset = Location.objects.all().order_by('name')
-        self.fields['colllist'].queryset = SermonCollection.objects.all().order_by('title')
+            #init_choices(self, 'xfrontpage', YESNO_TYPE, bUseAbbr=True)
+            #init_choices(self, 'xprologue', YESNO_TYPE, bUseAbbr=True)
+            #init_choices(self, 'xdedicatory', YESNO_TYPE, bUseAbbr=True)
+            #init_choices(self, 'xcontents', YESNO_TYPE, bUseAbbr=True)
+            #init_choices(self, 'xsermonlist', YESNO_TYPE, bUseAbbr=True)
+            #init_choices(self, 'xothertexts', YESNO_TYPE, bUseAbbr=True)
+            #init_choices(self, 'ximages', YESNO_TYPE, bUseAbbr=True)
+            #init_choices(self, 'xfulltitle', YESNO_TYPE, bUseAbbr=True)
+            #init_choices(self, 'xcolophon', YESNO_TYPE, bUseAbbr=True)
 
-        # Get the instance
-        if 'instance' in kwargs:
-            instance = kwargs['instance']
+            self.fields['authorlist'].queryset = Author.objects.all().order_by('name')
+            self.fields['publisherlist'].queryset = Publisher.objects.all().order_by('name')
+            self.fields['placelist'].queryset = Location.objects.all().order_by('name')
+            self.fields['colllist'].queryset = SermonCollection.objects.all().order_by('title')
+            self.fields['formatlist'].queryset = FieldChoice.objects.filter(field=FORMAT_TYPE).order_by("english_name")
+
+            # Get the instance
+            if 'instance' in kwargs:
+                instance = kwargs['instance']
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("EditionListForm-init")
+        return None
 
 
 # ====================== APPLICATION TAG FORMS =============================

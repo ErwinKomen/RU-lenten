@@ -732,6 +732,21 @@ def user_is_ingroup(request, sGroup):
     bIsInGroup = (sGroup in glist)
     return bIsInGroup
 
+def code_to_yesno(code):
+    """Determine whether value is 'yes' or 'no'"""
+
+    oErr = ErrHandle()
+    sBack = ""
+    try:
+        if code != None and code != "":
+            obj = FieldChoice.objects.filter(field__iexact="seeker.yesno", id=code).first()
+            if obj != None:
+                sBack = obj.abbr
+    except:
+        msg = oErr.get_error_message()
+        sBack = ""
+    return sBack
+
 @csrf_exempt
 def get_cities(request):
     """Get a list of cities for autocomplete"""
@@ -3006,20 +3021,20 @@ class EditionList(BasicList):
              'keyFk': 'name',  'keyList': 'placelist', 'infield': 'id' },
             {'filter': 'daterange', 'dbfield': 'date__gte',                 'keyS': 'date_from'},
             {'filter': 'daterange', 'dbfield': 'date__lte',                 'keyS': 'date_until'},
-            {'filter': 'format',    'dbfield': 'format',    'keyS': 'format'  },
+            {'filter': 'format',    'dbfield': 'format',    'keyList': 'formatlist', 'keyType': 'fieldchoice', 'infield': 'abbr'  },
             {'filter': 'folia',     'dbfield': 'folia',     'keyS': 'folia'  },
             {'filter': 'sermons',   'dbfield': 'numsermons','keyS': 'numsermons'  } 
             ]},
         {'section': 'paratextual', 'filterlist': [
-            {'filter': 'frontpage',     'dbfield': 'frontpage',     'keyS': 'frontpage',    'keyType': 'exists'  },
-            {'filter': 'prologue',      'dbfield': 'prologue',      'keyS': 'prologue',     'keyType': 'exists'  },
-            {'filter': 'dedicatory',    'dbfield': 'dedicatory',    'keyS': 'dedicatory',   'keyType': 'exists'  },
-            {'filter': 'contents',      'dbfield': 'contents',      'keyS': 'contents',     'keyType': 'exists'  },
-            {'filter': 'sermonlist',    'dbfield': 'sermonlist',    'keyS': 'sermonlist',   'keyType': 'exists'  },
-            {'filter': 'othertexts',    'dbfield': 'othertexts',    'keyS': 'othertexts',   'keyType': 'exists'  },
-            {'filter': 'images',        'dbfield': 'images',        'keyS': 'images',       'keyType': 'exists'  },
-            {'filter': 'fulltitle',     'dbfield': 'fulltitle',     'keyS': 'fulltitle',    'keyType': 'exists'  },
-            {'filter': 'colophon',      'dbfield': 'colophon',      'keyS': 'colophon',     'keyType': 'exists'  }
+            {'filter': 'frontpage',     'dbfield': 'ffrontpage',     'keyS': 'xfrontpage',    'keyType': 'exists', 'code': code_to_yesno },
+            {'filter': 'prologue',      'dbfield': 'fprologue',      'keyS': 'xprologue',     'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'dedicatory',    'dbfield': 'fdedicatory',    'keyS': 'xdedicatory',   'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'contents',      'dbfield': 'fcontents',      'keyS': 'xcontents',     'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'sermonlist',    'dbfield': 'fsermonlist',    'keyS': 'xsermonlist',   'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'othertexts',    'dbfield': 'fothertexts',    'keyS': 'xothertexts',   'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'images',        'dbfield': 'fimages',        'keyS': 'ximages',       'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'fulltitle',     'dbfield': 'ffulltitle',     'keyS': 'xfulltitle',    'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'colophon',      'dbfield': 'fcolophon',      'keyS': 'xcolophon',     'keyType': 'exists', 'code': code_to_yesno  }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
@@ -3066,7 +3081,16 @@ class EditionList(BasicList):
             if Edition.do_publishers():
                 Information.set_kvalue("publishers", "done")
 
+        flat_done = Information.get_kvalue("flat")
+        if flat_done != "done":
+            with transaction.atomic():
+                for edi in Edition.objects.all():
+                    edi.save()
+            Information.set_kvalue("flat", "done")
+
+        # Set the values for yes and no
         return None
+
 
 
 class EditionDetailsView(PassimDetails):

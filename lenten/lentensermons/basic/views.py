@@ -226,6 +226,7 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                 fkfield = get_value(search_item, "fkfield")
                 keyType = get_value(search_item, "keyType")
                 filter_type = get_value(search_item, "filter")
+                code_function = get_value(search_item, "code")
                 s_q = ""
                 arFkField = []
                 if fkfield != None:
@@ -286,13 +287,14 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                                 s_q = Q(**{"{}__gt".format(dbfield): 0})
                             else:
                                 s_q = Q(**{"{}".format(dbfield): 0})
-                    elif keyType == "exists":
+                    elif keyType == "exists" and code_function != None:
                         # Check the count or the availability for the db field
-                        val = oFields[filter_type]
+                        val = code_function( oFields[keyS])
                         if val == "yes" or val == "no":
                             enable_filter(filter_type, head_id)
                             if val == "yes":
                                 s_q = Q(**{"{}__exact".format(dbfield): ""})
+                                if lstExclude == None: lstExclude = []
                                 lstExclude.append(s_q)
                                 s_q = ""
                             else:
@@ -836,7 +838,7 @@ class BasicList(ListView):
                 # Calculate the final qs
                 if len(lstQ) == 0 and not self.none_on_empty:
                     if lstExclude:
-                        qs = self.model.exclude(*lstExclude)
+                        qs = self.model.objects.exclude(*lstExclude)
                     else:
                         # Just show everything
                         qs = self.model.objects.all()

@@ -37,6 +37,7 @@ STATUS_TYPE = "seeker.stype"
 DATE_TYPE = "seeker.datetype"
 FORMAT_TYPE = "seeker.formattype"
 LANGUAGE_tYPE = "seeker.language"
+YESNO_TYPE = "seeker.yesno"
 
 
 class FieldChoice(models.Model):
@@ -1509,22 +1510,31 @@ class Edition(tagtext.models.TagtextModel):
     # ----------- PARATEXTUAL ELEMENTS -------------
     # [0-1] Front or title page
     frontpage = models.TextField("Front page / title page", blank=True, null=True)
+    ffrontpage = models.TextField("Flat frontpage", blank=True, null=True)
     # [0-1] Prologue
     prologue = models.TextField("Prologue", blank=True, null=True)
+    fprologue = models.TextField("Flat Prologue", blank=True, null=True)
     # [0-1] Dedicatory letter
     dedicatory = models.TextField("Dedicatory letter", blank=True, null=True)
+    fdedicatory = models.TextField("Flat Dedicatory letter", blank=True, null=True)
     # [0-1] Table of contents
     contents = models.TextField("Table of contents", blank=True, null=True)
+    fcontents = models.TextField("Flat Table of contents", blank=True, null=True)
     # [0-1] List of sermons
     sermonlist = models.TextField("List of sermons", blank=True, null=True)
+    fsermonlist = models.TextField("Flat List of sermons", blank=True, null=True)
     # [0-1] Other texts
     othertexts = models.TextField("Other texts", blank=True, null=True)
+    fothertexts = models.TextField("Flat Other texts", blank=True, null=True)
     # [0-1] Other texts
     images = models.TextField("Images", blank=True, null=True)
+    fimages = models.TextField("Flat Images", blank=True, null=True)
     # [0-1] Other texts
     fulltitle = models.TextField("Full title", blank=True, null=True)
+    ffulltitle = models.TextField("Flat Full title", blank=True, null=True)
     # [0-1] Other texts
     colophon = models.TextField("Colophon", blank=True, null=True)
+    fcolophon = models.TextField("Flat Colophon", blank=True, null=True)
 
     # ======================== HELPER ===============================
     firstpublisher = models.ForeignKey(Publisher, blank=True, null=True, related_name="firstpublisher_editions")
@@ -1560,17 +1570,17 @@ class Edition(tagtext.models.TagtextModel):
     colophontags = models.ManyToManyField(TagKeyword, blank=True, related_name="edition_colophontags")
 
     mixed_tag_fields = [
-            {"textfield": "datecomment",    "m2mfield": "datecommenttags",  "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "note",           "m2mfield": "notetags",         "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "frontpage",      "m2mfield": "frontpagetags",    "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "prologue",       "m2mfield": "prologuetags",     "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "dedicatory",     "m2mfield": "dedicatorytags",   "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "contents",       "m2mfield": "contentstags",     "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "sermonlist",     "m2mfield": "sermonlisttags",   "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "othertexts",     "m2mfield": "othertextstags",   "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "images",         "m2mfield": "imagestags",       "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "fulltitle",      "m2mfield": "fulltitletags",    "class": TagKeyword, "url": "tagkeyword_details"},
-            {"textfield": "colophon",       "m2mfield": "colophontags",     "class": TagKeyword, "url": "tagkeyword_details"}
+        {"textfield": "datecomment",    "m2mfield": "datecommenttags",                              "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "note",           "m2mfield": "notetags",                                     "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "frontpage",      "m2mfield": "frontpagetags",    "textflat": "ffrontpage",   "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "prologue",       "m2mfield": "prologuetags",     "textflat": "fprologue",    "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "dedicatory",     "m2mfield": "dedicatorytags",   "textflat": "fdedicatory",  "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "contents",       "m2mfield": "contentstags",     "textflat": "fcontents",    "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "sermonlist",     "m2mfield": "sermonlisttags",   "textflat": "fsermonlist",  "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "othertexts",     "m2mfield": "othertextstags",   "textflat": "fothertexts",  "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "images",         "m2mfield": "imagestags",       "textflat": "fimages",      "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "fulltitle",      "m2mfield": "fulltitletags",    "textflat": "ffulltitle",   "class": TagKeyword, "url": "tagkeyword_details"},
+        {"textfield": "colophon",       "m2mfield": "colophontags",     "textflat": "fcolophon",    "class": TagKeyword, "url": "tagkeyword_details"}
         ]
 
     def __str__(self):
