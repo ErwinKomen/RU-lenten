@@ -1766,7 +1766,7 @@ class Sermon(tagtext.models.TagtextModel):
     # [1] Each sermon belongs to a collection
     collection = models.ForeignKey(SermonCollection, related_name="collection_sermons", on_delete=models.CASCADE)
     # [0-1] Each sermon *MAY* belong to an edition
-    edition = models.ForeignKey(Edition, related_name="collection_editions", null=True, blank=True, on_delete=models.SET_NULL)
+    edition = models.ForeignKey(Edition, related_name="edition_sermons", null=True, blank=True, on_delete=models.SET_NULL)
 
     # =================== many-to-many fields =================================================
     # [0-n] zero or more topics

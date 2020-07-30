@@ -3155,7 +3155,7 @@ class PublisherDetailsView(PassimDetails):
         # Show the collections containing this author
         collections = {'prefix': 'col', 'title': 'Sermon collections for this publisher'}
         # Show the list of collections using this author
-        qs = SermonCollection.objects.filter(collection_sermons__edition__publishers__id=instance.id).order_by('idno').distinct()
+        qs = SermonCollection.objects.filter(editions__publishers__id=instance.id).order_by('idno').distinct()
         rel_list =[]
         for item in qs:
             rel_item = []
@@ -3167,6 +3167,23 @@ class PublisherDetailsView(PassimDetails):
         collections['rel_list'] = rel_list
         collections['columns'] = ['Collection', 'Title', 'Date', 'Place']
         related_objects.append(collections)
+
+        # Show the editions containing this author
+        editions = {'prefix': 'edi', 'title': 'Editions for this publisher'}
+        # Show the list of editions using this author
+        qs = Edition.objects.filter(publishers__id=instance.id).order_by('date', 'date_late').distinct()
+        rel_list =[]
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.get_place()})
+            rel_item.append({'value': item.get_publishers()})
+            rel_item.append({'value': item.get_date()})
+            rel_item.append({'value': item.has_notes()})
+            rel_list.append(rel_item)
+        editions['rel_list'] = rel_list
+        editions['columns'] = ['Code', 'Place', 'Publishers', 'Date', 'Notes']
+        related_objects.append(editions)
 
         context['related_objects'] = related_objects
         # Return the context we have made
