@@ -1366,10 +1366,17 @@ class SermonCollection(tagtext.models.TagtextModel):
         """Get the first edition and its author"""
 
         sBack = ""
-        year = self.firstedition
-        author = self.get_firstauthor()
-        if author == "": author = "(unknown)"
-        sBack = "{} {}".format(author, year)
+        # Get the first edition object
+        obj = self.first_edition_obj()
+        if obj != None:
+            html = []
+            # Get the first edition's details
+            html.append("<span class='edition-code'>{}</span>".format(obj.code))
+            if obj.place:
+                html.append("<span class='edition-place'>{}</span>".format(obj.place.name))
+            html.append("<span class='edition-publisher'>{}</span>".format(obj.get_publishers()))
+            html.append("<span class='edition-date'>{}</span>".format(obj.get_date()))
+            sBack = ", ".join(html)
         return sBack
 
     def get_authors(self):

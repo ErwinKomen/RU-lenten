@@ -2222,7 +2222,7 @@ class CollectionDetailsView(PassimDetails):
             {'type': 'plain', 'label': "Authors:", 'value': instance.get_authors()},
             {'type': 'plain', 'label': "Date of composition:", 'value': "{} ({})".format(instance.datecomp, instance.get_datetype_display()) },
             {'type': 'plain', 'label': "Place of composition:", 'value': instance.get_place() },
-            {'type': 'plain', 'label': "First edition:", 'value': instance.get_firstedition() },
+            {'type': 'safe',  'label': "First edition:", 'value': instance.get_firstedition() },
             {'type': 'plain', 'label': "Number of editions:", 'value': instance.numeditions }
 
             ]
