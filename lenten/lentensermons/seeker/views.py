@@ -2516,6 +2516,32 @@ class TgroupListView(BasicList):
                         obj.tgroup = new
                         obj.save()
             Information.set_kvalue("taggroup_general", "done")
+
+        # Check firstedi
+        italictitle = Information.get_kvalue("italictitle")
+        if italictitle == None or italictitle == "" or italictitle != "done":
+            # Walk all sermon collections
+            with transaction.atomic():
+                for obj in SermonCollection.objects.all():
+                    # save them
+                    obj.save()
+            # Walk all sermons
+            with transaction.atomic():
+                for obj in Sermon.objects.all():
+                    # save them
+                    obj.save()
+            # Walk all editions
+            with transaction.atomic():
+                for obj in Edition.objects.all():
+                    # save them
+                    obj.save()
+            # Walk all manuscripts
+            with transaction.atomic():
+                for obj in Manuscript.objects.all():
+                    # save them
+                    obj.save()
+            Information.set_kvalue("italictitle", "done")
+
         return None
 
 

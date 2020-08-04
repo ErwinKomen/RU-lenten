@@ -951,10 +951,11 @@ class Tgroup(models.Model):
             obj.save()
         return obj
 
-    def is_latin(self):
+    def is_latin_or_title(self):
         bFound = False
         if self.name and self.name != "":
-            bFound = "Latin" in self.name
+            name = self.name.lower()
+            bFound = "latin" in name or "title" in name
         return bFound
 
 
@@ -1078,7 +1079,7 @@ class TagKeyword(models.Model):
 
     def get_style(self):
         style = ""
-        if self.tgroup.is_latin(): style = "italic"
+        if self.tgroup.is_latin_or_title(): style = "italic"
         return style
 
 
