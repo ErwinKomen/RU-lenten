@@ -18,7 +18,7 @@
 
   <div>
 
-    {% if authenticated %}
+    {% if authenticated and permission %}
       <!-- Upper part of the basic list interface -->
 
       <div id="basiclist_top" class="container-small" >
@@ -70,8 +70,8 @@
               {% if filters %}
                 <span class="">
                   <!-- NEW: use filtering instead of 'searching' -->
-                  <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_filter" role="button" title="Define your filter(s)...">
-                    <span class="glyphicon glyphicon-search"></span>
+                  <a class="btn btn-xs jumbo-4" data-toggle="collapse" data-target="#tab_filter" role="button" title="Define your filter(s)...">
+                    <span class="glyphicon glyphicon-filter"></span>
                   </a>
 
                 </span>
@@ -273,35 +273,39 @@
         <!-- Allow importing list items from Excel -->
         {% if is_app_uploader and uploads %}
           {% for uitem in uploads %}
-            <div id="import_{{uitem.title}}" class="row hidden container">
-              <form action="{{uitem.url}}" method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <!-- Room for the filename to appear -->
-                <div class="col-md-6 form-group" id="{{uitem.title}}-import_info"
-                     targetid="{{uitem.title}}_data_import"
-                     targeturl="{{uitem.url}}">
-                  <div class="input-group">
-                    <span>{{uitem.msg}}</span>
-                    <span class="input-group-btn">
-                      <span class="btn btn-default btn-xs btn-file">
-                        Browse...
-                        {% if uitem.type == "multiple" %}
-                          <input id="id_{{uitem.title}}-files_field" name="files_field" required="" multiple="" type="file" oninput="ru.basic.import_data('{{uitem.title}}');" />
-                        {% else %}
-                          <input id="id_{{uitem.title}}-file_source" name="file_source" required="" type="file" oninput="ru.basic.import_data('{{uitem.title}}');" />
-                        {% endif %}
+            <div id="import_{{uitem.title}}" class="hidden container">
+              <div class="row">
+                <form action="{{uitem.url}}" method="POST" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <!-- Room for the filename to appear -->
+                  <div class="col-md-6 form-group" id="{{uitem.title}}-import_info"
+                       sync-progress="{% url 'sync_progress' %}?synctype={{uitem.title}}"
+                       targetid="{{uitem.title}}_data_import"
+                       targeturl="{{uitem.url}}">
+                    <div class="input-group">
+                      <span>{{uitem.msg}}</span>
+                      <span class="input-group-btn">
+                        <span class="btn btn-default btn-xs btn-file">
+                          Browse...
+                          {% if uitem.type == "multiple" %}
+                            <input id="id_{{uitem.title}}-files_field" name="files_field" required="" multiple="" type="file" oninput="ru.basic.import_data('{{uitem.title}}');" />
+                          {% else %}
+                            <input id="id_{{uitem.title}}-file_source" name="file_source" required="" type="file" oninput="ru.basic.import_data('{{uitem.title}}');" />
+                          {% endif %}
+                        </span>
                       </span>
-                    </span>
-                  </div>
+                    </div>
             
-                </div>
-                <!-- Progress of upload indicator -->
-                <div class="col-md-6">
-                  <progress class="hidden" style="width:100%;" id="{{uitem.title}}-import_progress" value="0" min="0" max="100"></progress>
-                </div>
-                <!-- Any error reporting -->
-                <div id="{{uitem.title}}-import_error"></div>
-              </form>
+                  </div>
+                  <!-- Progress of upload indicator -->
+                  <div class="col-md-6">
+                    <progress class="hidden" style="width:100%;" id="{{uitem.title}}-import_progress" value="0" min="0" max="100"></progress>
+                  </div>
+                  <div class="save-warning"></div>
+                  <!-- Any error reporting -->
+                  <div id="{{uitem.title}}-import_error"></div>
+                </form>
+              </div>
 
               <!-- Import information -->
               <div id="{{uitem.title}}_data_import" class="project-part hidden"></div>
@@ -356,7 +360,7 @@
                       <tr>
                         <th class="hidden">id</th>
                         {% for hd in order_heads %}
-                          <th class="sortable tdnowrap" scope="col" {% if hd.title %}title="{{hd.title}}"{% endif %}>
+                          <th class="sortable" scope="col" {% if hd.title %}title="{{hd.title}}"{% endif %}>
                             <div class="text">
                               {% if hd.order == "" %}{{hd.name}}
                               {% else %}
@@ -365,9 +369,6 @@
                             </div>
                           </th>
                         {% endfor %}
-                        {% if is_app_editor and admin_editable %}
-                          <th><!-- Buttons --></th>
-                        {% endif %}
                       </tr>
                     </thead>
                     <tbody>
@@ -419,16 +420,6 @@
                             {% endif %}
                           </td>
                         {% endfor %}
-
-                        {% if is_app_editor and admin_editable %}
-                          <!-- Possibly editing -->
-                          <td style="min-width: 80px;">
-                            <!-- Edit button -->
-                            <a mode="edit" class="view-mode btn btn-xs jumbo-1" href="{{result.admindetails}}">
-                              <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
-                            </a>
-                          </td>
-                        {% endif %}
                       </tr>
                     {% endfor %}
                     </tbody>
@@ -454,6 +445,10 @@
       </div>
 
     
+    {% elif authenticated and not permission %}
+      <div class="explanation">
+        <p>Dear user, you do not have permission to view this item.</p>
+      </div>
     {% else %}
       <div class="explanation">
         <p>Dear user, you are <b>not</b> logged in.</p>

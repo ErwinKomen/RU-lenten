@@ -1009,6 +1009,14 @@ class TagKeyword(models.Model):
         item = dict(count=count, type="Collection Notes tags", url=url, params=params, css=css)
         lst_back.append(item)
 
+        # Counts in: collection.bibliography
+        count = self.collection_bibliography.all().count()
+        url = reverse("collection_list")
+        params = "coll-tagbiblid={}".format(self.id)
+        css ="jumbo-3"
+        item = dict(count=count, type="Bibliography tags", url=url, params=params, css=css)
+        lst_back.append(item)
+
         # Counts in: sermon.summary
         count = self.sermon_summarynotes.all().count()
         url = reverse("sermon_list")
@@ -1182,7 +1190,7 @@ class SermonCollection(tagtext.models.TagtextModel):
     # [1] Title is obligatory for any sermon collection
     title = models.CharField("Title", max_length=MEDIUM_LENGTH)
     # [0-1] Author information and bibliography
-    bibliography = models.TextField("Info author and bibliography", blank=True, null=True)
+    bibliography = models.TextField("Bibliography", blank=True, null=True)
     # [0-1] Date of composition
     datecomp = models.IntegerField("Year of composition", blank=True, null=True)
     # [0-1] Type of this date: fixed, approximate?
@@ -1234,6 +1242,8 @@ class SermonCollection(tagtext.models.TagtextModel):
     sourcenotetags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_sourcenotes")
     # [n-n] Tags in the exempla
     exemplatags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_exempla")
+    # [n-n] Tags in the bibliography
+    bibliographytags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_bibliography")
     # [n-n] Tags in the notes
     notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="collection_notes")
 
@@ -1242,7 +1252,8 @@ class SermonCollection(tagtext.models.TagtextModel):
             {"textfield": "communicative",  "m2mfield": "communicativetags","class": TagKeyword,    "url": "tagkeyword_details"},
             {"textfield": "sources",        "m2mfield": "sourcenotetags",   "class": TagKeyword,    "url": "tagkeyword_details"},
             {"textfield": "exempla",        "m2mfield": "exemplatags",      "class": TagKeyword,    "url": "tagkeyword_details"},
-            {"textfield": "notes",          "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"}
+            {"textfield": "notes",          "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "bibliography",   "m2mfield": "bibliographytags", "class": TagKeyword,    "url": "tagkeyword_details"}
         ]
 
     def __str__(self):
@@ -1883,6 +1894,41 @@ class Sermon(tagtext.models.TagtextModel):
         sBack = markdown(sBack.strip())
         return sBack
 
+    def get_authors(self):
+        """Get the name of the author"""
+
+        sBack = "-"
+        if self.collection:
+            lCombi = []
+            for obj in self.collection.authors.all():
+                lCombi.append(obj.name)
+            sBack = ", ".join(lCombi)
+        return sBack
+
+    def get_authors_markdown(self):
+        """Get HTML view of authors"""
+
+        # The authors are part of the SermonCollection
+        sBack = "-"
+        if self.collection:
+            html = []
+            for author in self.collection.authors.all():
+                url = reverse("author_details", kwargs={'pk': author.id})
+                html.append("<span class='author clickable'><a class='nostyle' href='{}'>{}</a></span>".format(url, author.name))
+            sBack = ", ".join(html)
+        return sBack
+
+    def get_summary_markdown(self, obj=None):
+        sBack = ""
+        if self.summary:
+            # Retrieve the whole
+            sWhole = markdown(self.get_summary_display).strip()
+            if obj:
+                sWhole = tag_combine_html(obj, self.summary, sWhole)
+            # Combine everything
+            sBack = sWhole
+        return sBack
+
     def get_topics(self):
         """Get a list of topics"""
 
@@ -1900,28 +1946,6 @@ class Sermon(tagtext.models.TagtextModel):
             lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,topic.name))
 
         sBack = ", ".join(lHtml)
-        return sBack
-
-    def get_authors(self):
-        """Get the name of the author"""
-
-        sBack = "-"
-        if self.collection:
-            lCombi = []
-            for obj in self.collection.authors.all():
-                lCombi.append(obj.name)
-            sBack = ", ".join(lCombi)
-        return sBack
-
-    def get_summary_markdown(self, obj=None):
-        sBack = ""
-        if self.summary:
-            # Retrieve the whole
-            sWhole = markdown(self.get_summary_display).strip()
-            if obj:
-                sWhole = tag_combine_html(obj, self.summary, sWhole)
-            # Combine everything
-            sBack = sWhole
         return sBack
 
 

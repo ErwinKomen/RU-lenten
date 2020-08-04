@@ -2236,6 +2236,7 @@ class CollectionDetailsView(PassimDetails):
             {'name': 'General notes', 'id': 'coll_general', 'fields': [
                 {'type': 'safeline',    'label': "Quoted sources:", 'value': instance.get_sources_display.strip()},
                 {'type': 'safeline',    'label': "Exempla:", 'value': instance.get_exempla_display.strip()},
+                {'type': 'safeline',    'label': "Bibliography:", 'value': instance.get_bibliography_display.strip()},
                 {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()}                ]}
             ]
 
@@ -2339,7 +2340,8 @@ class CollectionList(BasicList):
             {'filter': 'taglituid',     'fkfield': 'liturgicaltags',    'keyS': 'taglituid',    'keyFk': 'id' },
             {'filter': 'tagcommid',     'fkfield': 'communicativetags', 'keyS': 'tagcommid',    'keyFk': 'id' },
             {'filter': 'tagqsrcid',     'fkfield': 'sourcetags',        'keyS': 'tagqsrcid',    'keyFk': 'id' },
-            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',       'keyS': 'tagexmpid',    'keyFk': 'id' }
+            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',       'keyS': 'tagexmpid',    'keyFk': 'id' },
+            {'filter': 'tagbiblid',     'fkfield': 'bibliographytags',  'keyS': 'tagbiblid',    'keyFk': 'id' }
             ]}
         ]
 
@@ -2713,7 +2715,9 @@ class TagKeywordDetailView(PassimDetails):
             {'field': '[Notes]',                                'display': 'notes',         'head': 'Notes',                   
                 'qs': instance.collection_notes.all().order_by('idno')},
             {'field': '[Exempla]',                              'display': 'exempla',       'head': 'Exempla',                
-                'qs': instance.collection_exempla.all().order_by('idno')}
+                'qs': instance.collection_exempla.all().order_by('idno')},
+            {'field': '[Bibliography]',                         'display': 'bibliography',  'head': 'Bibliography',                
+                'qs': instance.collection_bibliography.all().order_by('idno')}
             ]
         for description in collectiondescriptions:
             base = {'prefix': 'col', 'title': 'Collections that use this tag in their {}'.format(description['field'])}
@@ -2949,6 +2953,7 @@ class SermonDetailsView(PassimDetails):
         # Get the link to the sermon collection
         sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
         context['mainitems'] = [
+            {'type': 'safe',  'label': "Authors:", 'value': instance.get_authors_markdown()},
             {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title, 'link': sc},
             {'type': 'plain', 'label': "Code:", 'value': instance.get_code()},
             {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
@@ -3090,8 +3095,7 @@ class EditionList(BasicList):
 
         # Set the values for yes and no
         return None
-
-
+    
 
 class EditionDetailsView(PassimDetails):
     model = Edition

@@ -68,7 +68,7 @@ table tbody tr:hover {
   cursor: pointer;*/
   /*  */
 }
-table tbody tr td.clickable:hover, table tbody tr.clickable td:hover, div.clickable:hover {
+table tbody tr td.clickable:hover, table tbody tr.clickable td:hover, div.clickable:hover, span.clickable:hover {
   cursor: pointer;
 }
 table tbody tr td.clickable:hover, table tbody tr.clickable td:hover {

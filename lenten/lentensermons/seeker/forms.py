@@ -535,6 +535,7 @@ class CollectionListForm(forms.ModelForm):
     tagnoteid = forms.CharField(label=_("Note tag"), required = False)
     tagexmpid = forms.CharField(label=_("Exemplar tag"), required = False)
     tagqsrcid = forms.CharField(label=_("Quoted source tag"), required = False)
+    tagbiblid = forms.CharField(label=_("Bibliography tag"), required = False)
     hasmanu = forms.ChoiceField(label=_(""), required=False, widget=forms.Select(attrs={'style': 'width: 100%;'}))
 
     class Meta:

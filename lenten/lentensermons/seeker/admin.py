@@ -373,7 +373,7 @@ class SermonCollectionAdminForm(forms.ModelForm):
         model = SermonCollection
         fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
         widgets = {
-            'bibliography':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'bibliography':     TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'liturgical':       TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'communicative':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'sources':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
