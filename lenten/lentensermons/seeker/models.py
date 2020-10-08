@@ -1743,10 +1743,10 @@ class Edition(tagtext.models.TagtextModel):
     def get_year(self):
         """Get the year of this edition or a hyphen if it is not available"""
         year = "-"
-        if obj != None:
-            year = obj.date
+        if self != None:
+            year = self.date
             if year == None:
-                year = obj.date_late
+                year = self.date_late
         return year
 
     def has_notes(self):
