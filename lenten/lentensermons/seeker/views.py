@@ -2397,22 +2397,27 @@ class CollectionList(BasicList):
         sBack = ""
         sTitle = ""
         html = []
-        # FIgure out what to return
-        if custom == "author":
-            html.append(instance.get_authors())
-        elif custom == "place":
-            place = instance.get_place()
-            html.append(place)
-        elif custom == "firstediplace":
-            place = "" 
-            if instance.firstedi != None and instance.firstedi.place != None:
-                place = instance.firstedi.place.name
-            html.append(place)
-        elif custom == "firstedipubli":
-            publisher = "" 
-            if instance.firstedi != None and instance.firstedi.firstpublisher != None:
-                publisher = instance.firstedi.firstpublisher.name
-            html.append(publisher)
+        oErr = ErrHandle()
+        try:
+            # FIgure out what to return
+            if custom == "author":
+                html.append(instance.get_authors())
+            elif custom == "place":
+                place = instance.get_place()
+                html.append(place)
+            elif custom == "firstediplace":
+                place = "" 
+                if instance.firstedi != None and instance.firstedi.place != None:
+                    place = instance.firstedi.place.name
+                html.append(place)
+            elif custom == "firstedipubli":
+                publisher = "" 
+                if instance.firstedi != None and instance.firstedi.firstpublisher != None:
+                    publisher = instance.firstedi.firstpublisher.name
+                html.append(publisher)
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("CollectionList/get_field_value")
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
