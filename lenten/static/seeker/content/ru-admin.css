@@ -1,0 +1,7 @@
+﻿td, th {
+  font-size: 13px;
+  line-height: 16px;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+  padding: 8px !important;
+}
