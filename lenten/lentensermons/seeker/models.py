@@ -1648,8 +1648,23 @@ class Edition(tagtext.models.TagtextModel):
     def delete(self, using = None, keep_parents = False):
         # Save the Sermon collection that is associated with this edition
         sermoncollection = self.sermoncollection
+        # Remove the m2m contents, if there are
+        self.publishers.all().delete()
+        self.datecommenttags.all().delete()
+        self.notetags.all().delete()
+        self.frontpagetags.all().delete()
+        self.prologuetags.all().delete()
+        self.dedicatorytags.all().delete()
+        self.contentstags.all().delete()
+        self.sermonlisttags.all().delete()
+        self.othertextstags.all().delete()
+        self.imagestags.all().delete()
+        self.fulltitletags.all().delete()
+        self.colophontags.all().delete()
         # Perform the deletion of the edition
         response = super(Edition, self).delete(using, keep_parents)
+        ## make sure values are re-loaded
+        #self.refresh_from_db()
         # Adapt the information in sermoncollection
         sermoncollection.adapt_editions()
         # Return the deletion response
