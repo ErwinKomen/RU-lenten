@@ -35,20 +35,20 @@ import csv, re
 from io import StringIO
 
 # My own application
-from basic.views import BasicList, BasicDetails
+from lentensermons.basic.views import BasicList, BasicDetails
 
 # Application specific
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, ConceptListForm, \
-    TagLiturListForm, TagCommListForm, TagQsourceListForm, TagKeywordListForm, PublisherListForm, NewsForm, \
-    LitrefForm
+    TagKeywordListForm, PublisherListForm, NewsForm, \
+    LitrefForm, AuthorListForm, TgroupForm, ManuscriptForm  # , TagQsourceListForm
 from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Location, LocationRelation, Author, Concept, FieldChoice, Information, \
-    Sermon, SermonCollection, Edition, Manuscript, TagCommunicative, TagLiturgical, TagKeyword, TagQsource, \
-    Publisher, Consulting, Litref
+    Sermon, SermonCollection, Edition, Manuscript, TagKeyword,  \
+    Publisher, Consulting, Litref, Tgroup   # , TagQsource
 
 # Some constants that can be used
 paginateSize = 20
@@ -310,17 +310,37 @@ def make_ordering(qs, qd, orders, order_cols, order_heads):
                 iOrderCol = int(colnum)
                 bAscending = (iOrderCol>0)
                 iOrderCol = abs(iOrderCol)
-                for order_item in order_cols[iOrderCol-1].split(";"):
-                    order.append(Lower(order_item))
                 sType = order_heads[iOrderCol-1]['type']
+                for order_item in order_cols[iOrderCol-1].split(";"):
+                    if sType == "int":
+                        order.append(order_item)
+                    else:
+                        order.append(Lower(order_item))
                 if bAscending:
                     order_heads[iOrderCol-1]['order'] = 'o=-{}'.format(iOrderCol)
                 else:
                     # order = "-" + order
                     order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
         else:
-            for order_item in order_cols[0].split(";"):
-                order.append(Lower(order_item))
+            orderings = []
+            for idx, order_item in enumerate(orders):
+                # Get the type
+                sType = order_heads[idx]['type']
+                if ";" in order_item:
+                    for sub_item in order_item.split(";"):
+                        orderings.append(dict(type=sType, item=sub_item))
+                else:
+                    orderings.append(dict(type=sType, item=order_item))
+            for item in orderings:
+                sType = item['type']
+                order_item = item['item']
+                if order_item != "":
+                    if sType == "int" or "-" in order_item:
+                        order.append(order_item)
+                    else:
+                        order.append(Lower(order_item))
+            #for order_item in order_cols[0].split(";"):
+            #    order.append(Lower(order_item))
         if sType == 'str':
             if len(order) > 0:
                 qs = qs.order_by(*order)
@@ -712,6 +732,21 @@ def user_is_ingroup(request, sGroup):
     bIsInGroup = (sGroup in glist)
     return bIsInGroup
 
+def code_to_yesno(code):
+    """Determine whether value is 'yes' or 'no'"""
+
+    oErr = ErrHandle()
+    sBack = ""
+    try:
+        if code != None and code != "":
+            obj = FieldChoice.objects.filter(field__iexact="seeker.yesno", id=code).first()
+            if obj != None:
+                sBack = obj.abbr
+    except:
+        msg = oErr.get_error_message()
+        sBack = ""
+    return sBack
+
 @csrf_exempt
 def get_cities(request):
     """Get a list of cities for autocomplete"""
@@ -908,13 +943,13 @@ def get_tributes(request):
                 lstQ = []
                 lstQ.append(Q(name__icontains=sQuery))
                 clsThis = None
-                if sTclass == "communicative":
-                    clsThis = TagCommunicative
-                elif sTclass == "liturgical":
-                    clsThis = TagLiturgical
-                elif sTclass == "qsource":
-                    clsThis = TagQsource
-                elif sTclass == "notes":
+                #if sTclass == "communicative":
+                #    clsThis = TagCommunicative
+                #elif sTclass == "liturgical":
+                #    clsThis = TagLiturgical
+                #elif sTclass == "qsource":
+                #    clsThis = TagQsource
+                if sTclass == "notes":
                     clsThis = TagKeyword
                 if clsThis != None:
                     qs = clsThis.objects.filter(*lstQ).order_by('name')
@@ -2108,14 +2143,15 @@ class SermonListView(BasicListView):
     prefix = "sermo"
     template_name = 'seeker/sermon_list.html'
     plural_name = "Sermons"
-    order_default = ['code', 'collection__authors__name' 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
-    order_cols = ['code', 'collection__authors__name' 'collection__title', 'litday', 'book;chapter;verse', 'topics__name']
-    order_heads = [{'name': 'Code', 'order': 'o=1', 'type': 'str'}, 
-                   {'name': 'Authors', 'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Liturgical day', 'order': 'o=4', 'type': 'str'},
-                   {'name': 'Thema', 'order': 'o=5', 'type': 'str'},
-                   {'name': 'Main topic', 'order': 'o=6', 'type': 'str'}]
+    order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
+                     'litday', 'book;chapter;verse', 'firsttopic__name']
+    order_cols = order_default
+    order_heads = [{'name': 'Code',             'order': 'o=1', 'type': 'int'}, 
+                   {'name': 'Authors',          'order': 'o=2', 'type': 'str'}, 
+                   {'name': 'Collection',       'order': 'o=3', 'type': 'str'}, 
+                   {'name': 'Liturgical day',   'order': 'o=4', 'type': 'str'},
+                   {'name': 'Thema',            'order': 'o=5', 'type': 'str'},
+                   {'name': 'Main topic',       'order': 'o=6', 'type': 'str'}]
     filters = [ {"name": "Code",           "id": "filter_code",         "enabled": False},
                 {"name": "Collection",     "id": "filter_collection",   "enabled": False},
                 {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
@@ -2125,11 +2161,15 @@ class SermonListView(BasicListView):
     searches = [
         {'section': '', 'filterlist': [
             {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
-            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
+            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 
+             'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
             {'filter': 'litday',    'dbfield': 'litday',    'keyS': 'litday'},
-            {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
-            {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
-            {'filter': 'topic',     'fkfield': 'topics',                        'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
+            {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 
+             'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
+            {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  
+             'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
+            {'filter': 'topic',     'fkfield': 'topics',                        
+             'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid',  'fkfield': 'notetags',         'keyS': 'tagnoteid', 'keyFk': 'id' },
@@ -2177,12 +2217,12 @@ class CollectionDetailsView(PassimDetails):
     def add_to_context(self, context, instance):
         # Show the main items of this sermon collection
         context['mainitems'] = [
-            {'type': 'plain', 'label': "Identifier (Code):", 'value': instance.idno},
+            {'type': 'plain', 'label': "Identifier (Code):", 'value': str(instance.idno)},
             {'type': 'bold',  'label': "Title:", 'value': instance.title},
             {'type': 'plain', 'label': "Authors:", 'value': instance.get_authors()},
             {'type': 'plain', 'label': "Date of composition:", 'value': "{} ({})".format(instance.datecomp, instance.get_datetype_display()) },
-            {'type': 'plain', 'label': "Place of composition:", 'value': instance.place.name },
-            {'type': 'plain', 'label': "First edition:", 'value': instance.get_firstedition() },
+            {'type': 'plain', 'label': "Place of composition:", 'value': instance.get_place() },
+            {'type': 'safe',  'label': "First edition:", 'value': instance.get_firstedition() },
             {'type': 'plain', 'label': "Number of editions:", 'value': instance.numeditions }
 
             ]
@@ -2196,6 +2236,7 @@ class CollectionDetailsView(PassimDetails):
             {'name': 'General notes', 'id': 'coll_general', 'fields': [
                 {'type': 'safeline',    'label': "Quoted sources:", 'value': instance.get_sources_display.strip()},
                 {'type': 'safeline',    'label': "Exempla:", 'value': instance.get_exempla_display.strip()},
+                {'type': 'safeline',    'label': "Bibliography:", 'value': instance.get_bibliography_display.strip()},
                 {'type': 'safeline',    'label': "Notes:", 'value': instance.get_notes_display.strip()}                ]}
             ]
 
@@ -2204,11 +2245,11 @@ class CollectionDetailsView(PassimDetails):
         # Show the SERMONS of this collection
         sermons = {'prefix': 'srm', 'title': 'Sermons of this collection (based on the year/place edition code)'}
         # Show the list of sermons that are part of this collection
-        qs = Sermon.objects.filter(collection=instance).order_by('code')
+        qs = Sermon.objects.filter(collection=instance).order_by('collection__idno', 'edition__idno', 'idno')
         rel_list =[]
         for item in qs:
             rel_item = []
-            rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
             rel_item.append({'value': item.litday})
             rel_item.append({'value': item.get_bibref()})
             rel_item.append({'value': item.get_topics()})
@@ -2224,91 +2265,36 @@ class CollectionDetailsView(PassimDetails):
         rel_list = []
         for item in qs:
             rel_item = []
-            rel_item.append({'value': item.info, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
-            rel_item.append({'value': item.link})
+            rel_item.append({'value': item.name, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
+            # OLD: rel_item.append({'value': item.get_info_display, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.has_link()})
+            rel_item.append({'value': item.has_info()})
             rel_list.append(rel_item)
         manuscripts['rel_list'] = rel_list
-        manuscripts['columns'] = ['Information', 'Link']
+        manuscripts['columns'] = ['Manuscript', 'Link', 'Information']
         related_objects.append(manuscripts)
 
         # Show the EDITIONS that point to this collection
         editions = {'prefix': 'edi', 'title': 'Printed editions that contain this collection'}
         # Get the list of editions
-        qs = Edition.objects.filter(sermoncollection=instance).order_by('code')
+        qs = Edition.objects.filter(sermoncollection=instance).order_by('sermoncollection__idno', 'idno')
         rel_list = []
         for item in qs:
             rel_item = []
-            rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
             rel_item.append({'value': item.get_place()})
-            rel_item.append({'value': item.get_editors()})
+            rel_item.append({'value': item.get_publishers()})
             rel_item.append({'value': item.get_date()})
             rel_item.append({'value': item.has_notes()})
             rel_list.append(rel_item)
         editions['rel_list'] = rel_list
-        editions['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
+        editions['columns'] = ['Code', 'Place', 'Publishers', 'Date', 'Notes']
         related_objects.append(editions)
 
         context['related_objects'] = related_objects
         # Return the context we have made
         return context
 
-
-class CollectionListView(BasicListView):
-    """Listview of sermon collections"""
-
-    model = SermonCollection
-    listform = CollectionListForm
-    prefix = "coll"
-    template_name = 'seeker/collection_list.html'
-    plural_name = "Sermon collections"
-    entrycount = 0
-    order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
-    order_cols = order_default
-    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'str'}, 
-                   {'name': 'Authors',       'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Title',         'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Year',          'order': 'o=4', 'type': 'str'},
-                   {'name': 'Place',         'order': 'o=5', 'type': 'str'},
-                   {'name': 'First Edition', 'order': 'o=6', 'type': 'str'},
-                   {'name': 'Editions',      'order': 'o=7', 'type': 'str'}]
-    filters = [ {"name": "Identifier",      "id": "filter_idno",    "enabled": False},
-                {"name": "Author",          "id": "filter_author",  "enabled": False},
-                {"name": "Title",           "id": "filter_title",   "enabled": False},
-                {"name": "Place",           "id": "filter_place",   "enabled": False},
-                {"name": "Has manuscripts", "id": "filter_hasmanu", "enabled": False}]
-    searches = [
-        {'section': '', 'filterlist': [
-            {'filter': 'idno',      'dbfield': 'code',      'keyS': 'code'},
-            {'filter': 'author',    'fkfield': 'authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
-            {'filter': 'title',     'dbfield': 'title',     'keyS': 'title'},
-            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' },
-            {'filter': 'hasmanu',   'dbfield': 'nummanu',   'keyType': 'has'}
-            ]},
-        {'section': 'other', 'filterlist': [
-            {'filter': 'tagnoteid', 'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
-            {'filter': 'taglituid', 'fkfield': 'liturtags',     'keyS': 'taglituid',    'keyFk': 'id' },
-            {'filter': 'tagcommid', 'fkfield': 'commutags',     'keyS': 'tagcommid',    'keyFk': 'id' },
-            {'filter': 'tagqsrcid', 'fkfield': 'sourcenotetags','keyS': 'tagqsrcid',    'keyFk': 'id' },
-            {'filter': 'tagexmpid', 'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
-            ]}
-        ]
-
-    def add_to_context(self, context, initial):
-        # Check if counting has been done
-        if Information.get_kvalue("manucount") == "":
-            # Calculate
-            if SermonCollection.do_manu_count():
-                Information.set_kvalue("manucount", "done")
-
-        # Check if processing of tags has been done
-        if Information.get_kvalue("tagqsource") == "":
-            # Calculate
-            if SermonCollection.do_qsources():
-                Information.set_kvalue("tagqsource", "done")
-
-
-        return context
-    
 
 class CollectionList(BasicList):
     """Listview of sermon collections"""
@@ -2319,36 +2305,122 @@ class CollectionList(BasicList):
     basic_name = "collection"
     plural_name = "Sermon collections"
     sg_name = "Sermon collection"
-    # template_name = 'seeker/collection_list.html'
+    basic_add = 'collection_add'
+    has_select2 = True
     entrycount = 0
-    order_default = ['idno', 'authors__name', 'title', 'datecomp', 'place__name', 'firstedition', 'numeditions']
+    order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'numeditions', 
+                     'firstedition', 'firstedi__place__name', 'firstedi__firstpublisher__name']
     order_cols = order_default
-    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'str'}, 
-                   {'name': 'Authors',       'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Title',         'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Year',          'order': 'o=4', 'type': 'str'},
-                   {'name': 'Place',         'order': 'o=5', 'type': 'str'},
-                   {'name': 'First Edition', 'order': 'o=6', 'type': 'str'},
-                   {'name': 'Editions',      'order': 'o=7', 'type': 'str'}]
-    filters = [ {"name": "Identifier",  "id": "filter_idno",    "enabled": False},
-                {"name": "Author",      "id": "filter_author",  "enabled": False},
-                {"name": "Title",       "id": "filter_title",   "enabled": False},
-                {"name": "Place",       "id": "filter_place",   "enabled": False}]
+    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int', 'field': 'idno'}, 
+                   {'name': 'Authors',       'order': 'o=2', 'type': 'str', 'custom': 'author'}, 
+                   {'name': 'Title',         'order': 'o=3', 'type': 'str', 'field': 'title', 'main': True, 'linkdetails': True}, 
+                   {'name': 'Year',          'order': 'o=4', 'type': 'str', 'field': 'datecomp'},
+                   {'name': 'Place',         'order': 'o=5', 'type': 'str', 'custom': 'place'},
+                   {'name': 'Editions',      'order': 'o=6', 'type': 'int', 'field': 'numeditions'},
+                   {'name': 'First Edition', 'order': 'o=7', 'type': 'str', 'field': 'firstedition'},
+                   {'name': 'Ed. place',     'order': 'o=8', 'type': 'str', 'custom': 'firstediplace',
+                    'title': 'Place of the first edition'},
+                   {'name': 'Publisher',     'order': 'o=9', 'type': 'str', 'custom': 'firstedipubli',
+                    'title': 'First publisher of the first edition'}]
+    filters = [ {"name": "Identifier",      "id": "filter_idno",    "enabled": False},
+                {"name": "Author",          "id": "filter_author",  "enabled": False},
+                {"name": "Title",           "id": "filter_title",   "enabled": False},
+                {"name": "Place",           "id": "filter_place",   "enabled": False},
+                {"name": "Has manuscripts", "id": "filter_hasmanu", "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'idno',      'dbfield': 'code',      'keyS': 'code'},
+            {'filter': 'idno',      'dbfield': 'idno',      'keyS': 'idno'},
             {'filter': 'author',    'fkfield': 'authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
             {'filter': 'title',     'dbfield': 'title',     'keyS': 'title'},
-            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }
+            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' },
+            {'filter': 'hasmanu',   'dbfield': 'nummanu',   'keyS': 'hasmanu',   'keyType': 'has'}
             ]},
         {'section': 'other', 'filterlist': [
-            {'filter': 'tagnoteid',     'fkfield': 'notetags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
-            {'filter': 'taglituid',     'fkfield': 'liturtags',     'keyS': 'taglituid',    'keyFk': 'id' },
-            {'filter': 'tagcommid',     'fkfield': 'commutags',     'keyS': 'tagcommid',    'keyFk': 'id' },
-            {'filter': 'tagqsrcid',     'fkfield': 'sourcetags',    'keyS': 'tagqsrcid',    'keyFk': 'id' },
-            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',   'keyS': 'tagexmpid',    'keyFk': 'id' }
+            {'filter': 'tagnoteid',     'fkfield': 'notetags',          'keyS': 'tagnoteid',    'keyFk': 'id' },
+            {'filter': 'taglituid',     'fkfield': 'liturgicaltags',    'keyS': 'taglituid',    'keyFk': 'id' },
+            {'filter': 'tagcommid',     'fkfield': 'communicativetags', 'keyS': 'tagcommid',    'keyFk': 'id' },
+            {'filter': 'tagqsrcid',     'fkfield': 'sourcetags',        'keyS': 'tagqsrcid',    'keyFk': 'id' },
+            {'filter': 'tagexmpid',     'fkfield': 'exemplatags',       'keyS': 'tagexmpid',    'keyFk': 'id' },
+            {'filter': 'tagbiblid',     'fkfield': 'bibliographytags',  'keyS': 'tagbiblid',    'keyFk': 'id' }
             ]}
         ]
+
+    def initializations(self):
+        # Change TagLiturgical + TagCommunicative into TagKeyword
+        litucomm = Information.get_kvalue("taglitucomm")
+        if litucomm == None or litucomm == "" or litucomm != "done":
+            # Convert liturtags into liturgical tags
+            for coll in SermonCollection.objects.all():
+                # GO through the liturgical tags
+                for litur in coll.liturtags.all():
+                    # Convert the TagLiturgical
+                    word = litur.name
+                    tgroup = litur.tgroup
+                    tagkw = TagKeyword.objects.filter(name=word, tgroup=tgroup).first()
+                    if tagkw == None:
+                        tagkw = TagKeyword.objects.create(name=word, tgroup=tgroup)
+                    # Add this to coll.liturgicaltags
+                    coll.liturgicaltags.add(tagkw)
+                # Go through the communicative tags
+                for commu in coll.commutags.all():
+                    # Convert the TagCommunicative
+                    word = commu.name
+                    tgroup = commu.tgroup
+                    tagkw = TagKeyword.objects.filter(name=word, tgroup=tgroup).first()
+                    if tagkw == None:
+                        tagkw = TagKeyword.objects.create(name=word, tgroup=tgroup)
+                    # Add this to coll.communicativetags
+                    coll.communicativetags.add(tagkw)
+
+            Information.set_kvalue("taglitucomm", "done")
+
+        # Check firstedi
+        firstedi = Information.get_kvalue("firstedi")
+        if firstedi == None or firstedi == "" or firstedi!= "done":
+            # Walk all sermon collections
+            for coll in SermonCollection.objects.all():
+                bNeedSaving = False
+                # Get the first edition
+                firstedition = coll.editions.all().order_by('date', 'date_late').first()
+                if firstedition != None:
+                    # adapt the field 'firstediplace' 
+                    coll.firstedi = firstedition
+                    bNeedSaving = True
+                # Save if needed
+                if bNeedSaving:
+                    coll.save()
+            Information.set_kvalue("firstedi", "done")
+
+        return None
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        oErr = ErrHandle()
+        try:
+            # FIgure out what to return
+            if custom == "author":
+                html.append(instance.get_authors())
+            elif custom == "place":
+                place = instance.get_place()
+                html.append(place)
+            elif custom == "firstediplace":
+                place = "" 
+                if instance.firstedi != None and instance.firstedi.place != None:
+                    place = instance.firstedi.place.name
+                html.append(place)
+            elif custom == "firstedipubli":
+                publisher = "" 
+                if instance.firstedi != None and instance.firstedi.firstpublisher != None:
+                    publisher = instance.firstedi.firstpublisher.name
+                html.append(publisher)
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("CollectionList/get_field_value")
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
 
 class ConceptListView(BasicListView):
@@ -2392,52 +2464,177 @@ class PublisherListView(BasicListView):
         ]
 
 
-class TagListView(BasicListView):
+class TgroupListView(BasicList):
+    """Listview of tgroups"""
+
+    model = Tgroup
+    listform = TgroupForm
+    prefix = "tgr"
+    basic_name = "tgroup"
+    plural_name = "Tag groups"
+    sg_name = "Tag group"
+    order_default = ['name', '']
+    order_cols = order_default
+    order_heads = [{'name': 'Name',          'order': 'o=1', 'type': 'str', 'field': 'name', 'main': True, 'linkdetails': True},
+                   {'name': 'Counts',        'order': '',    'type': 'str', 'custom': 'counts'}]
+    filters = [{"name": "Name",          "id": "filter_name",            "enabled": False}]
+    searches = [
+       {'section': '', 'filterlist': [
+            {'filter': 'name',   'dbfield': 'name',       'keyS': 'name'}
+            ]},
+        ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        # FIgure out what to return
+        if custom == "counts":
+            # Get the number of tgroups for each of the tag types
+            iKeyw = instance.tgroupskeyw.all().count()
+            if iKeyw > 0:
+                url = "{}?tagk-tgrlist={}".format(reverse('tagkeyword_list'), instance.id)
+                html.append("<span class='badge' title='keyword tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iKeyw))
+
+            # Extinct: iLitu = instance.tgroupslitu.all().count()
+            # Extinct: iComm = instance.tgroupscomm.all().count()
+            #if iLitu > 0:
+            #    url = "{}?tagl-tgrlist={}".format(reverse('tagliturgical_list'), instance.id)
+            #    html.append("<span class='badge' title='liturgical tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iLitu))
+            #if iComm > 0:
+            #    url = "{}?tagc-tgrlist={}".format(reverse('tagcommunicative_list'), instance.id)
+            #    html.append("<span class='badge' title='communicative tags'><a class='nostyle' href='{}'>{}</a></span>".format(url, iComm))
+
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+    def initializations(self):
+        general = Information.get_kvalue("taggroup_general")
+        if general == None or general == "" or general != "done":
+            old = Tgroup.objects.filter(name="general").first()
+            new = Tgroup.objects.filter(name="New").first()
+            if old and new:
+                # Change the 'general' into 'General'
+                with transaction.atomic():
+                    for obj in TagKeyword.objects.filter(tgroup=old):
+                        obj.tgroup = new
+                        obj.save()
+            Information.set_kvalue("taggroup_general", "done")
+
+        # Check firstedi
+        italictitle = Information.get_kvalue("italictitle")
+        if italictitle == None or italictitle == "" or italictitle != "done":
+            # Walk all sermon collections
+            with transaction.atomic():
+                for obj in SermonCollection.objects.all():
+                    # save them
+                    obj.save()
+            # Walk all sermons
+            with transaction.atomic():
+                for obj in Sermon.objects.all():
+                    # save them
+                    obj.save()
+            # Walk all editions
+            with transaction.atomic():
+                for obj in Edition.objects.all():
+                    # save them
+                    obj.save()
+            # Walk all manuscripts
+            with transaction.atomic():
+                for obj in Manuscript.objects.all():
+                    # save them
+                    obj.save()
+            Information.set_kvalue("italictitle", "done")
+
+        return None
+
+
+class TgroupEdit(BasicDetails):
+    model = Tgroup
+    mForm = TgroupForm
+    prefix = "tgr"
+    titlesg = "Tag group"
+    title = "Tgroup Edit"
+    mainitems = []
+    
+    def add_to_context(self, context, instance):
+        """Add to the existing context"""
+
+        # Define the main items to show and edit
+        context['mainitems'] = [
+            {'type': 'safe', 'label': "Name:", 'value': instance.name, 'field_key': 'name'}
+            ]
+        # Return the context we have made
+        return context
+
+    def before_save(self, form, instance):
+        bResult = True
+        msg = ""
+        name = form.instance.name
+        obj = Tgroup.objects.filter(name__iexact=name).first()
+        if obj != None:
+            msg = "Sorry, group [{}] already exists. Cannot have two instances of the same Tag group.".format(obj.name)
+            bResult = False
+        return bResult, msg
+
+
+class TgroupDetails(TgroupEdit):
+    rtype = "html"
+
+
+class TagListView(BasicList):
     """Listview of tags"""
 
     model = None
     listform = None
     prefix = ""
     urldef = ""
-    plain_name = ""
-    plain_plural = ""
-    template_name = 'seeker/tag_list.html'
-    entrycount = 0
-    order_default = ['name', 'number']
-    order_cols = ['name', 'number']
-    order_heads = [{'name': 'Tag', 'order': 'o=1', 'type': 'str'},
-                   {'name': 'Usage', 'order': '', 'type': 'str'}]
-    filters = [ {"name": "Tag",     "id": "filter_name",    "enabled": False}]
+    basic_name = ""
+    plural_name = ""
+    sg_name = ""
+    has_select2 = True
+    order_default = ['tgroup', 'name', '']
+    order_cols = ['tgroup', 'name', '']
+    order_heads = [{'name': 'Group',    'order': 'o=1', 'type': 'str', 'custom': 'group', 'linkdetails': True},
+                   {'name': 'Tag',      'order': 'o=2', 'type': 'str', 'field':  'name',  'linkdetails': True, 'main': True},
+                   {'name': 'Usage',    'order': '',    'type': 'str', 'custom': 'usage'}]
+    filters = [ {"name": "Tag",     "id": "filter_name",    "enabled": False},
+                {"name": "Group",   "id": "filter_tgroup",  "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'name',      'dbfield': 'name',      'keyS': 'tagname',   'keyList': 'taglist', 'infield': 'name'} ] }
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'tagname',   'keyList': 'taglist', 'infield': 'name'},
+            {'filter': 'tgroup',    'fkfield': 'tgroup',    'keyFk': 'name',     'keyList': 'tgrlist', 'infield': 'id'} ] }
         ]
 
-    def add_to_context(self, context, initial):
-        # We need to have the URL to this particular view
-        context['listview'] = reverse(self.urldef)
-        context['plain_name'] = self.plain_name
-        return context
+    def initializations(self):
+        if self.prefix == "tagl":
+            self.basic_add = 'taglitu_add'
+        elif self.prefix == "tagc":
+            self.basic_add = 'tagcomm_add'
+        elif self.prefix == "tagkw":
+            self.basic_add = 'tagkeyw_add'
+        return None
 
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        # FIgure out what to return
+        if custom == "usage":
+            # Get the number of times each tag is used
+            for tagitem in instance.get_list():
+                if tagitem['count'] > 0:
+                    url = "{}?{}".format(tagitem['params'], tagitem['count'])
+                    html.append("<span class='badge {}' title='{}'><a ref='{}'>{}</a></span>".format(
+                        tagitem['css'], tagitem['type'], url, tagitem['count']))
+        elif custom == "group":
+            # Show the group
+            html.append(instance.tgroup.name)
 
-class TagLiturListView(TagListView):
-    model = TagLiturgical
-    listform = TagLiturListForm
-    prefix = "tagl"
-    urldef = "tagliturgical_list"
-    plain_name = "liturgical tag"
-    plain_plural = "Liturgical tags"
-    plural_name = plain_plural
-
-
-class TagCommListView(TagListView):
-    model = TagCommunicative
-    listform = TagCommListForm
-    prefix = "tagc"
-    urldef = "tagcommunicative_list"
-    plain_name = "communicative tag"
-    plain_plural = "Communicative tags"
-    plural_name = plain_plural
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
 
 class TagKeywordListView(TagListView):
@@ -2445,101 +2642,11 @@ class TagKeywordListView(TagListView):
     listform = TagKeywordListForm
     prefix = "tagkw"
     urldef = "tagkeyword_list"
-    plain_name = "keyword tag"
-    plain_plural = "Keyword tags"
-    plural_name = plain_plural
 
-
-class TagLiturDetailView(PassimDetails):
-    model = TagLiturgical
-    mForm = None
-    template_name = 'generic_details.html'
-    prefix = "tagl"
-    title = "LiturgicalTagDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        # The main item of the view is the name of the tag itself
-        context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""}
-            ]
-        # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
-        lst_count = instance.get_list()
-        for oCount in lst_count:
-            oItem = dict(type='plain', label=oCount['type'], value=oCount['count'], align='right')
-            context['mainitems'].append(oItem)
-
-        # Make sure to show each of the sections in [lst_count] separately
-        related_objects = []
-
-        # This tag in: collection.communicative
-        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their relastionship with [Liturgical] texts'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_liturtags.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_liturgical_display})
-                rel_list.append(rel_item)
-            collections['rel_list'] = rel_list
-            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Liturgical']
-            related_objects.append(collections)
-
-        context['related_objects'] = related_objects
-        # Return the resulting context
-        return context    
-
-
-class TagCommDetailView(PassimDetails):
-    model = TagCommunicative
-    mForm = None
-    template_name = 'generic_details.html'
-    prefix = "tagc"
-    title = "CommunicativeTagDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        # The main item of the view is the name of the tag itself
-        context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""}
-            ]
-        # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
-        lst_count = instance.get_list()
-        for oCount in lst_count:
-            oItem = dict(type='plain', label=oCount['type'], value=oCount['count'], align='right')
-            context['mainitems'].append(oItem)
-
-        # Make sure to show each of the sections in [lst_count] separately
-        related_objects = []
-
-        # This tag in: collection.communicative
-        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Communicative strategy]'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_commtags.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_communicative_display})
-                rel_list.append(rel_item)
-            collections['rel_list'] = rel_list
-            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Communicative strategy']
-            related_objects.append(collections)
-
-        context['related_objects'] = related_objects
-        # Return the resulting context
-        return context    
+    basic_name = "tagkeyword"
+    plural_name = "Keyword tags"
+    sg_name = "Keyword tag"
+    basic_add = 'tagkw_add'
 
 
 class TagKeywordDetailView(PassimDetails):
@@ -2554,7 +2661,8 @@ class TagKeywordDetailView(PassimDetails):
     def add_to_context(self, context, instance):
         # The main item of the view is the name of the tag itself
         context['mainitems'] = [
-            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""}
+            {'type': 'bold',  'label': "Tag", 'value': instance.name, 'link': ""},
+            {'type': 'plain',  'label': "Group", 'value': instance.tgroup.name, 'link': ""}
             ]
         # Add the counts in different lists (collection, sermon, manuscript, edition) to the view
         lst_count = instance.get_list()
@@ -2565,111 +2673,151 @@ class TagKeywordDetailView(PassimDetails):
         # Make sure to show each of the sections in [lst_count] separately
         related_objects = []
 
-        # This tag in: sermon.notes
-        summaries = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Summary]'}
+        # This tag in: author.info
+        infos = {'prefix': 'auth', 'title': 'Author descriptions that use this tag in their [Information]'}
         # Show the list of sermons that contain this tag
-        qs = instance.sermon_summarynotes.all().order_by('code')
+        qs = instance.author_infotags.all().order_by('name')
         if qs.count() > 0:
             rel_list =[]
             for item in qs:
                 rel_item = []
-                rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.litday})
-                rel_item.append({'value': item.get_bibref()})
-                rel_item.append({'value': item.get_note_display})
+                rel_item.append({'value': item.name, 'title': 'View this author', 'link': reverse('author_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.get_info_display})
                 rel_list.append(rel_item)
-            summaries['rel_list'] = rel_list
-            summaries['columns'] = ['Code', 'Liturgical day', 'Thema', 'Note']
-            related_objects.append(summaries)
+            infos['rel_list'] = rel_list
+            infos['columns'] = ['Name', 'Information']
+            related_objects.append(infos)
 
-        # This tag in: sermon.notes
-        sermons = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [Notes]'}
+        # This tag in: manuscript.info
+        infos = {'prefix': 'manu', 'title': 'Manuscript descriptions that use this tag in their [Information]'}
         # Show the list of sermons that contain this tag
-        qs = instance.sermon_notetags.all().order_by('code')
+        qs = instance.manuscript_infotags.all().order_by('name')
         if qs.count() > 0:
             rel_list =[]
             for item in qs:
                 rel_item = []
-                rel_item.append({'value': item.code, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.litday})
-                rel_item.append({'value': item.get_bibref()})
-                rel_item.append({'value': item.get_note_display})
+                rel_item.append({'value': item.name, 'title': 'View this manuscript', 'link': reverse('manuscript_details', kwargs={'pk': item.id})})
+                rel_item.append({'value': item.get_info_display})
+                rel_item.append({'value': item.link})
                 rel_list.append(rel_item)
-            sermons['rel_list'] = rel_list
-            sermons['columns'] = ['Code', 'Liturgical day', 'Thema', 'Note']
-            related_objects.append(sermons)
+            infos['rel_list'] = rel_list
+            infos['columns'] = ['Name', 'Information', 'Link']
+            related_objects.append(infos)
 
-        # This tag in: collection.sources
-        sources = {'prefix': 'col', 'title': 'Collections that use this tag in their [Sources]'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_sourcenotes.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_notes_display})
-                rel_list.append(rel_item)
-            sources['rel_list'] = rel_list
-            sources['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Note']
-            related_objects.append(sources)
+        # Sermon listviews
+        sermondescriptions = [
+            {'field': 'DivisionL',   'head': 'Division (Latin)',    'display': 'divisionL',
+                'qs': instance.sermon_divisionltags.all().order_by('code')},
+            {'field': 'DivisionE',   'head': 'Division (English)',  'display': 'divisionE',
+                'qs': instance.sermon_divisionetags.all().order_by('code')},
+            {'field': 'Summary',   'head': 'Context: Summary',      'display': '',
+                'qs': instance.sermon_summarynotes.all().order_by('code')},
+            {'field': 'Notes',     'head': 'Context:  Note',        'display': 'note', 
+                'qs': instance.sermon_notetags.all().order_by('code')}
+            ]
+        for description in sermondescriptions:
+            base = {'prefix': 'srm', 'title': 'Sermons that use this tag in their [{}]'.format(description['field'])}
+            qs = description['qs']
+            if qs.count() > 0:
+                rel_list =[]
+                displayfieldname = "get_{}_display".format(description['display'])
+                for item in qs:
+                    rel_item = []
+                    rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+                    rel_item.append({'value': item.litday})
+                    rel_item.append({'value': item.get_authors()})
+                    if description['field'] == "Summary":
+                        rel_item.append({'value': item.get_summary_markdown(instance)})
+                    else:
+                        rel_item.append({'value': getattr(item, displayfieldname)})
+                    rel_list.append(rel_item)
+                base['rel_list'] = rel_list
+                base['columns'] = ['Code', 'Liturgical day', 'Authors', description['head']]
+                related_objects.append(base)
 
-        # This tag in: collection.notes
-        collections = {'prefix': 'col', 'title': 'Collections that use this tag in their [Notes]'}
-        # Show the list of collections that contain this tag
-        qs = instance.collection_notes.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_notes_display})
-                rel_list.append(rel_item)
-            collections['rel_list'] = rel_list
-            collections['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Note']
-            related_objects.append(collections)
+        # Collection listviews
+        collectiondescriptions = [
+            {'field': 'relationship with [Liturgical] texts',   'display': 'liturgical',    'head': 'Liturgical',
+                'qs': instance.collection_liturgicaltags.all().order_by('idno')},
+            {'field': '[Communicative strategy]',               'display': 'communicative', 'head': 'Communicative strategy', 
+                'qs': instance.collection_communicativetags.all().order_by('idno')},
+            {'field': '[Sources]',                              'display': 'sources',       'head': 'Sources',                 
+                'qs': instance.collection_sourcenotes.all().order_by('idno')},
+            {'field': '[Notes]',                                'display': 'notes',         'head': 'Notes',                   
+                'qs': instance.collection_notes.all().order_by('idno')},
+            {'field': '[Exempla]',                              'display': 'exempla',       'head': 'Exempla',                
+                'qs': instance.collection_exempla.all().order_by('idno')},
+            {'field': '[Bibliography]',                         'display': 'bibliography',  'head': 'Bibliography',                
+                'qs': instance.collection_bibliography.all().order_by('idno')}
+            ]
+        for description in collectiondescriptions:
+            base = {'prefix': 'col', 'title': 'Collections that use this tag in their {}'.format(description['field'])}
+            qs = description['qs']
+            if qs.count() > 0:
+                rel_list =[]
+                displayfieldname = "get_{}_display".format(description['display'])
+                for item in qs:
+                    rel_item = []
+                    rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
+                    rel_item.append({'value': item.title})
+                    rel_item.append({'value': item.datecomp})
+                    rel_item.append({'value': item.get_place()})
+                    rel_item.append({'value': getattr(item, displayfieldname)})
+                    rel_list.append(rel_item)
+                base['rel_list'] = rel_list
+                base['columns'] = ['Idno', 'Title', 'Date', 'Place', description['head']]
+                related_objects.append(base)
+ 
+        # Edition listviews
+        editiondescriptions = [
+            {'field': 'DateComment',    'qs': instance.edition_datecommenttags.all().order_by('code')},
+            {'field': 'Notes',          'qs': instance.edition_notetags.all().order_by('code')},
+            {'field': 'Frontpage',      'qs': instance.edition_frontpagetags.all().order_by('code')},
+            {'field': 'Prologue',       'qs': instance.edition_prologuetags.all().order_by('code')},
+            {'field': 'Dedicatory',     'qs': instance.edition_dedicatorytags.all().order_by('code')},
+            {'field': 'Contents',       'qs': instance.edition_contentstags.all().order_by('code')},
+            {'field': 'Sermonlist',     'qs': instance.edition_sermonlisttags.all().order_by('code')},
+            {'field': 'OtherTexts',     'qs': instance.edition_othertextstags.all().order_by('code')},
+            {'field': 'Images',         'qs': instance.edition_imagestags.all().order_by('code')},
+            {'field': 'Fulltitle',      'qs': instance.edition_fulltitletags.all().order_by('code')},
+            {'field': 'Colophon',       'qs': instance.edition_colophontags.all().order_by('code')}
+            ]
+        for description in editiondescriptions:
+            base = {'prefix': 'edi', 'title': 'Editions that use this tag in their [{}]'.format(description['field'])}
+            qs = description['qs']
+            if qs.count() > 0:
+                rel_list =[]
+                for item in qs:
+                    rel_item = []
+                    rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+                    rel_item.append({'value': item.get_place()})
+                    rel_item.append({'value': item.get_editors()})
+                    rel_item.append({'value': item.get_date()})
+                    rel_item.append({'value': item.has_notes()})
+                    rel_list.append(rel_item)
+                base['rel_list'] = rel_list
+                base['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
+                related_objects.append(base)
 
-        # This tag in: collection.exempla
-        exempla = {'prefix': 'exm', 'title': 'Collections that use this tag in their [Exempla]'}
-        # Show the list of sermons that contain this tag
-        qs = instance.collection_exempla.all().order_by('idno')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.title})
-                rel_item.append({'value': item.datecomp})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_exempla_display})
-                rel_list.append(rel_item)
-            exempla['rel_list'] = rel_list
-            exempla['columns'] = ['Idno', 'Title', 'Date', 'Place', 'Exempla']
-            related_objects.append(exempla)
-
-        # This tag in: edition.notes
-        editions = {'prefix': 'edi', 'title': 'Editions that use this tag in their [Notes]'}
-        # Show the list of editions that contain this tag
-        qs = instance.edition_notetags.all().order_by('code')
-        if qs.count() > 0:
-            rel_list =[]
-            for item in qs:
-                rel_item = []
-                rel_item.append({'value': item.code, 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
-                rel_item.append({'value': item.get_place()})
-                rel_item.append({'value': item.get_editors()})
-                rel_item.append({'value': item.get_date()})
-                rel_item.append({'value': item.has_notes()})
-                rel_list.append(rel_item)
-            editions['rel_list'] = rel_list
-            editions['columns'] = ['Code', 'Place', 'Editors', 'Date', 'Notes']
-            related_objects.append(editions)
+        # Publisher listviews
+        publisherdescriptions = [
+            {'field': 'Information',    'display': 'info',    'head': 'Information',
+             'qs': instance.publisher_infotags.all().order_by('name')}
+            ]
+        for description in publisherdescriptions:
+            base = {'prefix': 'pub', 'title': 'Publisher descriptions that use this tag in their [{}]'.format(description['field'])}
+            qs = description['qs']
+            if qs.count() > 0:
+                rel_list =[]
+                displayfieldname = "get_{}_display".format(description['display'])
+                for item in qs:
+                    rel_item = []
+                    rel_item.append({'value': item.name, 'title': 'View this publisher', 'link': reverse('publisher_details', kwargs={'pk': item.id})})
+                    rel_item.append({'value': item.get_info_display})
+                    rel_list.append(rel_item)
+                base['rel_list'] = rel_list
+                base['columns'] = ['Name', description['head']]
+                related_objects.append(base)
 
         context['related_objects'] = related_objects
         # Return the resulting context
@@ -2836,8 +2984,9 @@ class SermonDetailsView(PassimDetails):
         # Get the link to the sermon collection
         sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
         context['mainitems'] = [
+            {'type': 'safe',  'label': "Authors:", 'value': instance.get_authors_markdown()},
             {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title, 'link': sc},
-            {'type': 'plain', 'label': "Code:", 'value': instance.code},
+            {'type': 'plain', 'label': "Code:", 'value': instance.get_code()},
             {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
             {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
             {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
@@ -2846,49 +2995,138 @@ class SermonDetailsView(PassimDetails):
 
         context['sections'] = [
             {'name': 'Main division', 'id': 'sermo_division', 'fields': [
-                {'type': 'safeline',    'label': "Division (Latin):", 'value': instance.divisionL.strip()},
-                {'type': 'safeline',    'label': "Division (English):", 'value': instance.divisionE.strip()},
+                {'type': 'safeline',    'label': "Original:", 'value': instance.get_divisionL_display.strip()},
+                {'type': 'safeline',    'label': "Translation:", 'value': instance.get_divisionE_display.strip()},
                 ]},
             {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
-                {'type': 'line',    'label': "Summary:", 'value': instance.get_summary_markdown()}                ]},
+                {'type': 'line',    'label': "", 'value': instance.get_summary_markdown()}                ]},
             {'name': 'General notes', 'id': 'sermo_general', 'fields': [
-                {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
+                {'type': 'safeline',    'label': "", 'value': instance.get_note_display.strip()}                ]}
             ]
 
         return context
 
 
-class EditionListView(BasicListView):
+class EditionList(BasicList):
     """Listview of editions"""
 
     model = Edition
     listform = EditionListForm
     prefix = "edi" 
-    template_name = 'seeker/edition_list.html'
+    admin_editable = True
+    basic_add = 'edition_add'
+    has_select2 = True
     plural_name = "Editions"
-    order_default = ['code', 'sermoncollection__authors__name', 'sermoncollection__title', 'place__name', 'publishers__name', 'date']
+    order_default = ['sermoncollection__idno;idno', 'sermoncollection__firstauthor__name', 'sermoncollection__title', 'place__name', 'firstpublisher__name', 'date', '']
     order_cols = order_default
-    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'str'}, 
-                   {'name': 'Authors',    'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Collection', 'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Place',      'order': 'o=4', 'type': 'str'},
-                   {'name': 'Publishers', 'order': 'o=5', 'type': 'str'},
-                   {'name': 'Year',       'order': 'o=6', 'type': 'str'}]
-    filters = [ {"name": "Code",    "id": "filter_code",    "enabled": False},
-                {"name": "Author",  "id": "filter_author",  "enabled": False},
-                {"name": "Place",   "id": "filter_place",   "enabled": False}
+    order_heads = [{'name': 'Code',       'order': 'o=1', 'type': 'int', 'custom': 'code',      'linkdetails': True}, 
+                   {'name': 'Authors',    'order': 'o=2', 'type': 'str', 'custom': 'authors'}, 
+                   {'name': 'Collection', 'order': 'o=3', 'type': 'str', 'custom': 'coltitle',  'main': True}, 
+                   {'name': 'Place',      'order': 'o=4', 'type': 'str', 'custom': 'place'},
+                   {'name': 'Publishers', 'order': 'o=5', 'type': 'str', 'custom': 'publishers'},
+                   {'name': 'Year',       'order': 'o=6', 'type': 'str', 'custom': 'year'},
+                   {'name': 'Notes?',     'order': '',    'type': 'str', 'custom': 'hasnotes'}]
+    filters = [ {"name": "Collection",          "id": "filter_collection",  "enabled": False},
+                {"name": "Author",              "id": "filter_author",      "enabled": False},
+                {"name": "Publisher",           "id": "filter_publisher",   "enabled": False},
+                {"name": "Year",                "id": "filter_daterange",   "enabled": False},
+                {"name": "Place",               "id": "filter_place",       "enabled": False},
+                {"name": "Format",              "id": "filter_format",      "enabled": False},
+                {"name": "Number of folia",     "id": "filter_folia",       "enabled": False},
+                {"name": "Number of sermons",   "id": "filter_sermons",     "enabled": False},
+                {"name": "Paratextual...",      "id": "filter_paratextual", "enabled": False, "head_id": "none"},
+                {"name": "Frontpage",           "id": "filter_frontpage",   "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Prologue",            "id": "filter_prologue",    "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Dedicatory letter",   "id": "filter_dedicatory",  "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Table of Contents",   "id": "filter_contents",    "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "List of sermons",     "id": "filter_sermonlist",  "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Other texts",         "id": "filter_othertexts",  "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Images",              "id": "filter_images",      "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Full title",          "id": "filter_fulltitle",   "enabled": False, "head_id": "filter_paratextual"},
+                {"name": "Colophon",            "id": "filter_colophon",    "enabled": False, "head_id": "filter_paratextual"}
                 ]
     searches = [
         {'section': '', 'filterlist': [
-            {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
-            {'filter': 'author',    'fkfield': 'sermoncollection__authors',   'keyS': 'authorname', 'keyFk': 'title', 'keyList': 'authorlist', 'infield': 'id'},
-            {'filter': 'place',     'fkfield': 'place',     'keyS': 'placename', 'keyFk': 'name', 'keyList': 'placelist', 'infield': 'id' }
+            {'filter': 'collection','fkfield': 'sermoncollection',          'keyS': 'colltitle',  
+             'keyFk': 'title', 'keyList': 'colllist', 'infield': 'id'},
+            {'filter': 'author',    'fkfield': 'sermoncollection__authors', 'keyS': 'authorname', 
+             'keyFk': 'name', 'keyList': 'authorlist', 'infield': 'id'},
+            {'filter': 'publisher', 'fkfield': 'publishers',                'keyS': 'publishername', 
+             'keyFk': 'name', 'keyList': 'publisherlist', 'infield': 'id'},
+            {'filter': 'place',     'fkfield': 'place',                     'keyS': 'placename',  
+             'keyFk': 'name',  'keyList': 'placelist', 'infield': 'id' },
+            {'filter': 'daterange', 'dbfield': 'date__gte',                 'keyS': 'date_from'},
+            {'filter': 'daterange', 'dbfield': 'date__lte',                 'keyS': 'date_until'},
+            {'filter': 'format',    'dbfield': 'format',    'keyList': 'formatlist', 'keyType': 'fieldchoice', 'infield': 'abbr'  },
+            {'filter': 'folia',     'dbfield': 'folia',     'keyS': 'folia'  },
+            {'filter': 'sermons',   'dbfield': 'numsermons','keyS': 'numsermons'  } 
+            ]},
+        {'section': 'paratextual', 'filterlist': [
+            {'filter': 'frontpage',     'dbfield': 'ffrontpage',     'keyS': 'xfrontpage',    'keyType': 'exists', 'code': code_to_yesno },
+            {'filter': 'prologue',      'dbfield': 'fprologue',      'keyS': 'xprologue',     'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'dedicatory',    'dbfield': 'fdedicatory',    'keyS': 'xdedicatory',   'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'contents',      'dbfield': 'fcontents',      'keyS': 'xcontents',     'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'sermonlist',    'dbfield': 'fsermonlist',    'keyS': 'xsermonlist',   'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'othertexts',    'dbfield': 'fothertexts',    'keyS': 'xothertexts',   'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'images',        'dbfield': 'fimages',        'keyS': 'ximages',       'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'fulltitle',     'dbfield': 'ffulltitle',     'keyS': 'xfulltitle',    'keyType': 'exists', 'code': code_to_yesno  },
+            {'filter': 'colophon',      'dbfield': 'fcolophon',      'keyS': 'xcolophon',     'keyType': 'exists', 'code': code_to_yesno  }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid', 'fkfield': 'notetags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
             ]}
         ]
 
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "code":
+            html.append(instance.get_code())
+            sTitle = "view the edition"
+        elif custom == "authors":
+            if instance.sermoncollection:
+                html.append(instance.sermoncollection.get_authors())
+            else:
+                html.append("-")
+        elif custom == 'coltitle':
+            if instance.sermoncollection:
+                url = reverse( 'collection_details', kwargs={'pk': instance.sermoncollection.id})
+                html.append("<span><a class='nostyle' href='{}'>{}</a></span>".format(url, instance.sermoncollection.title))
+                sTitle = "view the collection"
+            else:
+                html.append("-")
+                sTitle = "no collection"
+        elif custom == 'place':
+            place = "-" if instance.place == None else instance.place.name
+            html.append(place)
+        elif custom == 'publishers':
+            sTitle = instance.get_publisher()
+            html.append('<span style="font-size: smaller;">{}</span>'.format(sTitle[:20]))
+        elif custom == 'year':
+            html.append(instance.get_date())
+        elif custom == "hasnotes":
+            html.append(instance.has_notes())
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+    def initializations(self):
+        publishers_done = Information.get_kvalue("publishers")
+        if publishers_done != "done":
+            if Edition.do_publishers():
+                Information.set_kvalue("publishers", "done")
+
+        flat_done = Information.get_kvalue("flat")
+        if flat_done != "done":
+            with transaction.atomic():
+                for edi in Edition.objects.all():
+                    edi.save()
+            Information.set_kvalue("flat", "done")
+
+        # Set the values for yes and no
+        return None
+    
 
 class EditionDetailsView(PassimDetails):
     model = Edition
@@ -2901,30 +3139,32 @@ class EditionDetailsView(PassimDetails):
 
     def add_to_context(self, context, instance):
         sLocation = ""
-        if instance.place:
+        if hasattr(instance, 'place') and instance.place:
             sLocation = instance.place.name
         context['mainitems'] = [
-            {'type': 'plain', 'label': "Date:", 'value': instance.get_full_date()},
-            {'type': 'plain', 'label': "Place:", 'value': sLocation},
-            {'type': 'plain', 'label': "Publisher:", 'value': instance.get_publisher() },
-            {'type': 'plain', 'label': "Format:", 'value': instance.get_format_display() },
-            {'type': 'plain', 'label': "Folia:", 'value': instance.folia},
-            {'type': 'plain', 'label': "Number of sermons:", 'value': instance.numsermons},
-            {'type': 'plain', 'label': "External databases:", 'value': instance.dbcodes.all().order_by('name'),
+            {'type': 'plain',   'label': "Code:", 'value': instance.get_code(), 'title': 'Collection number / Edition number within that collection'},
+            {'type': 'safeline', 'label': "Date:", 'value': instance.get_full_date()},
+            {'type': 'plain',   'label': "Place:", 'value': sLocation},
+            {'type': 'plain',   'label': "Publisher:", 'value': instance.get_publisher() },
+            {'type': 'plain',   'label': "Format:", 'value': instance.get_format_display() },
+            {'type': 'plain',   'label': "Folia:", 'value': instance.folia},
+            {'type': 'plain',   'label': "Number of sermons:", 'value': instance.numsermons},
+            {'type': 'plain',   'label': "External databases:", 'value': instance.dbcodes.all().order_by('name'),
              'multiple': True}
             # MORE INFORMATION SHOULD FOLLOW
             ]
         
         context['sections'] = [
             {'name': 'Paratextual elements', 'id': 'edi_paratextual', 'fields': [
-                {'type': 'safeline', 'label': "Front page:", 'value': instance.frontpage , 'title': 'Front page / Title page' },
-                {'type': 'safeline', 'label': "Prologue:", 'value': instance.prologue},
-                {'type': 'safeline', 'label': "Dedicatory letter:", 'value': instance.dedicatory},
-                {'type': 'safeline', 'label': "Table of contents:", 'value': instance.contents},
-                {'type': 'safeline', 'label': "Other texts:", 'value': instance.othertexts},
-                {'type': 'safeline', 'label': "Images:", 'value': instance.images},
-                {'type': 'safeline', 'label': "Full title:", 'value': instance.fulltitle},
-                {'type': 'safeline', 'label': "Colophon:", 'value': instance.colophon},
+                {'type': 'safeline', 'label': "Front page:", 'value': instance.get_frontpage_display.strip() , 'title': 'Front page / Title page' },
+                {'type': 'safeline', 'label': "Prologue:", 'value': instance.get_prologue_display.strip()},
+                {'type': 'safeline', 'label': "Dedicatory letter:", 'value': instance.get_dedicatory_display.strip()},
+                {'type': 'safeline', 'label': "Table of contents:", 'value': instance.get_contents_display.strip()},
+                {'type': 'safeline', 'label': "List of sermons:", 'value': instance.get_sermonlist_display.strip()},
+                {'type': 'safeline', 'label': "Other texts:", 'value': instance.get_othertexts_display.strip()},
+                {'type': 'safeline', 'label': "Images:", 'value': instance.get_images_display.strip()},
+                {'type': 'safeline', 'label': "Full title:", 'value': instance.get_fulltitle_display.strip()},
+                {'type': 'safeline', 'label': "Colophon:", 'value': instance.get_colophon_display.strip()},
                 ]},
             {'name': 'General notes', 'id': 'coll_general', 'fields': [
                 {'type': 'safeline',    'label': "Notes:", 'value': instance.get_note_display.strip()}                ]}
@@ -2954,6 +3194,10 @@ class EditionDetailsView(PassimDetails):
         related_objects.append(consultings)
 
         context['related_objects'] = related_objects
+
+        # Process this visit and get the new breadcrumbs object
+        context['breadcrumbs'] = process_visit(self.request, "Edition details", False)
+        context['prevpage'] = get_previous_page(self.request)
         return context
 
 
@@ -2968,89 +3212,83 @@ class PublisherDetailsView(PassimDetails):
 
     def add_to_context(self, context, instance):
         context['mainitems'] = [
-            {'type': 'plain', 'label': "Name:", 'value': instance.name}
+            {'type': 'plain', 'label': "Name:",         'value': instance.name},
+            {'type': 'line',  'label': "Information:",  'value': instance.get_info_markdown()}
             ]
+        related_objects = []
+
+        # Show the collections containing this author
+        collections = {'prefix': 'col', 'title': 'Sermon collections for this publisher'}
+        # Show the list of collections using this author
+        qs = SermonCollection.objects.filter(editions__publishers__id=instance.id).order_by('idno').distinct()
+        rel_list =[]
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.idno, 'title': 'View this collection', 'link': reverse('collection_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.title})
+            rel_item.append({'value': item.datecomp})
+            rel_item.append({'value': item.get_place()})
+            rel_list.append(rel_item)
+        collections['rel_list'] = rel_list
+        collections['columns'] = ['Collection', 'Title', 'Date', 'Place']
+        related_objects.append(collections)
+
+        # Show the editions containing this author
+        editions = {'prefix': 'edi', 'title': 'Editions for this publisher'}
+        # Show the list of editions using this author
+        qs = Edition.objects.filter(publishers__id=instance.id).order_by('date', 'date_late').distinct()
+        rel_list =[]
+        for item in qs:
+            rel_item = []
+            rel_item.append({'value': item.get_code(), 'title': 'View this edition', 'link': reverse('edition_details', kwargs={'pk': item.id})})
+            rel_item.append({'value': item.get_place()})
+            rel_item.append({'value': item.get_publishers()})
+            rel_item.append({'value': item.get_date()})
+            rel_item.append({'value': item.has_notes()})
+            rel_list.append(rel_item)
+        editions['rel_list'] = rel_list
+        editions['columns'] = ['Code', 'Place', 'Publishers', 'Date', 'Notes']
+        related_objects.append(editions)
+
+        context['related_objects'] = related_objects
+        # Return the context we have made
         return context
 
 
-class AuthorListView(ListView):
+class AuthorListView(BasicList):
     """Listview of authors"""
 
     model = Author
-    paginate_by = 15
-    template_name = 'seeker/author_list.html'
-    entrycount = 0
+    listform = AuthorListForm
+    prefix = "auth"
+    # template_name = 'seeker/author_list.html'
+    basic_add = 'author_add'
+    admin_editable = True
+    order_cols = ['name', 'info']
+    order_default = order_cols
+    order_heads = [{'name': 'Name',        'order': 'o=1', 'type': 'str', 'custom': 'name', 'default': "-", 'linkdetails': True},
+                   {'name': 'Information', 'order': 'o=2', 'type': 'str', 'custom': 'info',  'main': True}]
+    filters = [ {"name": "Name", "id": "filter_author",     "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'author',   'dbfield': 'name', 'keyS': 'name' }]},
+        {'section': 'other', 'filterlist': [
+            {'filter': 'tagnoteid',     'fkfield': 'infotags',      'keyS': 'tagnoteid',    'keyFk': 'id' },
+            ]}
+        ]
 
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(AuthorListView, self).get_context_data(**kwargs)
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "name":
+            html.append(instance.name)
+        elif custom == "info":
+            html.append(instance.get_info_markdown())
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
-        # Get parameters
-        initial = self.request.GET
-
-        # Determine the count 
-        context['entrycount'] = self.entrycount # self.get_queryset().count()
-
-        # Set the prefix
-        context['app_prefix'] = APP_PREFIX
-
-        # Get parameters for the search
-        initial = self.request.GET
-        # The searchform is just a list form, but filled with the 'initial' parameters
-        # context['searchform'] = LocationForm(initial)
-
-        # Make sure the paginate-values are available
-        context['paginateValues'] = paginateValues
-
-        if 'paginate_by' in initial:
-            context['paginateSize'] = int(initial['paginate_by'])
-        else:
-            context['paginateSize'] = paginateSize
-
-        # Set the title of the application
-        context['title'] = "Authors"
-
-        # Check if user may upload
-        context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
-        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
-
-        # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, "Authors", True)
-        context['prevpage'] = get_previous_page(self.request)
-
-        # Return the calculated context
-        return context
-
-    def get_paginate_by(self, queryset):
-        """
-        Paginate by specified value in default class property value.
-        """
-        return self.paginate_by
-  
-    def get_queryset(self):
-        # Get the parameters passed on with the GET or the POST request
-        get = self.request.GET if self.request.method == "GET" else self.request.POST
-        get = get.copy()
-        self.get = get
-
-        lstQ = []
-
-        # Check for author name
-        if 'name' in get and get['name'] != '':
-            val = adapt_search(get['name'])
-            # Search in the name field
-            lstQ.append(Q(name__iregex=val))
-
-        # Calculate the final qs
-        qs = Author.objects.filter(*lstQ).order_by('name').distinct()
-
-        # Determine the length
-        self.entrycount = len(qs)
-
-        # Return the resulting filtered and sorted queryset
-        return qs
-    
 
 class AuthorDetailsView(PassimDetails):
     model = Author
@@ -3063,8 +3301,8 @@ class AuthorDetailsView(PassimDetails):
 
     def add_to_context(self, context, instance):
         context['mainitems'] = [
-            {'type': 'plain',  'label': "Name:", 'value': instance.name},
-            {'type': 'plain', 'label': "Information:", 'value': instance.info}
+            {'type': 'plain',  'label': "Name:",        'value': instance.name},
+            {'type': 'line',   'label': "Information:", 'value': instance.get_info_markdown()}
             ]
         related_objects = []
 
@@ -3081,7 +3319,7 @@ class AuthorDetailsView(PassimDetails):
             rel_item.append({'value': item.get_place()})
             rel_list.append(rel_item)
         collections['rel_list'] = rel_list
-        collections['columns'] = ['Idno', 'Title', 'Date', 'Place']
+        collections['columns'] = ['Collection', 'Title', 'Date', 'Place']
         related_objects.append(collections)
 
         context['related_objects'] = related_objects
@@ -3106,90 +3344,72 @@ class ConceptDetailsView(PassimDetails):
         return context
 
 
-class ManuscriptListView(ListView):
+class ManuscriptListView(BasicList):
     """Listview of manuscripts"""
 
     model = Manuscript
-    paginate_by = 15
-    template_name = 'seeker/manuscript_list.html'
-    entrycount = 0
+    listform = ManuscriptForm
+    prefix = "manu"
+    admin_editable = True
+    basic_add = "manuscript_add"
+    has_select2 = True
+    order_cols = ['collection__authors__name', 'collection__title', 'name', '']
+    order_default = order_cols
+    order_heads = [{'name': 'Author',       'order': 'o=1', 'type': 'str', 'custom': 'author'},
+                   {'name': 'Collection',   'order': 'o=2', 'type': 'str', 'custom': 'collection'},
+                   {'name': 'Name',         'order': 'o=3', 'type': 'str', 'custom': 'name',       'linkdetails': True,  'main': True},
+                   {'name': 'Link?',        'order': '',    'type': 'str', 'custom': 'link'},
+                   {'name': 'Notes?',       'order': '',    'type': 'str', 'custom': 'notes'}]
+    filters = [ {"name": "Collection",  "id": "filter_collection",  "enabled": False},
+                {"name": "Name",        "id": "filter_name",        "enabled": False},
+                {"name": "Link",        "id": "filter_link",        "enabled": False},
+                {"name": "Information", "id": "filter_info",        "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
+            {'filter': 'name',      'dbfield': 'name',      'keyS': 'name' },
+            {'filter': 'link',      'dbfield': 'link',      'keyS': 'link' },
+            {'filter': 'info',      'dbfield': 'info',      'keyS': 'info' }]},
+        {'section': 'other', 'filterlist': [
+            {'filter': 'tagnoteid', 'fkfield': 'infotags',  'keyS': 'tagnoteid', 'keyFk': 'id' }
+            ]}
+        ]
 
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(ManuscriptListView, self).get_context_data(**kwargs)
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "collection":
+            url = reverse("collection_details", kwargs={'pk': instance.collection.id})
+            html.append("<span><a class='nostyle' href='{}'>{}</a></span>".format(url, instance.collection.title))
+            sTitle = "View the sermon collection"
+        elif custom == "author":
+            # Get the name of the first author
+            authors = instance.collection.authors.all()
+            if authors.count() == 0:
+                html.append("(none)")
+            else:
+                url = reverse("author_details", kwargs={'pk': authors.first().id})
+                html.append("<span><a class='nostyle' href='{}'>{}</a></span>".format(url, authors.first().name))
+                sTitle = "View the author details"
+        elif custom == "name":
+            sName = instance.name[:80]
+            if len(instance.name) > 80:
+                sName = "{}...".format(sName)
+            html.append(sName)
+            sTitle = instance.name
+        elif custom == "info":
+            html.append(instance.get_info_markdown())
+        elif custom == "notes":
+            if instance.info and instance.info != "":
+                html.append("*")
+        elif custom == "link":
+            if instance.has_link():
+                html.append("*")
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
-        # Get parameters
-        initial = self.request.GET
-
-        # Determine the count 
-        context['entrycount'] = self.entrycount # self.get_queryset().count()
-
-        # Set the prefix
-        context['app_prefix'] = APP_PREFIX
-
-        # Get parameters for the search
-        initial = self.request.GET
-        # The searchform is just a list form, but filled with the 'initial' parameters
-        # context['searchform'] = LocationForm(initial)
-
-        # Make sure the paginate-values are available
-        context['paginateValues'] = paginateValues
-
-        if 'paginate_by' in initial:
-            context['paginateSize'] = int(initial['paginate_by'])
-        else:
-            context['paginateSize'] = paginateSize
-
-        # Set the title of the application
-        context['title'] = "Manuscripts"
-
-        # Check if user may upload
-        context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
-        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
-
-        # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, "Manuscripts", True)
-        context['prevpage'] = get_previous_page(self.request)
-
-        # Return the calculated context
-        return context
-
-    def get_paginate_by(self, queryset):
-        """
-        Paginate by specified value in default class property value.
-        """
-        return self.paginate_by
-  
-    def get_queryset(self):
-        # Get the parameters passed on with the GET or the POST request
-        get = self.request.GET if self.request.method == "GET" else self.request.POST
-        get = get.copy()
-        self.get = get
-
-        lstQ = []
-
-        # Check for manuscript information
-        if 'info' in get and get['info'] != '':
-            val = adapt_search(get['info'])
-            # Search in the info field
-            lstQ.append(Q(info__iregex=val))
-
-        # Check for the link in the manuscript
-        if 'link' in get and get['link'] != '':
-            val = adapt_search(get['link'])
-            # Search in the link field
-            lstQ.append(Q(link__iregex=val))
-
-        # Calculate the final qs
-        qs = Manuscript.objects.filter(*lstQ).order_by('collection__idno').distinct()
-
-        # Determine the length
-        self.entrycount = len(qs)
-
-        # Return the resulting filtered and sorted queryset
-        return qs
-    
 
 class ManuscriptDetailsView(PassimDetails):
     model = Manuscript
@@ -3203,7 +3423,8 @@ class ManuscriptDetailsView(PassimDetails):
     def add_to_context(self, context, instance):
         context['mainitems'] = [
             {'type': 'bold',  'label': "Collection:",  'value': instance.collection.title, 'link': reverse('collection_details', kwargs={'pk': instance.collection.id})},
-            {'type': 'plain', 'label': "Information:", 'value': instance.info},
+            {'type': 'plain', 'label': "Manuscript:", 'value': instance.name},
+            {'type': 'line',  'label': "Information:", 'value': instance.get_info_markdown()},
             {'type': 'safe',  'label': "Link name (if available):", 'value': instance.get_link_markdown(), 'link': instance.url},
             {'type': 'safe',  'label': "Author[s] (collection):", 'value': instance.collection.authorbadges()}
             ]

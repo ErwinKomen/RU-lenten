@@ -171,11 +171,31 @@ class NewsItemAdmin(admin.ModelAdmin):
         sUrl = redirect(reverse('newsitem_list'))
         return sUrl
 
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('newsitem_list'))
+        return sUrl
+
+
+class ManuscriptAdminForm(forms.ModelForm):
+    class Meta:
+        model = Manuscript
+        fields = ['name', 'info', 'link', 'url', 'collection']
+        widgets = {
+            'name': forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'link': forms.TextInput(attrs={'class': 'searching input-sm', 
+                                                  'placeholder': 'Label for the link to the manuscript...', 'style': 'width: 100%;'}),
+            'url': forms.URLInput(attrs={'class': 'searching input-sm', 
+                                                  'placeholder': 'URL to the manuscript (optional)...', 'style': 'width: 100%;'}),
+            'info': TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            }
+
 
 class ManuscriptAdmin(admin.ModelAdmin):
     """Define a Manuscript"""
 
-    list_display = ['info', 'link']
+    form = ManuscriptAdminForm
+
+    list_display = ['name', 'info', 'link', 'collection']
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
@@ -187,6 +207,10 @@ class ManuscriptAdmin(admin.ModelAdmin):
         return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('manuscript_list'))
+        return sUrl
+
+    def response_delete(self, request, obj_display, obj_id):
         sUrl = redirect(reverse('manuscript_list'))
         return sUrl
 
@@ -219,21 +243,22 @@ class DbcodeInline(admin.TabularInline):
 class EditionAdminForm(forms.ModelForm):
     class Meta:
         model = Edition
-        fields = ['sermoncollection', 'code', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', \
-                 'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents',\
+        fields = ['sermoncollection', 'idno', 'date', 'date_late', 'datetype', 'datecomment', 'place', 'format', \
+                 'folia', 'numsermons', 'frontpage', 'prologue', 'dedicatory', 'contents', 'sermonlist', \
                  'othertexts', 'images', 'fulltitle', 'colophon', 'publishers', 'note']
         # filter_horizontal = ('publishers',)
         widgets = {
-            'datecomment':  forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'datecomment':  TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'folia':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'frontpage':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'prologue':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'dedicatory':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'contents':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'othertexts':   forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'images':       forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'fulltitle':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'colophon':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'frontpage':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'prologue':     TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'dedicatory':   TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'contents':     TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'sermonlist':   TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'othertexts':   TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'images':       TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'fulltitle':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'colophon':     TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'note':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
 
@@ -255,6 +280,10 @@ class EditionAdmin(admin.ModelAdmin):
         return sUrl
 
     def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('edition_list'))
+        return sUrl
+
+    def response_delete(self, request, obj_display, obj_id):
         sUrl = redirect(reverse('edition_list'))
         return sUrl
 
@@ -304,11 +333,26 @@ class DbcodeAdmin(admin.ModelAdmin):
         sUrl = redirect(reverse('edition_details', kwargs={'pk': obj.edition.id}))
         return sUrl
 
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('edition_list'))
+        return sUrl
+
+
+class PublisherAdminForm(forms.ModelForm):
+    class Meta:
+        model = Publisher
+        fields = ['name', 'info']
+        widgets = {
+            'name':         forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'info':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            }
+
 
 class PublisherAdmin(admin.ModelAdmin):
     """Define the elements of a consulting:"""
 
-    fields = ['name']
+    form = PublisherAdminForm
+    fields = ['name', 'info']
     formfield_overrides = {
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'})},
         }
@@ -329,10 +373,10 @@ class SermonCollectionAdminForm(forms.ModelForm):
         model = SermonCollection
         fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
         widgets = {
-            'bibliography':     forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'liturgical':       TagTextarea(attrs={'remote': '/api/tagtext/?tclass=liturgical' }),
-            'communicative':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=communicative' }),
-            'sources':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=qsource' }),
+            'bibliography':     TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'liturgical':       TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'communicative':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'sources':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'exempla':          TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'notes':            TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
@@ -358,26 +402,72 @@ class SermonCollectionAdmin(admin.ModelAdmin):
         sUrl = redirect(reverse('collection_list'))
         return sUrl
 
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('collection_list'))
+        return sUrl
+
 
 class TagKeywordAdmin(admin.ModelAdmin):
-    list_display = ['name']
-    fields = ['name']
+    list_display = ['name', 'tgroup']
+    fields = ['name', 'tgroup']
     search_fields = ['name']
 
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
 
-class TagCommunicativeAdmin(admin.ModelAdmin):
-    list_display = ['name']
-    fields = ['name']
-    search_fields = ['name']
+        sUrl = redirect(reverse('tagkeyword_details', kwargs={'pk': obj.id}))
+        return sUrl
+
+    def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('tagkeyword_list'))
+        return sUrl
+
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('tagkeyword_list'))
+        return sUrl
 
 
-class TagLiturgicalAdmin(admin.ModelAdmin):
-    list_display = ['name']
-    fields = ['name']
-    search_fields = ['name']
+#class TagCommunicativeAdmin(admin.ModelAdmin):
+#    list_display = ['name', 'tgroup']
+#    fields = ['name', 'tgroup']
+#    search_fields = ['name']
+
+#    def response_post_save_change(self, request, obj):
+#        """When the user presses [Save], we want to redirect to a view of the model"""
+
+#        sUrl = redirect(reverse('tagcommunicative_details', kwargs={'pk': obj.id}))
+#        return sUrl
+
+#    def response_add(self, request, obj, post_url_continue = None):
+#        sUrl = redirect(reverse('tagcommunicative_list'))
+#        return sUrl
+
+#    def response_delete(self, request, obj_display, obj_id):
+#        sUrl = redirect(reverse('tagcommunicative_list'))
+#        return sUrl
 
 
-class TagQsourceAdmin(admin.ModelAdmin):
+#class TagLiturgicalAdmin(admin.ModelAdmin):
+#    list_display = ['name', 'tgroup']
+#    fields = ['name', 'tgroup']
+#    search_fields = ['name']
+
+#    def response_post_save_change(self, request, obj):
+#        """When the user presses [Save], we want to redirect to a view of the model"""
+
+#        sUrl = redirect(reverse('tagliturgical_details', kwargs={'pk': obj.id}))
+#        return sUrl
+
+#    def response_add(self, request, obj, post_url_continue = None):
+#        sUrl = redirect(reverse('tagliturgical_list'))
+#        return sUrl
+
+#    def response_delete(self, request, obj_display, obj_id):
+#        sUrl = redirect(reverse('tagliturgical_list'))
+#        return sUrl
+
+
+class TgroupAdmin(admin.ModelAdmin):
     list_display = ['name']
     fields = ['name']
     search_fields = ['name']
@@ -408,12 +498,12 @@ class BookAdmin(admin.ModelAdmin):
 class SermonAdminForm(forms.ModelForm):
     class Meta:
         model = Sermon
-        fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
+        fields = ['collection', 'edition', 'idno', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
         widgets = {
             'thema':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'divisionL':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'divisionE':    forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
-            'summary':      TagTextarea(attrs={'remote': '/api/tagtext/?tclass=qsource' }),
+            'divisionL':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'divisionE':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            'summary':      TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'note':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             }
 
@@ -421,10 +511,10 @@ class SermonAdminForm(forms.ModelForm):
 class SermonAdmin(admin.ModelAdmin):
     form = SermonAdminForm
 
-    list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection']
+    list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection', 'edition']
     search_fields = ['code', 'litday', 'book']
     list_filter = ['litday', 'book']
-    fields = ['collection', 'code', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
+    fields = ['collection', 'edition', 'idno', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
 
     filter_horizontal = ('topics', 'concepts',)
 
@@ -438,8 +528,24 @@ class SermonAdmin(admin.ModelAdmin):
         sUrl = redirect(reverse('sermon_list'))
         return sUrl
 
+    def response_delete(self, request, obj_display, obj_id):
+        sUrl = redirect(reverse('sermon_list'))
+        return sUrl
+
+
+class AuthorAdminForm(forms.ModelForm):
+    class Meta:
+        model = Author
+        fields = ['name', 'info']
+        widgets = {
+            'name':         forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
+            'info':         TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
+            }
+
 
 class AuthorAdmin(admin.ModelAdmin):
+    form = AuthorAdminForm
+
     fields = ['name', 'info']
     list_display = ['name', 'info']
     search_fields = ['name', 'info']
@@ -447,7 +553,17 @@ class AuthorAdmin(admin.ModelAdmin):
         models.TextField: {'widget': Textarea(attrs={'rows': 1, 'class': 'mytextarea'})},
         }
 
+    def response_post_save_change(self, request, obj):
+        """When the user presses [Save], we want to redirect to a view of the model"""
+
+        sUrl = redirect(reverse('author_details', kwargs={'pk': obj.id}))
+        return sUrl
+
     def response_add(self, request, obj, post_url_continue = None):
+        sUrl = redirect(reverse('author_list'))
+        return sUrl
+
+    def response_delete(self, request, obj_display, obj_id):
         sUrl = redirect(reverse('author_list'))
         return sUrl
 
@@ -470,10 +586,10 @@ admin.site.register(Consulting, ConsultingAdmin)
 admin.site.register(Dbcode, DbcodeAdmin)
 admin.site.register(Publisher, PublisherAdmin)
 admin.site.register(Topic, TopicAdmin)
-admin.site.register(TagCommunicative, TagCommunicativeAdmin)
+admin.site.register(Tgroup, TgroupAdmin)
+#admin.site.register(TagCommunicative, TagCommunicativeAdmin)
 admin.site.register(TagKeyword, TagKeywordAdmin)
-admin.site.register(TagQsource, TagQsourceAdmin)
-admin.site.register(TagLiturgical, TagLiturgicalAdmin)
+#admin.site.register(TagLiturgical, TagLiturgicalAdmin)
 admin.site.register(Concept, ConceptAdmin)
 admin.site.register(Sermon, SermonAdmin)
 admin.site.register(Book, BookAdmin)

@@ -2749,6 +2749,44 @@ var ru = (function ($, ru) {
         }
       },
 
+      /**
+       * toggle_tag
+       *   Toggle visibility of tag in listview
+       *
+       */
+      toggle_tag: function (elThis) {
+        var elTagCombi = null,
+            elTagParent = null,
+            type = "";
+
+        try {
+          // Get nearest tag-combi
+          elTagCombi = $(elThis).closest(".tag-combi");
+          elTagParent = $(elTagCombi).parent();
+          // Find out what type this is
+          type = ($(elTagCombi).hasClass("tag-combi-part")) ? "part" : "whole";
+          if ($(elThis).hasClass("hidden")) {
+            // THis one should be shown
+          } else {
+            // This one whould be hidden
+            switch (type) {
+              case "part":
+                // Show the whole
+                $(elTagParent).find(".tag-combi-whole").removeClass("hidden");
+                $(elTagParent).find(".tag-combi-part").addClass("hidden");
+                break;
+              case "whole":
+                // Show the part
+                $(elTagParent).find(".tag-combi-part").removeClass("hidden");
+                $(elTagParent).find(".tag-combi-whole").addClass("hidden");
+                break;
+            }
+          }
+        } catch (ex) {
+          private_methods.errMsg("toggle_tag", ex);
+        }
+      },
+
     };
   }($, ru.config));
 

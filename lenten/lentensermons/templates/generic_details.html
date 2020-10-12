@@ -1,4 +1,4 @@
-﻿{% extends "layout.html" %}
+{% extends "layout.html" %}
 {% load i18n %}
 
 {% block breadcrumbs %}
@@ -34,8 +34,9 @@
                   <tbody>
                     {% for mainitem in mainitems %}
                       <tr class="view-row">
-                        <td class="tdnowrap" valign="top">{{mainitem.label}}</td>
-                        <td class="hoverable" {% if mainitem.align %}align="{{mainitem.align}}"{% endif %}>
+                        <td class="tdnowrap" valign="top" {% if mainitem.title %}title="{{mainitem.title}}"{% endif %}>{{mainitem.label}}</td>
+                        <td class="hoverable" {% if mainitem.align %}align="{{mainitem.align}}"{% endif %}
+                            {% if mainitem.title %}title="{{mainitem.title}}"{% endif %}>
                           {% if mainitem.multiple %}
                             <!-- Multiple instances choosing using Select2 -->
                             {% if mainitem.value|length > 0 %}
@@ -109,11 +110,14 @@
                           <td class="tdnowrap" valign="top">{{item.label}}</td>
                           <td class="hoverable" {% if item.align %}align="{{item.align}}"{% endif %}>
                             {% spaceless %}
-                              {% if item.type == "bold" %}{% if item.link == "" %}<b>{{item.value}}</b>{% else %}<a href="{{item.link}}"><b>{{item.value}}</b></a>{% endif %}
-                              {% elif item.type == "line" %}<div style="white-space: pre-line;">{{item.value|safe}}</div>
-                              {% elif item.type == "safe" %}{{item.value|safe}}
-                              {% elif item.type == "safeline" %}<div style="white-space: pre-line;">{{item.value|safe}}</div>
-                              {% else %}{{item.value}}
+                              {% if item.type == "bold" %}
+                                {% if item.link == "" %}<b>{% if item.value %}{{item.value}}{% else %}-{% endif %}</b>
+                                {% else %}<a href="{{item.link}}"><b>{% if item.value %}{{item.value}}{% else %}-{% endif %}</b></a>
+                                {% endif %}
+                              {% elif item.type == "line" %}<div style="white-space: pre-line;">{% if item.value %}{{item.value|safe}}{% else %}-{% endif %}</div>
+                              {% elif item.type == "safe" %}{% if item.value %}{{item.value|safe}}{% else %}-{% endif %}
+                              {% elif item.type == "safeline" %}<div style="white-space: pre-line;">{% if item.value %}{{item.value|safe}}{% else %}-{% endif %}</div>
+                              {% else %}{% if item.value %}{{item.value}}{% else %}-{% endif %}
                               {% endif %}
                             {% endspaceless %}
                           </td>

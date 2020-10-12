@@ -1,4 +1,4 @@
-﻿{% extends "layout.html" %}
+{% extends "layout.html" %}
 {% load i18n %}
 
 {% block breadcrumbs %}
@@ -236,7 +236,7 @@
 
                     <!-- Sermon code -->
                     <td class="clickable" title="View the sermon"
-                        onclick="ru.lenten.seeker.goto_url('{% url 'sermon_details' sermon.id %}')">{% if sermon.code %}{{sermon.code}}{% endif %}</td>
+                        onclick="ru.lenten.seeker.goto_url('{% url 'sermon_details' sermon.id %}')">{{sermon.get_code}}</td>
 
                     <!-- Authors of this sermon -->
                     <td class="tdnowrap" title="{{sermon.collection.get_authors}}" >{{sermon.collection.get_firstauthor}}</td>

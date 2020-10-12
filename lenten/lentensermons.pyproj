@@ -32,6 +32,14 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="lentensermons\basic\admin.py" />
+    <Compile Include="lentensermons\basic\apps.py" />
+    <Compile Include="lentensermons\basic\migrations\__init__.py" />
+    <Compile Include="lentensermons\basic\models.py" />
+    <Compile Include="lentensermons\basic\tests.py" />
+    <Compile Include="lentensermons\basic\utils.py" />
+    <Compile Include="lentensermons\basic\views.py" />
+    <Compile Include="lentensermons\basic\__init__.py" />
     <Compile Include="lentensermons\tagtext\admin.py" />
     <Compile Include="lentensermons\tagtext\apps.py" />
     <Compile Include="lentensermons\tagtext\forms.py">
@@ -63,6 +71,14 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="lentensermons\" />
+    <Folder Include="lentensermons\basic\" />
+    <Folder Include="lentensermons\basic\migrations\" />
+    <Folder Include="lentensermons\basic\static\" />
+    <Folder Include="lentensermons\basic\static\basic\" />
+    <Folder Include="lentensermons\basic\static\basic\content\" />
+    <Folder Include="lentensermons\basic\static\basic\scripts\" />
+    <Folder Include="lentensermons\basic\templates\" />
+    <Folder Include="lentensermons\basic\templates\basic\" />
     <Folder Include="lentensermons\seeker\static\" />
     <Folder Include="lentensermons\seeker\static\seeker\" />
     <Folder Include="lentensermons\seeker\static\seeker\content\" />
@@ -88,19 +104,22 @@
       <SubType>Code</SubType>
     </Content>
     <None Include="lentensermons\seeker\static\seeker\scripts\_references.js" />
+    <Content Include="lentensermons\basic\static\basic\content\basic.css" />
+    <Content Include="lentensermons\basic\static\basic\scripts\basic.js" />
+    <Content Include="lentensermons\basic\templates\basic\basic_details.html" />
+    <Content Include="lentensermons\basic\templates\basic\basic_edit.html" />
+    <Content Include="lentensermons\basic\templates\basic\basic_list.html" />
     <Content Include="lentensermons\seeker\static\seeker\content\bootstrap.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-admin.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-base.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-form.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-widgets.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\site.css" />
-    <Content Include="lentensermons\seeker\templates\seeker\collection_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\publisher_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\news_list.html" />
-    <Content Include="lentensermons\seeker\templates\seeker\tag_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\manuscript_list.html" />
-    <Content Include="lentensermons\seeker\templates\seeker\edition_list.html" />
-    <Content Include="lentensermons\seeker\templates\seeker\keyword_list.html" />
+    <Content Include="lentensermons\seeker\templates\seeker\concept_list.html" />
+    <Content Include="lentensermons\seeker\templates\seeker\sermon_list.html" />
     <Content Include="lentensermons\tagtext\static\tagtext\css\tagtextarea.css" />
     <Content Include="lentensermons\tagtext\static\tagtext\css\tribute.css" />
     <Content Include="lentensermons\seeker\static\seeker\fonts\glyphicons-halflings-regular.eot" />
@@ -128,8 +147,6 @@
     <Content Include="lentensermons\seeker\static\seeker\scripts\xhr2.js" />
     <Content Include="lentensermons\seeker\templates\seeker\author_details.html" />
     <Content Include="lentensermons\seeker\templates\seeker\author_edit.html" />
-    <Content Include="lentensermons\seeker\templates\seeker\sermon_list.html" />
-    <Content Include="lentensermons\seeker\templates\seeker\author_list.html" />
     <Content Include="lentensermons\seeker\templates\seeker\location_details.html" />
     <Content Include="lentensermons\seeker\templates\seeker\location_edit.html" />
     <Content Include="lentensermons\seeker\templates\seeker\location_list.html" />
@@ -140,6 +157,7 @@
     <Content Include="lentensermons\templates\about.html" />
     <Content Include="lentensermons\templates\admin\base.html" />
     <Content Include="lentensermons\templates\breadcrumb_list.html" />
+    <Content Include="lentensermons\templates\instruction.html" />
     <Content Include="lentensermons\templates\generic_details.html" />
     <Content Include="lentensermons\templates\tools.html" />
     <Content Include="lentensermons\templates\contact.html" />

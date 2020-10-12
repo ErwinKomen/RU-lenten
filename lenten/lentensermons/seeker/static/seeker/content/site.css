@@ -68,7 +68,7 @@ table tbody tr:hover {
   cursor: pointer;*/
   /*  */
 }
-table tbody tr td.clickable:hover, table tbody tr.clickable td:hover, div.clickable:hover {
+table tbody tr td.clickable:hover, table tbody tr.clickable td:hover, div.clickable:hover, span.clickable:hover {
   cursor: pointer;
 }
 table tbody tr td.clickable:hover, table tbody tr.clickable td:hover {
@@ -564,7 +564,17 @@ form .panel-heading.row {
   color: lavender;
   fill: #ff2400;
 }
-.jumbo-2 text, .jumbo-3 text, .jumbo-4 text {
+.jumbo-5 {
+  background-color: purple;
+  color: lavender;
+  fill: purple;
+}
+.jumbo-6 {
+  background-color: slateblue;
+  color: lavender;
+  fill: slateblue;
+}
+.jumbo-2 text, .jumbo-3 text, .jumbo-4 text, .jumbo-5 text, .jumbo-6 text {
   fill: lavender;
 }
 
@@ -879,6 +889,9 @@ table.func-view td {
   margin-top: 0px;
   vertical-align: top;
   padding: 2px;
+}
+table.no-border-table td {
+    border: none !important;
 }
 table.func-view td.vmiddle {
   vertical-align: middle;
@@ -1279,4 +1292,18 @@ span[contenteditable=false] > a:hover, span.topic > a:hover {
     cursor: pointer;
 }
 
+.publisher {
+    color: darkmagenta;
+    font-family: monospace;
+    background-color: aliceblue;
+    border-radius: 4px;
+    white-space: nowrap;
+    font-size: 90%;
+    padding: 0px 4px;
+}
+.publisher:hover {
+    color: whitesmoke;
+    background-color: darkmagenta;
+    cursor: pointer;
+}
 

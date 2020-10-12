@@ -50,6 +50,7 @@
                 <tr>
                   <th class="hidden">id</th>
                   <th>Collection</th>
+                  <th>Manuscript</th>
                   <th>Information</th>
                   <th>Link</th>
                   <th><!-- Buttons --></th>
@@ -59,11 +60,15 @@
               {% for manuscript in object_list %}
                 <tr class="dict-entry">
                   <td class="hidden"> {{ manuscript.id }}</td>
-                  <td class="clickable" title="View the sermon collection of this manuscript"
+                  <td class="clickable tdnowrap" title="View the sermon collection of this manuscript"
                       onclick="ru.lenten.seeker.goto_url('{% url 'collection_details' manuscript.collection.id %}')">{{manuscript.collection.title}}</td>
+                  <td class="clickable tdnowrap" title="View the details of this manuscript"
+                      onclick="ru.lenten.seeker.goto_url('{% url 'manuscript_details' manuscript.id %}')">
+                    {{manuscript.name}}
+                  </td>
                   <td class="clickable" style="width: 100%;" title="View the details of this manuscript"
                       onclick="ru.lenten.seeker.goto_url('{% url 'manuscript_details' manuscript.id %}')">
-                    {{manuscript.info}}
+                    {{manuscript.get_info_markdown|safe}}
                   </td>
                   <td class="tdnowrap">
                     {% if manuscript.url and manuscript.url != "" %}<a href="{{manuscript.url}}">{{manuscript.get_link_markdown|safe}}</a> 
