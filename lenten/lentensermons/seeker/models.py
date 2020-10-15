@@ -1556,7 +1556,7 @@ class Edition(tagtext.models.TagtextModel):
     fcolophon = models.TextField("Flat Colophon", blank=True, null=True)
 
     # ======================== HELPER ===============================
-    firstpublisher = models.ForeignKey(Publisher, blank=True, null=True, related_name="firstpublisher_editions")
+    firstpublisher = models.ForeignKey(Publisher, blank=True, null=True, related_name="firstpublisher_editions", on_delete=models.SET_NULL)
 
     # [1] Each edition belongs to a sermoncollection. 
     #     (When the SermonCollection is deleted, I should be deleted too - CASCADE)
