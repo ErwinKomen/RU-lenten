@@ -2391,6 +2391,15 @@ class CollectionList(BasicList):
                     coll.save()
             Information.set_kvalue("firstedi", "done")
 
+
+        # Check firstedi
+        firstedi = Information.get_kvalue("checkeditions")
+        if firstedi == None or firstedi == "" or firstedi!= "done":
+            with transaction.atomic():
+                for obj in SermonCollection.objects.all():
+                    obj.adapt_editions()
+            Information.set_kvalue("checkeditions", "done")
+ 
         return None
 
     def get_field_value(self, instance, custom):

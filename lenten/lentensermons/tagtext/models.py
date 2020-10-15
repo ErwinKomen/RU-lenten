@@ -19,18 +19,82 @@ class TagtextModel(models.Model):
         # Perform standard initialisations
         response = super(TagtextModel, self).__init__(*args, **kwargs)
 
-        for item in self.mixed_tag_fields:
-            textfield = item['textfield']
-            textvalue = getattr(self, textfield)
-            url = None if 'url' not in item else item['url']
-            # Make sure the get_FIELD_display is set
-            self.adapt_display(textfield, textvalue, url)
+        try:
+            for item in self.mixed_tag_fields:
+                textfield = item['textfield']
+                textvalue = getattr(self, textfield)
+                url = None if 'url' not in item else item['url']
+                # Make sure the get_FIELD_display is set
+                self.adapt_display(textfield, textvalue, url)
+        except:
+            sMsg = self.get_error_message()
 
         # Return our initial response
         return response
 
-    def tagtext_url(self):
-        return "/api/tagtext/"
+    def adapt_display(self, textfield, sText,  url=None, debug=False):
+        
+        try:
+            if debug:
+                self.Status("TagtextModel.adapt_display url={}".format(url))
+
+            # Make sure the get_FIELD_display is adapted
+            if sText == None or sText == "":
+                showvalue = ""
+            elif sText[0] != "[":
+                # Plain text, not something else...
+                showvalue = sText
+            else:
+                # Double check: are there parts in here?
+                if "{" not in sText:
+                    # Automatically convert into one huge part
+                    item = dict(type="text", value=sText)
+                    sText = json.dumps([item])
+                arPart = json.loads(sText)
+                html = []
+                for item in arPart:
+                    # Make sure to get the markdown of the item
+                    mditem = item['value']
+                    # Now look further...
+                    if item['type'] == "text":
+                        html.append(mditem)
+                    elif item['type'] == "new":
+                        html.append('@{}@'.format(mditem))
+                    else:
+                        # This means the field type is 'tag'
+                        if url:
+                            href = reverse(url, kwargs= {'pk': item['tagid']})
+                            if 'style' in item and item['style'] == "italic":
+                                html.append('<span tagid="{}" contenteditable="false"><a href="{}"><i>{}</i></a></span>'.format(item['tagid'], href, mditem))
+                            else:
+                                html.append('<span tagid="{}" contenteditable="false"><a href="{}">{}</a></span>'.format(item['tagid'], href, mditem))
+                        else:
+                            if 'style' in item and item['style'] == "italic":
+                                html.append('<span tagid="{}" contenteditable="false"><i>{}</i></span>'.format(item['tagid'], mditem))
+                            else:
+                                html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], mditem))
+                showvalue = "".join(html)
+                # Now perform MD
+                showvalue = markdown(showvalue).replace("<p>", "").replace("</p>", "")
+            setattr(self, "get_{}_display".format(textfield), showvalue)
+            return True
+        except:
+            sMsg = self.get_error_message()
+            return False
+
+    def delete(self, using=None, keep_parents=False):
+        response = super(TagtextModel, self).delete(using=using, keep_parents=keep_parents)
+        return response
+    
+    def get_error_message(self):
+        arInfo = sys.exc_info()
+        if len(arInfo) == 3:
+            sMsg = str(arInfo[1])
+            if arInfo[2] != None:
+                sMsg += " at line " + str(arInfo[2].tb_lineno)
+            return sMsg
+        else:
+            return ""
 
     def get_flat(self, textfield):
         """Get the flat text"""
@@ -164,56 +228,6 @@ class TagtextModel(models.Model):
             sMsg = self.get_error_message()
             return False, sMsg
 
-    def adapt_display(self, textfield, sText,  url=None, debug=False):
-        
-        try:
-            if debug:
-                self.Status("TagtextModel.adapt_display url={}".format(url))
-
-            # Make sure the get_FIELD_display is adapted
-            if sText == None or sText == "":
-                showvalue = ""
-            elif sText[0] != "[":
-                # Plain text, not something else...
-                showvalue = sText
-            else:
-                # Double check: are there parts in here?
-                if "{" not in sText:
-                    # Automatically convert into one huge part
-                    item = dict(type="text", value=sText)
-                    sText = json.dumps([item])
-                arPart = json.loads(sText)
-                html = []
-                for item in arPart:
-                    # Make sure to get the markdown of the item
-                    mditem = item['value']
-                    # Now look further...
-                    if item['type'] == "text":
-                        html.append(mditem)
-                    elif item['type'] == "new":
-                        html.append('@{}@'.format(mditem))
-                    else:
-                        # This means the field type is 'tag'
-                        if url:
-                            href = reverse(url, kwargs= {'pk': item['tagid']})
-                            if 'style' in item and item['style'] == "italic":
-                                html.append('<span tagid="{}" contenteditable="false"><a href="{}"><i>{}</i></a></span>'.format(item['tagid'], href, mditem))
-                            else:
-                                html.append('<span tagid="{}" contenteditable="false"><a href="{}">{}</a></span>'.format(item['tagid'], href, mditem))
-                        else:
-                            if 'style' in item and item['style'] == "italic":
-                                html.append('<span tagid="{}" contenteditable="false"><i>{}</i></span>'.format(item['tagid'], mditem))
-                            else:
-                                html.append('<span tagid="{}" contenteditable="false">{}</span>'.format(item['tagid'], mditem))
-                showvalue = "".join(html)
-                # Now perform MD
-                showvalue = markdown(showvalue).replace("<p>", "").replace("</p>", "")
-            setattr(self, "get_{}_display".format(textfield), showvalue)
-            return True
-        except:
-            sMsg = self.get_error_message()
-            return False
-    
     def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
 
         response = None
@@ -261,16 +275,11 @@ class TagtextModel(models.Model):
         # Return the saving result
         return response
 
-    def get_error_message(self):
-        arInfo = sys.exc_info()
-        if len(arInfo) == 3:
-            sMsg = str(arInfo[1])
-            if arInfo[2] != None:
-                sMsg += " at line " + str(arInfo[2].tb_lineno)
-            return sMsg
-        else:
-            return ""
-
     def Status(self, msg):
         # Just print the message
         print(msg, file=sys.stderr)
+
+    def tagtext_url(self):
+        """Get the correct API url"""
+        return "/api/tagtext/"
+

@@ -1265,34 +1265,53 @@ class SermonCollection(tagtext.models.TagtextModel):
         # Initial response: save
         response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
         # CHeck who the 'firstauthor' is and adapt
-        obj = self.authors.all().first()
-        if self.firstauthor == None or (obj != None and self.firstauthor is not obj):
-            self.firstauthor = obj
-            response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
+        try:
+            obj = self.authors.all().first()
+            if self.firstauthor == None or (obj != None and self.firstauthor is not obj):
+                self.firstauthor = obj
+                response = super(SermonCollection, self).save(force_insert, force_update, using, update_fields)
+        except:
+            # If there is a problem, no need to bother over it.
+            pass
         return None
 
     def adapt_editions(self):
         """This gets called when an edition changes"""
 
-        bNeedSaving = False
-        firstedition = self.first_edition()
-        firstedi = self.first_edition_obj()
-        numeditions = self.num_editions()
-        if firstedition != None and firstedition != "-" and firstedition != self.firstedition:
-            self.firstedition = firstedition
-            bNeedSaving = True
-        if firstedi != None and firstedi != "-" and firstedi != self.firstedi:
-            # adapt the field  
-            self.firstedi = firstedi
-            self.firstedition = firstedi.get_year()
-            bNeedSaving = True
-        if numeditions != self.numeditions:
-            self.numeditions = numeditions
-            bNeedSaving = True
-        # Check if saving is needed
-        if bNeedSaving:
-            self.save()
-        return True
+        oErr = ErrHandle()
+        bResult = True
+        try:
+            if self.id == 16:
+                iStop = 1
+            bNeedSaving = False
+            firstedition = self.first_edition()
+            firstedi = self.first_edition_obj()
+            numeditions = self.num_editions()
+            if firstedition != None and firstedition != "-" and firstedition != self.firstedition:
+                self.firstedition = firstedition
+                bNeedSaving = True
+            try:
+                needFirstEdi = (firstedi != self.firstedi)
+            except:
+                needFirstEdi = True
+            if needFirstEdi:
+                # adapt the field  
+                self.firstedi = firstedi
+                firsteditionyear = None if firstedi == None else firstedi.get_year()
+                self.firstedition = firsteditionyear
+                bNeedSaving = True
+            if numeditions != self.numeditions:
+                self.numeditions = numeditions
+                bNeedSaving = True
+            # Check if saving is needed
+            if bNeedSaving:
+                self.save()
+            bResult = True
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("SermonCollection/adapt_manucount")
+            bResult = False
+        return bResult
 
     def adapt_manucount(self):
         """This gets called when manuscripts for a sermoncollection change"""
@@ -1627,9 +1646,28 @@ class Edition(tagtext.models.TagtextModel):
         return response
 
     def delete(self, using = None, keep_parents = False):
+        # Save the Sermon collection that is associated with this edition
+        sermoncollection = self.sermoncollection
+        # Remove the m2m contents, if there are
+        self.publishers.all().delete()
+        self.datecommenttags.all().delete()
+        self.notetags.all().delete()
+        self.frontpagetags.all().delete()
+        self.prologuetags.all().delete()
+        self.dedicatorytags.all().delete()
+        self.contentstags.all().delete()
+        self.sermonlisttags.all().delete()
+        self.othertextstags.all().delete()
+        self.imagestags.all().delete()
+        self.fulltitletags.all().delete()
+        self.colophontags.all().delete()
+        # Perform the deletion of the edition
         response = super(Edition, self).delete(using, keep_parents)
+        ## make sure values are re-loaded
+        #self.refresh_from_db()
         # Adapt the information in sermoncollection
-        self.sermoncollection.adapt_editions()
+        sermoncollection.adapt_editions()
+        # Return the deletion response
         return response
 
     def do_publishers():
