@@ -553,7 +553,9 @@ def short(request):
 def signup(request):
     """Provide basic sign up and validation of it """
 
-    allow_signup = False # Do not allow signup yet
+    # allow_signup = True # Do not allow signup yet
+    allow_signup = (Information.get_kvalue("signup") == "ok")
+
     if allow_signup:
         if request.method == 'POST':
             form = SignUpForm(request.POST)
@@ -570,8 +572,8 @@ def signup(request):
                                     is_staff=True)
                 user.is_staff = True
                 user.save()
-                # Add user to the "passim_user" group
-                gQs = Group.objects.filter(name="passim_user")
+                # Add user to the "lentensermons_user" group
+                gQs = Group.objects.filter(name="lentensermons_user")
                 if gQs.count() > 0:
                     g = gQs[0]
                     g.user_set.add(user)
