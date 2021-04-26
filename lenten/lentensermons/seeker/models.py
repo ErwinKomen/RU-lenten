@@ -34,6 +34,7 @@ REPORT_TYPE = "seeker.reptype"
 LINK_TYPE = "seeker.linktype"
 EDI_TYPE = "seeker.editype"
 STATUS_TYPE = "seeker.stype"
+PROGRESS_TYPE = "seeker.ptype"
 DATE_TYPE = "seeker.datetype"
 FORMAT_TYPE = "seeker.formattype"
 LANGUAGE_tYPE = "seeker.language"
@@ -1195,10 +1196,14 @@ class SermonCollection(tagtext.models.TagtextModel):
     # [0-1] Date of composition
     datecomp = models.IntegerField("Year of composition", blank=True, null=True)
     # [0-1] Type of this date: fixed, approximate?
-    datetype = models.CharField("Composition date type", choices=build_abbr_list(DATE_TYPE), 
-                            max_length=5)
+    datetype = models.CharField("Composition date type", choices=build_abbr_list(DATE_TYPE), max_length=5)
     # [0-1] Place of manuscript: may be city or country
     place = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL, related_name="placecollections")
+
+    # [1] Type of this date: fixed, approximate?
+    statussrm = models.CharField("Status of sermons", choices=build_abbr_list(PROGRESS_TYPE), default="ini", max_length=5)
+    # [1] Type of this date: fixed, approximate?
+    statusedi = models.CharField("Status of editions", choices=build_abbr_list(PROGRESS_TYPE), default="ini", max_length=5)
 
     # FOr sorting purposes: automatically add the FIRST author in a list of authors
     firstauthor = models.ForeignKey(Author, blank=True, null=True, on_delete=models.SET_NULL, related_name="collection_firstauthor")
@@ -1826,6 +1831,9 @@ class Sermon(tagtext.models.TagtextModel):
     summary = models.TextField("Summary", null=True, blank=True)
     # [0-1] Notes on this sermon
     note = models.TextField("Note", null=True, blank=True)
+
+    # [1] Type of this date: fixed, approximate?
+    statussrm = models.CharField("Status of this sermon", choices=build_abbr_list(PROGRESS_TYPE), default="ini", max_length=5)
 
     # [0-1] This is a helper field that gets automatically filled with the first topic in 'topics'
     firsttopic = models.ForeignKey(Topic, blank=True, null=True)

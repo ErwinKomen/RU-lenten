@@ -371,7 +371,8 @@ class PublisherAdmin(admin.ModelAdmin):
 class SermonCollectionAdminForm(forms.ModelForm):
     class Meta:
         model = SermonCollection
-        fields = ['idno', 'title', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
+        fields = ['idno', 'title', 'statussrm', 'statusedi', 'bibliography', 'datecomp', 'datetype', 'place', 'structure', 
+                  'liturgical', 'communicative', 'sources', 'exempla', 'notes', 'authors']
         widgets = {
             'bibliography':     TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
             'liturgical':       TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),
@@ -425,46 +426,6 @@ class TagKeywordAdmin(admin.ModelAdmin):
     def response_delete(self, request, obj_display, obj_id):
         sUrl = redirect(reverse('tagkeyword_list'))
         return sUrl
-
-
-#class TagCommunicativeAdmin(admin.ModelAdmin):
-#    list_display = ['name', 'tgroup']
-#    fields = ['name', 'tgroup']
-#    search_fields = ['name']
-
-#    def response_post_save_change(self, request, obj):
-#        """When the user presses [Save], we want to redirect to a view of the model"""
-
-#        sUrl = redirect(reverse('tagcommunicative_details', kwargs={'pk': obj.id}))
-#        return sUrl
-
-#    def response_add(self, request, obj, post_url_continue = None):
-#        sUrl = redirect(reverse('tagcommunicative_list'))
-#        return sUrl
-
-#    def response_delete(self, request, obj_display, obj_id):
-#        sUrl = redirect(reverse('tagcommunicative_list'))
-#        return sUrl
-
-
-#class TagLiturgicalAdmin(admin.ModelAdmin):
-#    list_display = ['name', 'tgroup']
-#    fields = ['name', 'tgroup']
-#    search_fields = ['name']
-
-#    def response_post_save_change(self, request, obj):
-#        """When the user presses [Save], we want to redirect to a view of the model"""
-
-#        sUrl = redirect(reverse('tagliturgical_details', kwargs={'pk': obj.id}))
-#        return sUrl
-
-#    def response_add(self, request, obj, post_url_continue = None):
-#        sUrl = redirect(reverse('tagliturgical_list'))
-#        return sUrl
-
-#    def response_delete(self, request, obj_display, obj_id):
-#        sUrl = redirect(reverse('tagliturgical_list'))
-#        return sUrl
 
 
 class TgroupAdmin(admin.ModelAdmin):
