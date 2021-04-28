@@ -135,7 +135,7 @@
             {% for related in related_objects %}
               <div class="row">
                 <div class="col-md-12">
-                  <h4>{{related.title}}</h4>
+                  <h4>{{related.title|safe}}</h4>
 
                   {% if related.rel_list|length == 0 %}
                     <div><i>(there are none)</i></div>

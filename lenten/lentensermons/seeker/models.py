@@ -40,6 +40,18 @@ FORMAT_TYPE = "seeker.formattype"
 LANGUAGE_tYPE = "seeker.language"
 YESNO_TYPE = "seeker.yesno"
 
+PTYPE_INITIAL = "ini"
+PTYPE_PROGRESS = "pro"
+PTYPE_COMPLETE = "com"
+traffic_red = ['-', PTYPE_INITIAL]
+traffic_orange = [PTYPE_PROGRESS]
+traffic_green = [PTYPE_COMPLETE]
+traffic_light = '<span title="{}">' + \
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="20" height="20" style="margin-bottom: -5px;">' + \
+                '    <circle cx="15" fill="{}" stroke="black" stroke-width="1" cy="15" r="14"></circle>' + \
+                '</svg>' + \
+                '</span>'
+
 
 class FieldChoice(models.Model):
 
@@ -82,6 +94,7 @@ class HelpChoice(models.Model):
         return help_text
 
 def get_current_datetime():
+    """Get the current time and date in an appropriate way"""
     return timezone.now()
 
 def adapt_search(val):
@@ -109,6 +122,7 @@ def adapt_markdown(val, lowercase=True):
     return sBack
 
 def is_number(s_input):
+    """Does the string only consist of numbers, optionally between square brackets?"""
     return re.match(r'^[[]?(\d+)[]]?', s_input)
 
 def get_linktype_abbr(sLinkType):
@@ -155,6 +169,7 @@ def get_crpp_date(dtThis):
     return sDate
 
 def get_now_time():
+    """Get the current [time] time"""
     return time.clock()
 
 def obj_text(d):
@@ -447,6 +462,38 @@ def tag_combine_html(obj, sParts, sWhole):
         oErr.DoError("tag_combine_html")
         lHtml = [ "error", msg ]
     return "\n".join(lHtml)
+
+def get_ptype_light(ptype):
+    """HTML visualization of the different PTYPE statuses"""
+
+    sBack = ""
+    if ptype == "": ptype = "-"
+    red = "gray"
+    orange = "gray"
+    green = "gray"
+    color = "gray"
+    # Determine what the light is going to be
+    
+    if ptype in traffic_orange:
+        orange = "orange"
+        color = "orange"
+        htext = "Status: In progress..."
+    elif ptype in traffic_green:
+        green = "green"
+        color = "green"
+        htext = "Status: Completed"
+    elif ptype in traffic_red:
+        red = "red"
+        color = "red"
+        htext = "Status: Initial"
+
+    # We have the color of the light: visualize it
+    # sBack = traffic_light.format(htext, red, orange, green)
+    sBack = traffic_light.format(htext, color)
+
+
+    # REturn what we made
+    return sBack
 
 
 
@@ -1420,6 +1467,14 @@ class SermonCollection(tagtext.models.TagtextModel):
     def tagtext_url(self):
         url = reverse('api_tributes')
         return url
+
+    def get_statussrm_light(self):
+        sBack = get_ptype_light(self.statussrm)
+        return sBack
+
+    def get_statusedi_light(self):
+        sBack = get_ptype_light(self.statusedi)
+        return sBack
 
 
 class Manuscript(tagtext.models.TagtextModel):

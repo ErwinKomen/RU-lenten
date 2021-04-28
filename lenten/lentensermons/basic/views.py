@@ -741,6 +741,9 @@ class BasicList(ListView):
                         fobj['delete'] = True
                     fobj['styles'] = "width: {}px;".format(50 * len(options))
                     classes.append("tdnowrap")
+                elif 'flex' in head and len(head['flex']) > 0:
+                    # fobj['styles'] = "max-width: 100px; display: flex"
+                    classes.append("flexsvg")
                 else:
                     fobj['styles'] = "width: 100px;"
                     classes.append("tdnowrap")

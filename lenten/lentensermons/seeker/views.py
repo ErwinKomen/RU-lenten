@@ -2245,7 +2245,9 @@ class CollectionDetailsView(PassimDetails):
         related_objects = []
 
         # Show the SERMONS of this collection
-        sermons = {'prefix': 'srm', 'title': 'Sermons of this collection (based on the year/place edition code)'}
+        traffic_sermons = instance.get_statussrm_light()
+        sermons = {'prefix': 'srm', 
+                   'title': 'Sermons of this collection (based on the year/place edition code) {}'.format(traffic_sermons)}
         # Show the list of sermons that are part of this collection
         qs = Sermon.objects.filter(collection=instance).order_by('collection__idno', 'edition__idno', 'idno')
         rel_list =[]
@@ -2277,7 +2279,9 @@ class CollectionDetailsView(PassimDetails):
         related_objects.append(manuscripts)
 
         # Show the EDITIONS that point to this collection
-        editions = {'prefix': 'edi', 'title': 'Printed editions that contain this collection'}
+        traffic_editions = instance.get_statusedi_light()
+        editions = {'prefix': 'edi', 
+                    'title': 'Printed editions that contain this collection {}'.format(traffic_editions)}
         # Get the list of editions
         qs = Edition.objects.filter(sermoncollection=instance).order_by('sermoncollection__idno', 'idno')
         rel_list = []
@@ -2313,12 +2317,12 @@ class CollectionList(BasicList):
     order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'numeditions', 
                      'firstedition', 'firstedi__place__name', 'firstedi__firstpublisher__name']
     order_cols = order_default
-    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int', 'field': 'idno'}, 
+    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int', 'custom': 'code', 'flex': 'set'}, 
                    {'name': 'Authors',       'order': 'o=2', 'type': 'str', 'custom': 'author'}, 
                    {'name': 'Title',         'order': 'o=3', 'type': 'str', 'field': 'title', 'main': True, 'linkdetails': True}, 
                    {'name': 'Year',          'order': 'o=4', 'type': 'str', 'field': 'datecomp'},
                    {'name': 'Place',         'order': 'o=5', 'type': 'str', 'custom': 'place'},
-                   {'name': 'Editions',      'order': 'o=6', 'type': 'int', 'field': 'numeditions'},
+                   {'name': 'Editions',      'order': 'o=6', 'type': 'int', 'custom': 'editions', 'flex': 'set'},
                    {'name': 'First Edition', 'order': 'o=7', 'type': 'str', 'field': 'firstedition'},
                    {'name': 'Ed. place',     'order': 'o=8', 'type': 'str', 'custom': 'firstediplace',
                     'title': 'Place of the first edition'},
@@ -2413,6 +2417,12 @@ class CollectionList(BasicList):
             # FIgure out what to return
             if custom == "author":
                 html.append(instance.get_authors())
+            elif custom == "code":
+                code_html = "<span>{}&nbsp;</span><span>{}</span>".format(instance.idno, instance.get_statussrm_light())
+                html.append(code_html)
+            elif custom == "editions":
+                edi_html = "<span>{}&nbsp;</span><span>{}</span>".format(instance.numeditions, instance.get_statusedi_light())
+                html.append(edi_html)
             elif custom == "place":
                 place = instance.get_place()
                 html.append(place)
