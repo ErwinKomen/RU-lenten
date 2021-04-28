@@ -2180,6 +2180,94 @@ class SermonListView(BasicListView):
         ]
     
 
+class SermonList(BasicList):
+    """Listview of sermons"""
+
+    model = Sermon
+    listform = SermonListForm
+    prefix = "sermo"
+    plural_name = "Sermons"
+    basic_name = "sermon"
+    basic_add = 'sermon_add'
+    has_select2 = True
+    order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
+                     'litday', 'book;chapter;verse', 'firsttopic__name']
+    order_cols = order_default
+    order_heads = [{'name': 'Code',             'order': 'o=1', 'type': 'int', 'custom': 'code', 'flex': 'set'}, 
+                   {'name': 'Authors',          'order': 'o=2', 'type': 'str', 'custom': 'authors', 'linkdetails': True}, 
+                   {'name': 'Collection',       'order': 'o=3', 'type': 'str', 'custom': 'collection'}, 
+                   {'name': 'Liturgical day',   'order': 'o=4', 'type': 'str', 'field': 'litday', 'main': True, 'linkdetails': True},
+                   {'name': 'Thema',            'order': 'o=5', 'type': 'str', 'custom': 'thema', 'linkdetails': True},
+                   {'name': 'Main topic',       'order': 'o=6', 'type': 'str', 'custom': 'topic'},
+                   {'name': '',                 'order': '',    'type': 'str', 'custom': 'links'}]
+    filters = [ {"name": "Code",           "id": "filter_code",         "enabled": False},
+                {"name": "Collection",     "id": "filter_collection",   "enabled": False},
+                {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
+                {"name": "Book",           "id": "filter_book",         "enabled": False},
+                {"name": "Concept",        "id": "filter_concept",      "enabled": False},
+                {"name": "Topic",          "id": "filter_topic",        "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
+            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 
+             'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
+            {'filter': 'litday',    'dbfield': 'litday',    'keyS': 'litday'},
+            {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 
+             'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
+            {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  
+             'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
+            {'filter': 'topic',     'fkfield': 'topics',                        
+             'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
+            ]},
+        {'section': 'other', 'filterlist': [
+            {'filter': 'tagnoteid',  'fkfield': 'notetags',         'keyS': 'tagnoteid', 'keyFk': 'id' },
+            {'filter': 'tagsummid',  'fkfield': 'summarynotetags',  'keyS': 'tagsummid', 'keyFk': 'id' }
+            ]}
+        ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        oErr = ErrHandle()
+        try:
+            # FIgure out what to return
+            if custom == "authors":
+                #<!-- Authors of this sermon -->
+                #<td class="tdnowrap" title="{{sermon.collection.get_authors}}" >{{sermon.collection.get_firstauthor}}</td>
+                sTitle = instance.collection.get_authors()
+                html.append(instance.collection.get_firstauthor())
+            elif custom == "code":
+                code_html = "<span>{}&nbsp;</span><span>{}</span>".format(instance.get_code(), instance.get_statussrm_light())
+                html.append(code_html)
+            elif custom == "collection":
+                title = instance.collection.title
+                url = reverse('collection_details', kwargs={'pk': instance.collection.id})
+                collection_html = "<a href='{}' title='View the sermon collection'>{}<a>".format(url, title)
+                html.append(collection_html)
+            elif custom == "thema":
+                thema = instance.get_bibref()
+                html.append(thema)
+            elif custom == "topic":
+                sTitle = instance.get_topics()
+                topic = instance.get_topics_markdown()
+                html.append(topic)
+            elif custom == "links":
+                if user_is_ingroup(self.request, app_editor):
+                    url = reverse('admin:seeker_sermon_change', args=[instance.id])
+                    sLink = '<a mode="edit" class="view-mode btn btn-xs jumbo-1"' + \
+                            '   onclick="ru.lenten.seeker.goto_url(\"{}\")">' + \
+                            '  <span class="glyphicon glyphicon-pencil" title="Edit these data"></span></a>'.format()
+                    html.append(sLink)
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("SermonList/get_field_value")
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+    
+
 class ConsultingDetailsView(PassimDetails):
     model = Consulting
     mForm = None

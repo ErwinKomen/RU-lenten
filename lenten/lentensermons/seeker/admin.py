@@ -459,7 +459,7 @@ class BookAdmin(admin.ModelAdmin):
 class SermonAdminForm(forms.ModelForm):
     class Meta:
         model = Sermon
-        fields = ['collection', 'edition', 'idno', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
+        fields = ['collection', 'edition', 'idno', 'statussrm', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
         widgets = {
             'thema':        forms.Textarea(attrs={'rows': 1, 'cols': 80, 'class': 'mytextarea'}),
             'divisionL':    TagTextarea(attrs={'remote': '/api/tagtext/?tclass=notes' }),

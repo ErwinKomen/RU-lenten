@@ -2057,6 +2057,10 @@ class Sermon(tagtext.models.TagtextModel):
         sBack = ", ".join(lHtml)
         return sBack
 
+    def get_statussrm_light(self):
+        sBack = get_ptype_light(self.statussrm)
+        return sBack
+
 
 class Consulting(models.Model):
     """An actual copy that the researcher has consulted or has seen"""
