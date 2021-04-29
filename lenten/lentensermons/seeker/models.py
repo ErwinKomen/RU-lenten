@@ -47,7 +47,7 @@ traffic_red = ['-', PTYPE_INITIAL]
 traffic_orange = [PTYPE_PROGRESS]
 traffic_green = [PTYPE_COMPLETE]
 traffic_light = '<span title="{}">' + \
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="20" height="20" style="margin-bottom: -5px;">' + \
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="{}" height="{}" style="margin-bottom: {}px;">' + \
                 '    <circle cx="15" fill="{}" stroke="black" stroke-width="1" cy="15" r="14"></circle>' + \
                 '</svg>' + \
                 '</span>'
@@ -463,7 +463,7 @@ def tag_combine_html(obj, sParts, sWhole):
         lHtml = [ "error", msg ]
     return "\n".join(lHtml)
 
-def get_ptype_light(ptype):
+def get_ptype_light(ptype, margin_bottom="-5", width="20", height="20"):
     """HTML visualization of the different PTYPE statuses"""
 
     sBack = ""
@@ -489,7 +489,7 @@ def get_ptype_light(ptype):
 
     # We have the color of the light: visualize it
     # sBack = traffic_light.format(htext, red, orange, green)
-    sBack = traffic_light.format(htext, color)
+    sBack = traffic_light.format(htext, width, height, margin_bottom, color)
 
 
     # REturn what we made
@@ -2057,8 +2057,11 @@ class Sermon(tagtext.models.TagtextModel):
         sBack = ", ".join(lHtml)
         return sBack
 
-    def get_statussrm_light(self):
-        sBack = get_ptype_light(self.statussrm)
+    def get_statussrm_light(self, margin_bottom="-5", width="20", height="20"):
+        sBack = get_ptype_light(self.statussrm, 
+                                margin_bottom=margin_bottom, 
+                                width=width, 
+                                height=height)
         return sBack
 
 

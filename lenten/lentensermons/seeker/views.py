@@ -2159,7 +2159,7 @@ class SermonDetailsView(PassimDetails):
             {'type': 'line',  'label': "Concepts:", 'value': instance.get_concepts_markdown()},
             ]
 
-        context['title_addition'] = instance.get_statussrm_light()
+        context['title_addition'] = instance.get_statussrm_light("0")
 
         context['sections'] = [
             {'name': 'Main division', 'id': 'sermo_division', 'fields': [
@@ -2337,7 +2337,9 @@ class CollectionDetailsView(PassimDetails):
         rel_list =[]
         for item in qs:
             rel_item = []
-            rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+            code_html = "<span class='flexsvg' style='min-width: 100%;'><span>{}</span>&nbsp;<span>{}</span></span>".format(
+                item.get_code(), item.get_statussrm_light(width="16", height="16"))
+            rel_item.append({'value': code_html, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
             rel_item.append({'value': item.litday})
             rel_item.append({'value': item.get_bibref()})
             rel_item.append({'value': item.get_topics()})

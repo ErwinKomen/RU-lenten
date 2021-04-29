@@ -1307,3 +1307,11 @@ span[contenteditable=false] > a:hover, span.topic > a:hover {
     cursor: pointer;
 }
 
+td.flexsvg, span.flexsvg {
+    max-width: 100px; 
+    display: flex;
+}
+
+td.flexsvg span:first-of-type, span.flexsvg span:first-of-type {
+    margin-right: auto;
+}
