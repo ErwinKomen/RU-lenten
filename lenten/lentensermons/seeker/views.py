@@ -2137,48 +2137,43 @@ class LocationRelset(BasicPart):
         return has_changed
 
 
-class SermonListView(BasicListView):
-    """Listview of sermons"""
-
+class SermonDetailsView(PassimDetails):
     model = Sermon
-    listform = SermonListForm
-    prefix = "sermo"
-    template_name = 'seeker/sermon_list.html'
-    plural_name = "Sermons"
-    order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
-                     'litday', 'book;chapter;verse', 'firsttopic__name']
-    order_cols = order_default
-    order_heads = [{'name': 'Code',             'order': 'o=1', 'type': 'int'}, 
-                   {'name': 'Authors',          'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Collection',       'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Liturgical day',   'order': 'o=4', 'type': 'str'},
-                   {'name': 'Thema',            'order': 'o=5', 'type': 'str'},
-                   {'name': 'Main topic',       'order': 'o=6', 'type': 'str'}]
-    filters = [ {"name": "Code",           "id": "filter_code",         "enabled": False},
-                {"name": "Collection",     "id": "filter_collection",   "enabled": False},
-                {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
-                {"name": "Book",           "id": "filter_book",         "enabled": False},
-                {"name": "Concept",        "id": "filter_concept",      "enabled": False},
-                {"name": "Topic",          "id": "filter_topic",        "enabled": False}]
-    searches = [
-        {'section': '', 'filterlist': [
-            {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
-            {'filter': 'collection','fkfield': 'collection','keyS': 'collname', 
-             'keyFk': 'title', 'keyList': 'collectionlist', 'infield': 'id'},
-            {'filter': 'litday',    'dbfield': 'litday',    'keyS': 'litday'},
-            {'filter': 'book',      'fkfield': 'book',      'keyS': 'bookname', 
-             'keyFk': 'name', 'keyList': 'booklist', 'infield': 'id'},
-            {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  
-             'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
-            {'filter': 'topic',     'fkfield': 'topics',                        
-             'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
-            ]},
-        {'section': 'other', 'filterlist': [
-            {'filter': 'tagnoteid',  'fkfield': 'notetags',         'keyS': 'tagnoteid', 'keyFk': 'id' },
-            {'filter': 'tagsummid',  'fkfield': 'summarynotetags',  'keyS': 'tagsummid', 'keyFk': 'id' }
-            ]}
-        ]
-    
+    mForm = None
+    template_name = 'generic_details.html'  # 'seeker/sermon_view.html'
+    prefix = ""
+    title = "SermonDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        # Get the link to the sermon collection
+        sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
+        context['mainitems'] = [
+            {'type': 'safe',  'label': "Authors:", 'value': instance.get_authors_markdown()},
+            {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title, 'link': sc},
+            {'type': 'plain', 'label': "Code:", 'value': instance.get_code()},
+            {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
+            {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
+            {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
+            {'type': 'line',  'label': "Concepts:", 'value': instance.get_concepts_markdown()},
+            ]
+
+        context['title_addition'] = instance.get_statussrm_light()
+
+        context['sections'] = [
+            {'name': 'Main division', 'id': 'sermo_division', 'fields': [
+                {'type': 'safeline',    'label': "Original:", 'value': instance.get_divisionL_display.strip()},
+                {'type': 'safeline',    'label': "Translation:", 'value': instance.get_divisionE_display.strip()},
+                ]},
+            {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
+                {'type': 'line',    'label': "", 'value': instance.get_summary_markdown()}                ]},
+            {'name': 'General notes', 'id': 'sermo_general', 'fields': [
+                {'type': 'safeline',    'label': "", 'value': instance.get_note_display.strip()}                ]}
+            ]
+
+        return context
+
 
 class SermonList(BasicList):
     """Listview of sermons"""
@@ -2238,7 +2233,9 @@ class SermonList(BasicList):
                 sTitle = instance.collection.get_authors()
                 html.append(instance.collection.get_firstauthor())
             elif custom == "code":
-                code_html = "<span>{}&nbsp;</span><span>{}</span>".format(instance.get_code(), instance.get_statussrm_light())
+                url = reverse('sermon_details', kwargs={'pk': instance.id})
+                code_html = "<span><a href='{}' class='nostyle'>{}</a></span>&nbsp;<span>{}</span>".format(
+                    url, instance.get_code(), instance.get_statussrm_light())
                 html.append(code_html)
             elif custom == "collection":
                 title = instance.collection.title
@@ -2256,8 +2253,8 @@ class SermonList(BasicList):
                 if user_is_ingroup(self.request, app_editor):
                     url = reverse('admin:seeker_sermon_change', args=[instance.id])
                     sLink = '<a mode="edit" class="view-mode btn btn-xs jumbo-1"' + \
-                            '   onclick="ru.lenten.seeker.goto_url(\"{}\")">' + \
-                            '  <span class="glyphicon glyphicon-pencil" title="Edit these data"></span></a>'.format()
+                            '   onclick="ru.lenten.seeker.goto_url(\'{}\')">'.format(url) + \
+                            '  <span class="glyphicon glyphicon-pencil" title="Edit these data"></span></a>'
                     html.append(sLink)
         except:
             msg = oErr.get_error_message()
@@ -2265,8 +2262,7 @@ class SermonList(BasicList):
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
-
-    
+        
 
 class ConsultingDetailsView(PassimDetails):
     model = Consulting
@@ -2689,6 +2685,7 @@ class TgroupEdit(BasicDetails):
 
 
 class TgroupDetails(TgroupEdit):
+    """Based on TgroupEdit"""
     rtype = "html"
 
 
@@ -3078,42 +3075,6 @@ class ReportDownload(BasicPart):
             output.close()
 
         return sData
-
-
-class SermonDetailsView(PassimDetails):
-    model = Sermon
-    mForm = None
-    template_name = 'generic_details.html'  # 'seeker/sermon_view.html'
-    prefix = ""
-    title = "SermonDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        # Get the link to the sermon collection
-        sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
-        context['mainitems'] = [
-            {'type': 'safe',  'label': "Authors:", 'value': instance.get_authors_markdown()},
-            {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title, 'link': sc},
-            {'type': 'plain', 'label': "Code:", 'value': instance.get_code()},
-            {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
-            {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
-            {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
-            {'type': 'line',  'label': "Concepts:", 'value': instance.get_concepts_markdown()},
-            ]
-
-        context['sections'] = [
-            {'name': 'Main division', 'id': 'sermo_division', 'fields': [
-                {'type': 'safeline',    'label': "Original:", 'value': instance.get_divisionL_display.strip()},
-                {'type': 'safeline',    'label': "Translation:", 'value': instance.get_divisionE_display.strip()},
-                ]},
-            {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
-                {'type': 'line',    'label': "", 'value': instance.get_summary_markdown()}                ]},
-            {'name': 'General notes', 'id': 'sermo_general', 'fields': [
-                {'type': 'safeline',    'label': "", 'value': instance.get_note_display.strip()}                ]}
-            ]
-
-        return context
 
 
 class EditionList(BasicList):

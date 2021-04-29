@@ -475,7 +475,7 @@ class SermonAdmin(admin.ModelAdmin):
     list_display = ['code', 'litday', 'book', 'chapter', 'verse', 'collection', 'edition']
     search_fields = ['code', 'litday', 'book']
     list_filter = ['litday', 'book']
-    fields = ['collection', 'edition', 'idno', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
+    fields = ['collection', 'edition', 'idno', 'statussrm', 'litday', 'thema', 'book', 'chapter', 'verse', 'topics', 'concepts', 'divisionL', 'divisionE', 'summary', 'note']
 
     filter_horizontal = ('topics', 'concepts',)
 

@@ -26,7 +26,15 @@
 
             <div class="row">
               <div class="col-md-12">
-                <h3>{{modelname}} details</h3>
+                <h3>
+                  <span>{{modelname}} details</span>
+                  {% if title_addition %}
+                    <span>{{title_addition|safe}}</span>
+                  {% endif %}
+                  {% if title_right %}
+                    <span class="pull-right">{{title_right|safe}}</span>
+                  {% endif %}
+                </h3>
 
                 {% block detailsview %}{% endblock detailsview %}
                 <!-- Show the main items in a standard way -->
