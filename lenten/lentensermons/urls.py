@@ -87,6 +87,10 @@ urlpatterns = [
     url(r'^news/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/newsitem/add'), name='newsitem_add'),
     url(r'^news/view(?:/(?P<pk>\d+))?/$', NewsDetailsView.as_view(), name='newsitem_details'),
 
+    url(r'^instruction/list',  InstructionListView.as_view(), name='instruction_list'),
+    url(r'^instruction/edit(?:/(?P<pk>\d+))?/$', InstructionEdit.as_view(), name='instruction_edit'),
+    url(r'^instruction/view(?:/(?P<pk>\d+))?/$', InstructionDetails.as_view(), name='instruction_details'),
+
     url(r'^reference/list',  LitrefListView.as_view(), name='litref_list'),
     url(r'^reference/view(?:/(?P<pk>\d+))?/$', LitrefDetailsView.as_view(), name='litref_details'),
     url(r'^reference/edit(?:/(?P<pk>\d+))?/$', LitrefEditView.as_view(), name='litref_edit'),
@@ -102,6 +106,8 @@ urlpatterns = [
 
     url(r'^definitions$', RedirectView.as_view(url='/'+pfx+'admin/'), name='definitions'),
     url(r'^signup/$', lentensermons.seeker.views.signup, name='signup'),
+
+    url(r'^login/user/(?P<user_id>\w[\w\d_]+)$', lentensermons.seeker.views.login_as_user, name='login_as'),
 
     url(r'^login/$',
         django.contrib.auth.views.login,

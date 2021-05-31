@@ -14,6 +14,7 @@
   <table style="width: 100%;">
     <tbody>
       <!-- The row with buttons -->
+      {% if is_app_moderator or permission != "readonly" %}
       <tr>
         <td colspan="2"  class="ms editable table">
           <!-- Provide the necessary buttons: edit, cancel and save -->
@@ -74,6 +75,7 @@
           {% endif %}
         </td>
       </tr>
+      {% endif %}
 
       <!-- Walk all the fields in mainitems -->
       {% for mainitem in mainitems %}

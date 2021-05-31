@@ -70,8 +70,8 @@
               {% if filters %}
                 <span class="">
                   <!-- NEW: use filtering instead of 'searching' -->
-                  <a class="btn btn-xs jumbo-4" data-toggle="collapse" data-target="#tab_filter" role="button" title="Define your filter(s)...">
-                    <span class="glyphicon glyphicon-filter"></span>
+                  <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_filter" role="button" title="Define your filter(s)...">
+                    <span class="glyphicon glyphicon-search"></span>
                   </a>
 
                 </span>
@@ -106,12 +106,12 @@
 
           <!-- Filter tab -->
           {% if filters %}
-            <div class="inert {% if has_filter %}in{% else %}collapse{% endif %}" id="tab_filter">
+            <div class="inert {% if has_filter %}in{% else %}in collapse_issue_77{% endif %}" id="tab_filter">
               <div class="panel panel-default">
                 <!-- Filter interface -->
                 <div class="row" id="filter_badges">
                   <div class="col-md-2">
-                    <h4>Selected filters</h4>
+                    <h4>Search filters</h4>
                   </div>
                   <div class="col-md-10">
                     <!-- Main filters -->

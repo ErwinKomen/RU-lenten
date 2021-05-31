@@ -298,6 +298,28 @@ class ReportEditForm(forms.ModelForm):
                  }
         
 
+class InstructionForm(forms.ModelForm):
+
+    class Meta:
+        model = Instruction
+        fields = ['title', 'msg', 'status', 'created', 'saved']
+        widgets={'title':     forms.TextInput(attrs={'style': 'width: 100%;', 'class': "searching"}),
+                 'msg':       forms.Textarea(attrs={'rows': 2, 'cols': 60, 'style': 'height: 70px; width: 100%;'}),
+                 'status':    forms.Select(attrs={'style': 'width: 100%;'}),
+                 'created':   forms.TextInput(attrs={'style': 'width: 100%;'}),
+                 'saved':     forms.TextInput(attrs={'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(InstructionForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['title'].required = False
+        self.fields['status'].required = False
+        self.fields['created'].required = False
+        self.fields['saved'].required = False
+    
+
 class NewsForm(forms.ModelForm):
 
     class Meta:

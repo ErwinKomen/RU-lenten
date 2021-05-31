@@ -797,7 +797,7 @@ class NewsItem(models.Model):
     # [1] the message that needs to be shown (in html)
     msg = models.TextField("Message")
     # [1] the status of this message (can e.g. be 'archived')
-    status = models.CharField("Status", choices=build_abbr_list(VIEW_STATUS), 
+    status = models.CharField("Status", choices=build_abbr_list(VIEW_STATUS), default="val",
                               max_length=5, help_text=get_help(VIEW_STATUS))
 
     def __str__(self):
@@ -827,6 +827,52 @@ class NewsItem(models.Model):
 
 
 # ============================= APPLICATION-SPECIFIC CLASSES =====================================
+
+class Instruction(models.Model):
+    """An instruction-item that can be displayed or switched off"""
+
+    # [1] title of this news-item
+    title = models.CharField("Title",  max_length=MEDIUM_LENGTH, default="SUPPLY A TITLE")
+    # [1] the date when this item was created
+    created = models.DateTimeField(default=get_current_datetime)
+    saved = models.DateTimeField(null=True, blank=True)
+    # [1] the message that needs to be shown (in html)
+    msg = models.TextField("Message", null=True, blank=True)
+    # [1] the status of this message (can e.g. be 'archived')
+    status = models.CharField("Status", choices=build_abbr_list(VIEW_STATUS), default="val",
+                              max_length=5, help_text=get_help(VIEW_STATUS))
+
+    def __str__(self):
+        # A news item is the tile and the created
+        sDate = get_crpp_date(self.created)
+        sItem = "{}-{}".format(self.title, sDate)
+        return sItem
+
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+      # Adapt the save date
+      self.saved = get_current_datetime()
+      response = super(Instruction, self).save(force_insert, force_update, using, update_fields)
+      return response
+
+    def get_msg_markdown(self):
+        """Get the [msg] field using markdown interpretation"""
+
+        sBack = ""
+        if self.msg != None and self.msg != "":
+            try:
+                sBack = markdown(self.msg.strip())
+            except:
+                sBack = "There is a mistake in this instruction's markdown:\n{}".format( self.msg)
+        return sBack
+
+    def get_created(self):
+        sBack = self.created.strftime("%d/%b/%Y %H:%M")
+        return sBack
+
+    def get_saved(self):
+        sBack = self.saved.strftime("%d/%b/%Y %H:%M")
+        return sBack
+
 
 # ============================= LOCATION related CLASSES =========================================
 

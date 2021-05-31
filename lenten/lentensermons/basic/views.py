@@ -418,7 +418,7 @@ def make_ordering(qs, qd, order_default, order_cols, order_heads):
                 sType = item['type']
                 order_item = item['item']
                 if order_item != "":
-                    if sType == "int":
+                    if sType == "int" or "-" in order_item:
                         order.append(order_item)
                     else:
                         order.append(Lower(order_item))
@@ -1321,6 +1321,8 @@ class BasicDetails(DetailView):
                 # Calculate view-mode versus any-mode
                 #  'field_key' in mainitem or 'field_list' in mainitem and permission == "write"  or  is_app_userplus and mainitem.maywrite
                 if self.permission == "write":       # or app_userplus and 'maywrite' in mobj and mobj['maywrite']:
+                    mobj['allowing'] = "edit"
+                elif self.permission == "readonly" and user_is_superuser(self.request):
                     mobj['allowing'] = "edit"
                 else:
                     mobj['allowing'] = "view"
