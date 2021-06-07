@@ -2388,6 +2388,7 @@ class ConceptListView(BasicList):
     listform = ConceptListForm
     prefix = "cnc"
     plural_name = "Concepts"
+    basic_add = 'concept_add'
     entrycount = 0
     order_default = ['name', 'language']
     order_cols = ['language', 'name']
@@ -2432,6 +2433,7 @@ class PublisherListView(BasicList):
     prefix = "pb"
     # template_name = 'seeker/publisher_list.html'
     plural_name = "Publishers"
+    basic_add = 'publisher_add'
     entrycount = 0
     order_default = ['name']
     order_cols = ['name']
@@ -3420,6 +3422,7 @@ class NewsListView(BasicList):
     listform = NewsForm
     prefix = "news"
     plural_name = "News items"
+    basic_add = 'newsitem_add'
     entrycount = 0
     order_default = ['status', '-saved', 'title']
     order_cols = ['title', 'until', 'status', 'created', 'saved']
@@ -3470,14 +3473,17 @@ class NewsDetailsView(PassimDetails):
     mainitems = []
 
     def add_to_context(self, context, instance):
-        context['mainitems'] = [
-            {'type': 'bold',  'label': "Title:",  'value': instance.title, 'link': reverse('newsitem_details', kwargs={'pk': instance.id})},
-            {'type': 'safe',  'label': "Message:", 'value': instance.msg},
-            {'type': 'plain', 'label': "Status:", 'value': instance.get_status_display()},
-            {'type': 'safe',  'label': "Created:", 'value': get_date_display( instance.created)},
-            {'type': 'safe',  'label': "Savid:", 'value': get_date_display(instance.saved)},
-            {'type': 'safe',  'label': "Valid until:", 'value': get_date_display(instance.until)}
-            ]
+        if instance == None:
+            pass
+        else:
+            context['mainitems'] = [
+                {'type': 'bold',  'label': "Title:",  'value': instance.title, 'link': reverse('newsitem_details', kwargs={'pk': instance.id})},
+                {'type': 'safe',  'label': "Message:", 'value': instance.msg},
+                {'type': 'plain', 'label': "Status:", 'value': instance.get_status_display()},
+                {'type': 'safe',  'label': "Created:", 'value': get_date_display( instance.created)},
+                {'type': 'safe',  'label': "Savid:", 'value': get_date_display(instance.saved)},
+                {'type': 'safe',  'label': "Valid until:", 'value': get_date_display(instance.until)}
+                ]
         related_objects = []
 
         context['related_objects'] = related_objects
