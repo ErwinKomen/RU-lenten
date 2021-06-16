@@ -175,11 +175,24 @@ def has_obj_value(field, obj):
     response = (field != None and field in obj and obj[field] != None)
     return response
 
-def adapt_search(val):
+def adapt_search(val, regex_function=None):
     # First trim
     val = val.strip()
-    # Then add start and en matter 
-    val = '^' + fnmatch.translate(val) + '$'
+    # Double check whether we don't have a starting ^ and trailing $ yet
+    if len(val) > 0:
+        if "#" in val:
+            # Exactly like PASSIM
+            val = r'(^|(.*\b))' + val.replace('#', r'((\b.*)|$)')
+        else:
+            val = fnmatch.translate(val)
+            if val[0] != '^':
+                val = "^{}".format(val)
+            if val[-1] != "$":
+                val = "{}$".format(val)
+
+        # Is there a regex function?
+        if regex_function != None:
+            val = regex_function(val)
     return val
 
 def make_search_list(filters, oFields, search_list, qd, lstExclude):
@@ -229,9 +242,11 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                 infield = get_value(search_item, "infield")
                 dbfield = get_value(search_item, "dbfield")
                 fkfield = get_value(search_item, "fkfield")
+                orfield = get_value(search_item, "orfield")
                 keyType = get_value(search_item, "keyType")
                 filter_type = get_value(search_item, "filter")
                 code_function = get_value(search_item, "code")
+                regex_function = get_value(search_item, "regex")
                 s_q = ""
                 arFkField = []
                 if fkfield != None:
@@ -264,8 +279,8 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                             # we are dealing with a foreign key, so we should use keyFk
                             s_q = None
                             for fkfield in arFkField:
-                                if "*" in val:
-                                    val = adapt_search(val)
+                                if "*" in val or "#" in val:
+                                    val = adapt_search(val, regex_function)
                                     s_q_add = Q(**{"{}__{}__iregex".format(fkfield, keyFk): val})
                                 else:
                                     s_q_add = Q(**{"{}__{}__iexact".format(fkfield, keyFk): val})
@@ -320,13 +335,42 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                             enable_filter(filter_type, head_id)
                             if isinstance(val, int):
                                 s_q = Q(**{"{}".format(dbfield): val})
-                            elif "*" in val:
-                                val = adapt_search(val)
+                            elif "*" in val or "#" in val:
+                                val = adapt_search(val, regex_function)
                                 s_q = Q(**{"{}__iregex".format(dbfield): val})
                             else:
                                 s_q = Q(**{"{}__iexact".format(dbfield): val})
                     elif has_Q_value(keyS, oFields):
                         s_q = oFields[keyS]
+                elif orfield:
+                    # This field contains an orrable selection of db-fields
+                    if has_string_value(keyS, oFields):
+                        val = oFields[keyS]
+                        bUseRegex = False
+                        bContains = False
+                        if not isinstance(val, int):
+                            if "*" in val or "#" in val:
+                                val = adapt_search(val, regex_function)
+                                bUseRegex = True
+                            elif "^" in val:
+                                val = val.replace("^", "")
+                                bContains = True
+                        s_q_lst = ""
+                        enable_filter(filter_type, head_id)
+                        for dbfield in orfield.split(";"):
+                            if isinstance(val, int):
+                                s_q = Q(**{"{}".format(dbfield): val})
+                            elif bUseRegex:                                
+                                s_q = Q(**{"{}__iregex".format(dbfield): val})
+                            elif bContains:                                
+                                s_q = Q(**{"{}__icontains".format(dbfield): val})
+                            else:
+                                s_q = Q(**{"{}__iexact".format(dbfield): val})
+                            if s_q_lst == "":
+                                s_q_lst = s_q
+                            else:
+                                s_q_lst = s_q_lst | s_q
+                        s_q = s_q_lst
 
                 # Check for list of specific signatures
                 if has_list_value(keyList, oFields):
@@ -833,12 +877,12 @@ class BasicList(ListView):
         return fields, None, None
   
     def get_queryset(self):
-        self.initializations()
-
         # Get the parameters passed on with the GET or the POST request
         get = self.request.GET if self.request.method == "GET" else self.request.POST
         get = get.copy()
         self.qd = get
+
+        self.initializations()
 
         username=self.request.user.username
         team_group=app_editor
@@ -923,7 +967,7 @@ class BasicList(ListView):
             elif not self.none_on_empty:
                 # Just show everything
                 qs = self.model.objects.all().distinct()
-                
+
             # Do the ordering of the results
             order = self.order_default
             qs, self.order_heads, colnum = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)

@@ -349,6 +349,8 @@ class SermonListForm(forms.ModelForm):
                 widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
     collectionlist  = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=CollectionWidget(attrs={'data-placeholder': 'Select multiple collections...', 'style': 'width: 100%;', 'class': 'searching'}))
+    descr = forms.CharField(label=_("Description"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'searching input-sm', 'placeholder': 'Text in division, summary or general note...', 'style': 'width: 100%;'}))
     bookname = forms.CharField(label=_("Collection"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
     booklist  = ModelMultipleChoiceField(queryset=None, required=False, 

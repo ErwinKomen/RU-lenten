@@ -13,9 +13,11 @@ import pytz
 from django.urls import reverse
 from datetime import datetime
 from markdown import markdown
+
 from lentensermons.utils import *
 from lentensermons.settings import APP_PREFIX, WRITABLE_DIR
 from lentensermons import tagtext
+
 import sys, os, io, re
 import copy
 import json
@@ -1927,11 +1929,15 @@ class Sermon(tagtext.models.TagtextModel):
     verse = models.IntegerField("Verse", null=True, blank=True)
     # [0-1] The main division of the sermon: both in Latin as well as in English
     divisionL = models.TextField("Division (Latin)", null=True, blank=True)
+    fdivisionL = models.TextField("Flat Division (Latin)", null=True, blank=True)
     divisionE = models.TextField("Division (English)", null=True, blank=True)
+    fdivisionE = models.TextField("Flat Division (English)", null=True, blank=True)
     # [0-1] Summary of the sermon
     summary = models.TextField("Summary", null=True, blank=True)
+    fsummary = models.TextField("Flat Summary", null=True, blank=True)
     # [0-1] Notes on this sermon
     note = models.TextField("Note", null=True, blank=True)
+    fnote = models.TextField("Flat Note", null=True, blank=True)
 
     # [1] Type of this date: fixed, approximate?
     statussrm = models.CharField("Status of this sermon", choices=build_abbr_list(PROGRESS_TYPE), default="ini", max_length=5)
@@ -1960,10 +1966,10 @@ class Sermon(tagtext.models.TagtextModel):
     notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_notetags")
 
     mixed_tag_fields = [
-            {"textfield": "divisionL",  "m2mfield": "divisionLtags",    "class": TagKeyword,    "url": "tagkeyword_details"},
-            {"textfield": "divisionE",  "m2mfield": "divisionEtags",    "class": TagKeyword,    "url": "tagkeyword_details"},
-            {"textfield": "summary",    "m2mfield": "summarynotetags",  "class": TagKeyword,    "url": "tagkeyword_details"},
-            {"textfield": "note",       "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"}
+            {"textfield": "divisionL",  "textflat": "fdivisionL",  "m2mfield": "divisionLtags",    "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "divisionE",  "textflat": "fdivisionE",  "m2mfield": "divisionEtags",    "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "summary",    "textflat": "fsummary",    "m2mfield": "summarynotetags",  "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "note",       "textflat": "fnote",       "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"}
         ]
 
     def tagtext_url(self):

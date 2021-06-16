@@ -35,7 +35,7 @@ import csv, re
 from io import StringIO
 
 # My own application
-from lentensermons.basic.views import BasicList, BasicDetails
+from lentensermons.basic.views import BasicList, BasicDetails, adapt_search
 
 # Application specific
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
@@ -45,7 +45,8 @@ from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUr
     InstructionForm, \
     TagKeywordListForm, PublisherListForm, NewsForm, \
     LitrefForm, AuthorListForm, TgroupForm, ManuscriptForm  # , TagQsourceListForm
-from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
+from lentensermons.seeker.models import get_current_datetime, \
+    get_searchable, get_now_time, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Instruction, \
     Location, LocationRelation, Author, Concept, FieldChoice, Information, \
@@ -2038,20 +2039,25 @@ class SermonList(BasicList):
     has_select2 = True
     order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
                      'litday', 'book;chapter;verse', 'firsttopic__name']
-    order_cols = order_default
+    order_cols = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
+                     'litday', 'book;chapter;verse', '', 'firsttopic__name', '']
     order_heads = [{'name': 'Code',             'order': 'o=1', 'type': 'int', 'custom': 'code', 'flex': 'set'}, 
                    {'name': 'Authors',          'order': 'o=2', 'type': 'str', 'custom': 'authors', 'linkdetails': True}, 
                    {'name': 'Collection',       'order': 'o=3', 'type': 'str', 'custom': 'collection'}, 
                    {'name': 'Liturgical day',   'order': 'o=4', 'type': 'str', 'field': 'litday', 'main': True, 'linkdetails': True},
                    {'name': 'Thema',            'order': 'o=5', 'type': 'str', 'custom': 'thema', 'linkdetails': True},
-                   {'name': 'Main topic',       'order': 'o=6', 'type': 'str', 'custom': 'topic'},
+                   {'name': 'Division/summary', 'order': 'o=6', 'type': 'str', 'custom': 'descr', 'autohide': "on", 'linkdetails': True},
+                   {'name': 'Main topic',       'order': 'o=7', 'type': 'str', 'custom': 'topic'},
                    {'name': '',                 'order': '',    'type': 'str', 'custom': 'links'}]
-    filters = [ {"name": "Code",           "id": "filter_code",         "enabled": False},
-                {"name": "Collection",     "id": "filter_collection",   "enabled": False},
-                {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
-                {"name": "Book",           "id": "filter_book",         "enabled": False},
-                {"name": "Concept",        "id": "filter_concept",      "enabled": False},
-                {"name": "Topic",          "id": "filter_topic",        "enabled": False}]
+    filters = [ 
+        {"name": "Code",                    "id": "filter_code",         "enabled": False},
+        {"name": "Collection",              "id": "filter_collection",   "enabled": False},
+        {"name": "Liturgical day",          "id": "filter_litday",       "enabled": False},
+        {"name": "Book",                    "id": "filter_book",         "enabled": False},
+        {"name": "Concept",                 "id": "filter_concept",      "enabled": False},
+        {"name": "Topic",                   "id": "filter_topic",        "enabled": False},
+        {"name": "Division and summary",    "id": "filter_descr",        "enabled": False}
+        ]
     searches = [
         {'section': '', 'filterlist': [
             {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
@@ -2063,13 +2069,34 @@ class SermonList(BasicList):
             {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  
              'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
             {'filter': 'topic',     'fkfield': 'topics',                        
-             'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
+             'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' },
+            {'filter': 'descr',     'orfield': 'fdivisionL;fdivisionE;fsummary;fnote', 'keyS': 'descr' }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid',  'fkfield': 'notetags',         'keyS': 'tagnoteid', 'keyFk': 'id' },
             {'filter': 'tagsummid',  'fkfield': 'summarynotetags',  'keyS': 'tagsummid', 'keyFk': 'id' }
             ]}
         ]
+
+    def initializations(self):
+        # Check if sermonflat has been done
+        sermonflat = Information.get_kvalue("sermonflat")
+        if sermonflat == None or sermonflat == "" or sermonflat!= "done":
+            # Walk all sermons
+            with transaction.atomic():
+                for sermo in Sermon.objects.all():
+                    sermo.save()
+            Information.set_kvalue("sermonflat", "done")
+
+        searchterm = self.qd.get('sermo-descr')
+        if searchterm != None and searchterm != "":
+            # Make sure column Thema is hidden, and Div/Sum is shown
+            for obj in self.order_heads:
+                if obj['name'] == "Thema":
+                    obj['autohide'] = "on"
+                elif obj['name'] == "Division/summary":
+                    obj['autohide'] = "off"
+        return None
 
     def get_field_value(self, instance, custom):
         sBack = ""
@@ -2100,6 +2127,38 @@ class SermonList(BasicList):
                 sTitle = instance.get_topics()
                 topic = instance.get_topics_markdown()
                 html.append(topic)
+            elif custom == "descr":
+                # Show hits in [divisionL, divisionE, summary, note]
+                searchterm = self.qd.get('sermo-descr')
+                if searchterm != None and searchterm != "":
+                    count = 0
+                    bRegex = False
+                    bContains = False
+                    if "*" in searchterm or "#" in searchterm:
+                        val = adapt_search(searchterm)
+                        bRegex = True
+                    elif "^" in searchterm:
+                        val = searchterm.replace("^", "").lower()
+                        bContains = True
+
+                    # Check for MD, S, GN
+                    if bRegex or bContains:
+                        num_MDL = len(re.findall(val, instance.fdivisionL.lower()))
+                        num_MDE = len(re.findall(val, instance.fdivisionE.lower()))
+                        num_S = len(re.findall(val, instance.fsummary.lower()))
+                        num_GN = len(re.findall(val, instance.fnote.lower()))
+                        count = num_MDE + num_MDL + num_S + num_GN
+                        matches = []
+                        if num_MDE > 0: matches.append("MD ({})".format(num_MDE))
+                        if num_MDL > 0: matches.append("MD-L ({})".format(num_MDL))
+                        if num_S > 0: matches.append("S ({})".format(num_S))
+                        if num_GN > 0: matches.append("GN ({})".format(num_GN))
+                        html.append(", ".join(matches))
+
+                        if count == 0:
+                            iStop = 1
+                    # Make sure the title is shown
+                    sTitle = "Hits: {}".format(count)
             elif custom == "links":
                 if user_is_ingroup(self.request, app_editor):
                     url = reverse('admin:seeker_sermon_change', args=[instance.id])
