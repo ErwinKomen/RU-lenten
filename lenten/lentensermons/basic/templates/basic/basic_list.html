@@ -10,6 +10,7 @@
 {% block scripts %}
     {% load staticfiles %}
     <link rel="stylesheet" type="text/css" href="{% static 'basic/content/basic.css' %}" />
+    <link rel="stylesheet" href="{% static 'basic/content/font-awesome.min.css' %}" />
     <script src="{% static 'basic/scripts/basic.js' %}"></script>
   {% if has_select2 %}{{listForm.media.css}}{% endif %}
 {% endblock %}
@@ -76,6 +77,12 @@
 
                 </span>
               {% endif %}
+              <!-- Always: show/hide the row to show/hide columns -->
+              <span class="">
+                  <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_colwrap" role="button" title="Show/hide column(s)...">
+                    <span class="glyphicon glyphicon-tasks"></span>
+                  </a>
+              </span>
             </div>
           </div>
         </div>
@@ -90,6 +97,7 @@
           <!-- entrypoint for search_ordered_start -->
           <div class="hidden search_ordered_start">
             <input name="o" type="text" value="{{sortOrder}}" />
+            <input name="w" type="text" value="{{colWrap}}" />
           </div>
 
           {% if downloads %}
@@ -340,6 +348,18 @@
             </div>
 
             {% if object_list %}
+              <!-- Column Wrapping tab -->
+              <div class="{% if colWrap and colWrap != '[]' %}{% else %}collapse{% endif %}" id="tab_colwrap" >
+                <span>Show or hide columns: </span>
+                {% for hd in order_heads %}
+                  {% if hd.name %}
+                    <a role="button" class="btn btn-xs {% if hd.colwrap or hd.autohide == "on" %}{% else %}jumbo-1{% endif %}"
+                       offset="{{forloop.counter}}"
+                       onclick="ru.basic.colwrap(this);">{{hd.name}}</a>
+                  {% endif %}
+                {% endfor %}
+              </div>
+
               <!-- Top pagination -->
               <div class="row">
                   <div class="col-sm-4"><span>Total: </span><span>{{entrycount}}</span></div>
@@ -360,11 +380,30 @@
                       <tr>
                         <th class="hidden">id</th>
                         {% for hd in order_heads %}
-                          <th class="sortable" scope="col" {% if hd.title %}title="{{hd.title}}"{% endif %}>
+                          <th class="sortable tdnowrap {% if hd.colwrap or hd.autohide == "on" %}hidden{% endif %}" 
+                              scope="col" {% if hd.title %}title="{{hd.title}}"{% endif %}>
                             <div class="text">
                               {% if hd.order == "" %}{{hd.name}}
                               {% else %}
-                              <a class="clickable {% if hd.used %}ordered{% endif %}" onclick="ru.basic.search_ordered_start('{{hd.order}}');">{{hd.name}}</a>
+                                <a class="clickable {% if hd.used %}sorted{% endif %}" 
+                                   onclick="ru.basic.search_ordered_start('{{hd.sorting}}');">
+                                  {{hd.name}}
+                                </a>
+                                <span class="sortoptions">
+                                  {% if hd.used %}
+                                    <a class="sortremove" title="Clear this sort column"
+                                       onclick="ru.basic.search_ordered_start('{{hd.sorting}}', '{{hd.order}}');">
+                                      <span class="fa fa-sort"></span>
+                                    </a>
+                                  {% endif %}
+                                  {% if hd.priority %}
+                                    <span class="sortpriority" title="sorteerprioriteit: {{hd.priority}}">{{hd.priority}}</span>
+                                  {% endif %}
+                                  <a class="clickable"
+                                     onclick="ru.basic.search_ordered_start('{{hd.sorting}}');">
+                                    <span class="fa fa-sort{% if hd.direction %}-{{hd.direction}}{% endif %} sortmulti"></span>
+                                  </a>
+                                </span>
                               {% endif %}
                             </div>
                           </th>
@@ -381,7 +420,9 @@
 
                         <!-- walk the other fields -->
                         {% for field in result.fields %}
-                          <td class="{{field.classes}}" style="{{field.styles}}" {% if field.title %}title="{{field.title}}"{% endif %} {% if field.align %}align="{{field.align}}"{% endif %}>
+                          <td class="{{field.classes}}  {% if field.colwrap or field.autohide == "on" %}hidden{% endif %}" 
+                              style="{{field.styles}}" {% if field.title %}title="{{field.title}}"{% endif %} 
+                              {% if field.align %}align="{{field.align}}"{% endif %}>
                             {% if field.linkdetails %}
                               <a href="{% url basic_details result.id %}" class="nostyle" title="Show details of this {{titlesg}}">
                                 {% if field.value %}{{field.value|safe}}{% else %}<i>(unidentified)</i>{% endif %}

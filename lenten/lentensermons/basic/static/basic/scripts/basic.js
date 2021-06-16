@@ -32,6 +32,7 @@ var ru = (function ($, ru) {
     var loc_divErr = "basic_err",
         loc_urlStore = "",      // Keep track of URL to be shown
         loc_progr = [],         // Progress tracking
+        loc_colwrap = [],       // Column wrapping
         loc_bManuSaved = false,
         KEYS = {
           BACKSPACE: 8, TAB: 9, ENTER: 13, SHIFT: 16, CTRL: 17, ALT: 18, ESC: 27, SPACE: 32, PAGE_UP: 33, PAGE_DOWN: 34,
@@ -50,6 +51,35 @@ var ru = (function ($, ru) {
       },
 
       /** 
+       *  colwrap_switch - switch a column on or off
+       */
+      colwrap_switch: function (colnum, set) {
+        var lColWrap = null,
+            elW = null,
+            idx = -1;
+
+        try {
+          // Get the current value
+          idx = loc_colwrap.indexOf(colnum);
+          if (set) {
+            if (idx < 0) {
+              loc_colwrap.push(colnum);
+            }
+          } else {
+            if (idx >= 0) {
+              loc_colwrap.splice(idx, 1);
+            }
+          }
+          // Set the correct 'w' parameter
+          elW = document.getElementsByName("w");
+          $(elW).val(JSON.stringify(loc_colwrap));
+        } catch (ex) {
+          private_methods.errMsg("colwrap_switch", ex);
+          return "";
+        }
+      },
+
+      /** 
        *  errClear - clear the error <div>
        */
       errClear: function () {
@@ -65,6 +95,253 @@ var ru = (function ($, ru) {
           sHtml = sHtml + ex.message;
         }
         $("#" + loc_divErr).html(sHtml);
+      },
+
+      /** 
+       *  sortshowDo - perform sorting on this <th> column
+       */
+      sortshowDo: function (el) {
+        var elTable = $(el).closest("table"),
+            elTbody = $(elTable).find("tbody").first(),
+            elTh = $(el).closest("th"),
+            elSortable = $(el).closest(".sortable"),
+            rows = null,
+            sDirection = "desc",
+            sSortType = "text",   // Either text or integer
+            elDiv = null,
+            colidx = -1;
+
+        try {
+          // Find out which direction is needed
+          if ($(el).hasClass("fa-sort-down")) sDirection = "asc";
+          if ($(elSortable).hasClass("integer")) sSortType = "integer";
+          // restore direction everywhere in headers
+          $(el).closest("tr").find(".fa.sortshow").each(function (idx, elSort) {
+            $(elSort).removeClass("fa-sort-down");
+            $(elSort).removeClass("fa-sort-up");
+            $(elSort).addClass("fa-sort");
+          });
+          switch (sDirection) {
+            case "asc":
+              $(el).removeClass("fa-sort");
+              $(el).addClass("fa-sort-up");
+              break;
+            case "desc":
+              $(el).removeClass("fa-sort");
+              $(el).addClass("fa-sort-down");
+              break;
+          }
+          // Get the colidx
+          elDiv = $(elTh).find("div[colidx]").first();
+          if ($(elDiv).length > 0) {
+            // Get the column index 0-n
+            colidx = parseInt($(elDiv).attr("colidx"), 10);
+
+            private_methods.sortTable(elTable, colidx, sDirection, sSortType);
+
+            // Show that changes can/need to be saved
+            $(elTable).closest("div").find(".related-save").removeClass("hidden");
+
+          }
+        } catch (ex) {
+          private_methods.errMsg("sortshowDo", ex);
+        }
+      },
+
+      /** 
+       *  sortTable - sort any table on any colum into any direction
+       *              @sorttype is either 'text' or 'integer' (if defined)
+       */
+      sortTable: function (elTable, colidx, direction, sorttype) {
+        var rows = $(elTable).find('tbody  tr').get();
+
+        // Make sure to set sorttype to something
+        if (sorttype === undefined) sorttype = "text";
+
+        // The sorttype determines the sort function
+        if (sorttype == "integer") {
+          rows.sort(function (a, b) {
+            var A = 0, B = 0, sA = "", sB = "";
+
+            // Get the numerical values of A and B
+            sA = $(a).children('td').eq(colidx).text().match(/\d+/);
+            sB = $(b).children('td').eq(colidx).text().match(/\d+/);
+            if (sA !== "") A = parseInt(sA.join(''), 10);
+            if (sB !== "") B = parseInt(sB.join(''), 10);
+
+            switch (direction) {
+              case "desc":
+                if (A < B) { return -1; } else if (A > B) { return 1; } else return 0;
+              case "asc":
+                if (A < B) { return 1; } else if (A > B) { return -1; } else return 0;
+            }
+
+          });
+          $.each(rows, function (index, row) {
+            $(elTable).children('tbody').append(row);
+          });
+        } else {
+          rows.sort(function (a, b) {
+            var A = $(a).children('td').eq(colidx).text().toUpperCase();
+            var B = $(b).children('td').eq(colidx).text().toUpperCase();
+
+            switch (direction) {
+              case "desc":
+                if (A < B) { return -1; } else if (A > B) { return 1; } else return 0;
+              case "asc":
+                if (A < B) { return 1; } else if (A > B) { return -1; } else return 0;
+            }
+
+          });
+          $.each(rows, function (index, row) {
+            $(elTable).children('tbody').append(row);
+          });
+        }
+
+      },
+
+      /**
+       * converts an svg string to base64 png using the domUrl
+       * @param {string} svgText the svgtext
+       * @param {number} [margin=0] the width of the border - the image size will be height+margin by width+margin
+       * @param {string} [fill] optionally backgrund canvas fill
+       * @return {Promise} a promise to the bas64 png image
+       */
+      svgToPng: function (svgText, options /*margin,fill */) {
+        var margin, fill;
+
+        // convert an svg text to png using the browser
+        return new Promise(function (resolve, reject) {
+          var match = null,
+              height = 200,
+              width = 200;
+
+          try {
+            // can use the domUrl function from the browser
+            var domUrl = window.URL || window.webkitURL || window;
+            if (!domUrl) {
+              throw new Error("(browser doesnt support this)")
+            }
+
+            // figure out the height and width from svg text
+            if (options.height) {
+              height = options.height;
+            } else {
+              match = svgText.match(/height=\"(\d+)/m);
+              height = match && match[1] ? parseInt(match[1], 10) : 200;
+            }
+            if (options.width) {
+              width = options.width;
+            } else {
+              match = svgText.match(/width=\"(\d+)/m);
+              width = match && match[1] ? parseInt(match[1], 10) : 200;
+            }
+            margin = margin || 0;
+
+            // it needs a namespace
+            if (!svgText.match(/xmlns=\"/mi)) {
+              svgText = svgText.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
+            }
+
+            // create a canvas element to pass through
+            var canvas = document.createElement("canvas");
+            canvas.width = height + margin * 2;
+            canvas.height = width + margin * 2;
+            var ctx = canvas.getContext("2d");
+
+
+            // make a blob from the svg
+            var svg = new Blob([svgText], {
+              type: "image/svg+xml;charset=utf-8"
+            });
+
+            // create a dom object for that image
+            var url = domUrl.createObjectURL(svg);
+
+            // create a new image to hold it the converted type
+            var img = new Image;
+
+            // when the image is loaded we can get it as base64 url
+            img.onload = function () {
+              // draw it to the canvas
+              ctx.drawImage(this, margin, margin);
+
+              // if it needs some styling, we need a new canvas
+              if (fill) {
+                var styled = document.createElement("canvas");
+                styled.width = canvas.width;
+                styled.height = canvas.height;
+                var styledCtx = styled.getContext("2d");
+                styledCtx.save();
+                styledCtx.fillStyle = fill;
+                styledCtx.fillRect(0, 0, canvas.width, canvas.height);
+                styledCtx.strokeRect(0, 0, canvas.width, canvas.height);
+                styledCtx.restore();
+                styledCtx.drawImage(canvas, 0, 0);
+                canvas = styled;
+              }
+              // we don't need the original any more
+              domUrl.revokeObjectURL(url);
+              // now we can resolve the promise, passing the base64 url
+              resolve(canvas.toDataURL());
+            };
+
+            // load the image
+            img.src = url;
+
+          } catch (err) {
+            reject('failed to convert svg to png ' + err);
+          }
+        });
+      },
+
+      /** 
+       *  toggle_column - show or hide column
+       */
+      toggle_column: function (e) {
+        var th = $(e.target).closest("th"),
+            table = $(th).closest("table"),
+            bSkip = false,
+            tableWidth = 0,
+            colid = parseInt($(th).find("div").first().attr("colidx"), 10);
+
+        // Calculate values
+        tableWidth = table[0].offsetWidth;
+        // Walk all rows in the table
+        $(table).find("tr").each(function (idx, el) {
+          var td = null,
+              width = 0,
+              maxWidth = 0;
+
+          if (idx === 0) {
+            td = $(el).find("th")[colid];
+            if (td.style.width.indexOf("100%") >= 0) {
+              bSkip = true;
+            }
+          } else if (!bSkip) {
+            // Get this td
+            td = $(el).find("td")[colid];
+
+            // See which way the toggling goes: check if max-width equals 10px
+            if (td.style.maxWidth === "10px") {
+              // Expand: remove max and min width
+              width = td.style.width;
+              maxWidth = td.style.maxWidth;
+              // Now reset the current styling
+              td.style = "";
+              // Check how wide we become
+              if (table[0].offsetWidth > tableWidth) {
+                // Revert: we are not able to expand further
+                td.style.width = width;
+                td.style.maxWidth = maxWidth;
+              }
+            } else {
+              // Shrink: set max and min width
+              td.style.maxWidth = "10px";
+              td.style.minWidth = "10px";
+            }
+          }
+        });
       },
 
       /** 
@@ -324,6 +601,53 @@ var ru = (function ($, ru) {
           return null;
         }
       },
+
+      /**
+       * colwrap
+       *   Show or hide a column
+       *
+       */
+      colwrap: function (el) {
+        var offset = 0,
+            colnum = 0,
+            onclass = "jumbo-1",
+            elTable = null;
+
+        try {
+          // Sanity check
+          if (el === undefined) { return; }
+          // Get the column number
+          offset = parseInt($(el).attr("offset"), 10);
+          colnum = offset;
+          elTable = $("#tab_list").find("table").first();
+          // Determine what to do
+          if ($(el).hasClass(onclass)) {
+            // Need to switch off this column
+            $(el).removeClass(onclass);
+            $(elTable).find("thead tr th").eq(colnum).addClass("hidden");
+            // Process all rows
+            $(elTable).find("tbody tr").each(function (idx, elThis) {
+              $(elThis).find("td").eq(colnum).addClass("hidden");
+            });
+            // TODO: make this known to the server
+            private_methods.colwrap_switch(colnum, true);
+          } else {
+            // Need to switch on this column
+            $(el).addClass(onclass);
+            // Process header
+            $(elTable).find("thead tr th").eq(colnum).removeClass("hidden");
+            // Process all rows
+            $(elTable).find("tbody tr").each(function (idx, elThis) {
+              $(elThis).find("td").eq(colnum).removeClass("hidden");
+            });
+            // TODO: make this known to the server
+            private_methods.colwrap_switch(colnum, false);
+          }
+        } catch (ex) {
+          private_methods.errMsg("colwrap", ex);
+        }
+      },
+
 
       /**
        * delete_cancel
@@ -657,6 +981,8 @@ var ru = (function ($, ru) {
             elA = null,
             object_id = "",
             targetid = null,
+            elW = null,
+            sColwrap = "",
             post_loads = [],
             sHtml = "";
 
@@ -666,18 +992,18 @@ var ru = (function ($, ru) {
           // Switch filters
           $(".badge.filter").unbind("click").click(ru.basic.filter_click);
 
-          // No closing of certain dropdown elements on clicking
-          /*
-          $(".dropdown-toggle").on({
-            "click": function (event) {
-              var evtarget = $(event.target);
-              if ($(evtarget).closest(".nocloseonclick").length) {
-                $(this).data("closable", false);
-              } else {
-                $(this).data("closable", true);
-              }
+          // Set the value of loc_colwrap
+          elW = document.getElementsByName("w");
+          if ($(elW).length > 0) {
+            sColwrap = $(elW).val();
+            if (sColwrap === "") {
+              loc_colwrap = [];
+            } else {
+              loc_colwrap = JSON.parse(sColwrap);
             }
-          });*/
+          }
+
+          // No closing of certain dropdown elements on clicking
           $(".nocloseonclick").each(function (idx, value) {
             var targetid = $(this);
             $(targetid).data("closable", false);
@@ -809,6 +1135,12 @@ var ru = (function ($, ru) {
               // Now make it happen
               $(el).parent().find(".django-select2").djangoSelect2(options);
             }
+          });
+
+          // sortable tables
+          $("table th .sortshow").unbind("click").on("click", function (evt) {
+            var el = $(this);
+            private_methods.sortshowDo(el);
           });
 
         } catch (ex) {
@@ -1542,14 +1874,43 @@ var ru = (function ($, ru) {
        *    Gather the information in the form's fields and then do a submit
        *
        */
-      search_start: function (elStart, method, iPage, sOrder) {
+      search_start: function (elStart, method, iPage, sOrder, sRemove) {
         var frm = null,
             url = "",
+            iRemove = -1,
             targetid = null,
             targeturl = "",
+            order_lst = [],
+            i = 0,
             data = null;
 
         try {
+          // If there is a sort order, we need to process it
+          if (sOrder !== undefined) {
+            // If there is a [sRemove], it should be taken out of this order
+            if (sRemove !== undefined) {
+              if (sRemove.indexOf("=") > 0) {
+                sRemove = sRemove.split("=")[1];
+              }
+              iRemove = parseInt(sRemove, 10);
+              // Convert the [sOrder] into a list
+              order_lst = sOrder.split(".");
+              for (i = 0; i < order_lst.length; i++) {
+                if (iRemove === Math.abs(parseInt(order_lst[i], 10))) {
+                  // Remove this item from the list
+                  order_lst.splice(i, 1);
+                  // Then break out of the for-loop
+                  break;
+                }
+              }
+              // Join list into string
+              sOrder = order_lst.join(".");
+            }
+            $(elStart).find("input[name=o]").each(function (el) {
+              $(this).val(sOrder);
+            });
+          }
+
           // Get to the form
           frm = $(elStart).closest('form');
           // Get the data from the form
@@ -1643,13 +2004,13 @@ var ru = (function ($, ru) {
        *    Perform a simple 'submit' call to search_start
        *
        */
-      search_ordered_start: function (order) {
+      search_ordered_start: function (order, remove) {
         var elStart = null;
 
         try {
           // And then go to the first element within the form that is of any use
           elStart = $(".search_ordered_start").first();
-          ru.basic.search_start(elStart, 'submit', 1, order)
+          ru.basic.search_start(elStart, 'submit', 1, order, remove)
         } catch (ex) {
           private_methods.errMsg("search_ordered_start", ex);
         }
