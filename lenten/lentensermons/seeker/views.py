@@ -46,7 +46,7 @@ from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUr
     TagKeywordListForm, PublisherListForm, NewsForm, \
     LitrefForm, AuthorListForm, TgroupForm, ManuscriptForm  # , TagQsourceListForm
 from lentensermons.seeker.models import get_current_datetime, \
-    get_searchable, get_now_time, \
+    get_searchable, get_now_time, get_helptext, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
     Instruction, \
     Location, LocationRelation, Author, Concept, FieldChoice, Information, \
@@ -2037,6 +2037,7 @@ class SermonList(BasicList):
     basic_name = "sermon"
     basic_add = 'sermon_add'
     has_select2 = True
+    colwrap_show = True
     order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
                      'litday', 'book;chapter;verse', 'firsttopic__name']
     order_cols = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
@@ -2070,7 +2071,7 @@ class SermonList(BasicList):
              'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
             {'filter': 'topic',     'fkfield': 'topics',                        
              'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' },
-            {'filter': 'descr',     'orfield': 'fdivisionL;fdivisionE;fsummary;fnote', 'keyS': 'descr' }
+            {'filter': 'descr',     'orfield': 'fdivisionL;fdivisionE;fsummary;fnote', 'keyS': 'descr', 'help': 'searchhelp' }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid',  'fkfield': 'notetags',         'keyS': 'tagnoteid', 'keyFk': 'id' },
@@ -2140,6 +2141,10 @@ class SermonList(BasicList):
                     elif "^" in searchterm:
                         val = searchterm.replace("^", "").lower()
                         bContains = True
+                    else:
+                        # New default: contains is true
+                        bContains = True
+                        val = searchterm
 
                     # Check for MD, S, GN
                     if bRegex or bContains:
@@ -2172,6 +2177,10 @@ class SermonList(BasicList):
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
         
 
 class ConsultingDetailsView(PassimDetails):
@@ -2439,6 +2448,10 @@ class CollectionList(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class ConceptListView(BasicList):
     """Listview of sermon collections"""
@@ -2483,6 +2496,10 @@ class ConceptListView(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class PublisherListView(BasicList):
     """Listview of sermon collections"""
@@ -2521,6 +2538,10 @@ class PublisherListView(BasicList):
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
 
 class TgroupListView(BasicList):
@@ -2607,6 +2628,10 @@ class TgroupListView(BasicList):
             Information.set_kvalue("italictitle", "done")
 
         return None
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
 
 class TgroupEdit(BasicDetails):
@@ -2695,6 +2720,10 @@ class TagListView(BasicList):
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
 
 class TagKeywordListView(TagListView):
@@ -2954,6 +2983,10 @@ class ReportListView(ListView):
         # Return the resulting filtered and sorted queryset
         return qs
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class ReportDetailsView(PassimDetails):
     model = Report
@@ -3150,6 +3183,10 @@ class EditionList(BasicList):
 
         # Set the values for yes and no
         return None
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
     
 
 class EditionDetailsView(PassimDetails):
@@ -3313,6 +3350,10 @@ class AuthorListView(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class AuthorDetailsView(PassimDetails):
     model = Author
@@ -3434,6 +3475,10 @@ class ManuscriptListView(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class ManuscriptDetailsView(PassimDetails):
     model = Manuscript
@@ -3521,6 +3566,10 @@ class NewsListView(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class NewsDetailsView(PassimDetails):
     model = NewsItem
@@ -3577,6 +3626,10 @@ class LitrefListView(BasicList):
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
 
 class LitrefEditView(BasicDetails):
@@ -3652,6 +3705,10 @@ class InstructionListView(BasicList):
         """Anything that needs doing before showing the listview"""
 
         return None
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
 
 class InstructionEdit(BasicDetails):

@@ -74,10 +74,16 @@ class FieldChoice(models.Model):
 class HelpChoice(models.Model):
     """Define the URL to link to for the help-text"""
     
-    field = models.CharField(max_length=200)        # The 'path' to and including the actual field
-    searchable = models.BooleanField(default=False) # Whether this field is searchable or not
-    display_name = models.CharField(max_length=50)  # Name between the <a></a> tags
-    help_url = models.URLField(default='')          # THe actual help url (if any)
+    # [1] The 'path' to and including the actual field
+    field = models.CharField(max_length=200)        
+    # [1] Whether this field is searchable or not
+    searchable = models.BooleanField(default=False) 
+    # [1] Name between the <a></a> tags
+    display_name = models.CharField(max_length=50)  
+    # [0-1] The actual help url (if any)
+    help_url = models.URLField("Link to more help", blank=True, null=True, default='')         
+    # [0-1] One-line contextual help
+    help_html = models.TextField("One-line help", blank=True, null=True)
 
     def __str__(self):
         return "[{}]: {}".format(
@@ -94,6 +100,36 @@ class HelpChoice(models.Model):
                 help_text = "{} ({})".format(
                     self.display_name, self.help_url)
         return help_text
+
+    def get_text(self):
+        help_text = ''
+        # is anything available??
+        if self.help_url != None and self.help_url != '':
+            if self.help_url[:4] == 'http':
+                help_text = "See: <a href='{}'>{}</a>".format(
+                    self.help_url, self.display_name)
+            else:
+                help_text = "{} ({})".format(
+                    self.display_name, self.help_url)
+        elif self.help_html != None and self.help_html != "":
+            help_text = self.help_html
+        return help_text
+
+    def get_help_markdown(sField):
+        """Get help based on the field name """
+
+        oErr = ErrHandle()
+        sBack = ""
+        try:
+            obj = HelpChoice.objects.filter(field__iexact=sField).first()
+            if obj != None:
+                sBack = obj.get_text()
+                # Convert markdown to html
+                sBack = markdown(sBack) # .replace("<p>", "<code>").replace("</p>", "</code>")
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("get_help")
+        return sBack
 
 def get_current_datetime():
     """Get the current time and date in an appropriate way"""
@@ -162,6 +198,12 @@ def get_help(field):
         help_text = "Sorry, no help available for " + field
 
     return help_text
+
+def get_helptext(name):
+    sBack = ""
+    if name != "":
+        sBack = HelpChoice.get_help_markdown(name)
+    return sBack
 
 def get_crpp_date(dtThis):
     """Convert datetime to string"""

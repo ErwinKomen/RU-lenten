@@ -180,7 +180,12 @@ def adapt_search(val, regex_function=None):
     val = val.strip()
     # Double check whether we don't have a starting ^ and trailing $ yet
     if len(val) > 0:
-        if "#" in val:
+        # Make sure we only start searching lower case
+        val =val.lower()
+        if "#*" in val:
+            # Extension of PASSIM
+            val = r'(^|(.*\b))' + val.replace('#*', r'((.*)|$)')
+        elif "#" in val:
             # Exactly like PASSIM
             val = r'(^|(.*\b))' + val.replace('#', r'((\b.*)|$)')
         else:
@@ -353,7 +358,11 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                                 val = adapt_search(val, regex_function)
                                 bUseRegex = True
                             elif "^" in val:
+                                # This option is *NOT* taken in any case because of the [ELSE] part!!!
                                 val = val.replace("^", "")
+                                bContains = True
+                            else:
+                                # Just use the 'contains' by default
                                 bContains = True
                         s_q_lst = ""
                         enable_filter(filter_type, head_id)
@@ -574,6 +583,7 @@ class BasicList(ListView):
     lst_typeaheads = []
     sort_order = ""
     col_wrap = ""
+    colwrap_show = False
     qs = None
     page_function = "ru.basic.search_paged_start"
 
@@ -747,6 +757,11 @@ class BasicList(ListView):
                             # Append the [fitem] to the [fitems]                            
                             filteritem['fitems'].append(fitem)
                             filteritem['count'] = len(filteritem['fitems'])
+                            filteritem['help'] = ""
+                            # Possibly add help
+                            if 'help' in item:
+                                filteritem['helptext'] = self.get_helptext(item['help'])
+                                filteritem['help'] = item['help']
                             # Make sure we indicate that there is a value
                             if  bHasItemValue: filteritem['hasvalue'] = True
                             break
@@ -761,6 +776,7 @@ class BasicList(ListView):
         context['filters'] = self.filters
         context['fsections'] = fsections
         context['list_fields'] = self.list_fields
+        context['colwrap_show'] = self.colwrap_show
 
         # Add any typeaheads that should be initialized
         context['typeaheads'] = json.dumps( self.lst_typeaheads)
@@ -855,6 +871,9 @@ class BasicList(ListView):
             # Add to the list of results
             result_list.append(result)
         return result_list
+
+    def get_helptext(self, name):
+        return ""
 
     def get_template_names(self):
         names = [ self.template_name ]

@@ -149,20 +149,34 @@
                           <div id="{{filter.id}}" class="{% if not filter.hasvalue %}hidden{% endif %}">
                             <table style="width: 100%;">
                               <tr class="form-row">
-                                <td style="min-width: 130px;" valign="top">{{filter.name}}</td>
+                                <td style="min-width: 130px;" valign="top" class="tdnowrap">
+                                  {{filter.name}}
+                                  {% if filter.help != "" and filter.helptext != "" %}
+                                    <a role="button" data-toggle="collapse" data-target="#basic_h_{{filter.help}}">
+                                      <span class="glyphicon glyphicon-question-sign" style="color: blue;"></span>
+                                    </a>
+                                  {% endif %}
+                                </td>
                                 <td style="width: 100%;">
-                                  {% for fitem in filter.fitems %}
-                                    {% if fitem.dbfield %}<span class="keyword-key hidden filter-dbfield">{{fitem.dbfield}}</span>{% endif %}
-                                    {% if fitem.keyS %}
-                                      <span class="filter-keys">{{fitem.keyS}}</span>
-                                      {% if fitem.has_keylist %}
-                                        <span> or select: </span>
-                                        <span class="filter-keylist">{{fitem.keyList}}</span>
+                                  {% if filter.help != "" and filter.helptext != "" %}
+                                    <div id="basic_h_{{filter.help}}" class="collapse">
+                                      {{filter.helptext|safe}}
+                                    </div>
+                                  {% endif %}
+                                  <div>
+                                    {% for fitem in filter.fitems %}
+                                      {% if fitem.dbfield %}<span class="keyword-key hidden filter-dbfield">{{fitem.dbfield}}</span>{% endif %}
+                                      {% if fitem.keyS %}
+                                        <span class="filter-keys">{{fitem.keyS}}</span>
+                                        {% if fitem.has_keylist %}
+                                          <span> or select: </span>
+                                          <span class="filter-keylist">{{fitem.keyList}}</span>
+                                        {% endif %}
+                                      {% elif fitem.has_keylist %}
+                                          <span class="filter-keylist">{{fitem.keyList}}</span>
                                       {% endif %}
-                                    {% elif fitem.has_keylist %}
-                                        <span class="filter-keylist">{{fitem.keyList}}</span>
-                                    {% endif %}
-                                  {% endfor %}
+                                    {% endfor %}
+                                  </div>
                                 </td>
                               </tr>
                             </table>
@@ -349,7 +363,7 @@
 
             {% if object_list %}
               <!-- Column Wrapping tab -->
-              <div class="{% if colWrap and colWrap != '[]' %}{% else %}collapse{% endif %}" id="tab_colwrap" >
+              <div class="{% if colwrap_show or colWrap and colWrap != '[]' %}in{% else %}collapse{% endif %}" id="tab_colwrap" >
                 <span>Show or hide columns: </span>
                 {% for hd in order_heads %}
                   {% if hd.name %}
