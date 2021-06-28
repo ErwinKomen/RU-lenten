@@ -52,6 +52,16 @@ FORCE_SCRIPT_NAME = admin.site.site_url
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
+BLOCKED_IPS = ['40.77.167.57',
+               '45.146.165.123',
+               '45.61.186.43',
+               '46.229.168.133', 
+               '88.198.17.136', 
+               '157.55.39.235',
+               '157.55.39.199',
+               '54.36.148.', '54.36.149.'
+               ]
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -92,6 +102,7 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'lentensermons.utils.BlockedIpMiddleware'
 ]
 
 ROOT_URLCONF = 'lentensermons.urls'

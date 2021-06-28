@@ -21,6 +21,7 @@ from django.views.generic import ListView, View
 
 import json
 import fnmatch
+import re
 import os
 from datetime import datetime
 
@@ -182,12 +183,24 @@ def adapt_search(val, regex_function=None):
     if len(val) > 0:
         # Make sure we only start searching lower case
         val =val.lower()
-        if "#*" in val:
-            # Extension of PASSIM
-            val = r'(^|(.*\b))' + val.replace('#*', r'((.*)|$)')
-        elif "#" in val:
-            # Exactly like PASSIM
-            val = r'(^|(.*\b))' + val.replace('#', r'((\b.*)|$)')
+        if "#" in val:
+            # Break it up into words
+            arWord = val.split(" ")
+            for idx, item in enumerate(arWord):
+                # Remove any 'lone' * (i.e. none #*)
+                item = item.replace("#*", "@2")
+                item = item.replace("#", "@1")
+                item = item.replace("*", "")
+                item = item.replace("@1", "#")
+                item = item.replace("@2", "#*")
+                if "#*" in item:
+                    # Extension of PASSIM
+                    item = r'(^|(.*\b))' + item.replace('#*', r'((.*)|$)')
+                elif "#" in item:
+                    # Exactly like PASSIM
+                    item = r'(^|(.*\b))' + item.replace('#', r'((\b.*)|$)')
+                arWord[idx] = item
+            val = " ".join(arWord)
         else:
             val = fnmatch.translate(val)
             if val[0] != '^':

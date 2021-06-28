@@ -1,4 +1,6 @@
 import sys
+from django.conf import settings
+from django import http
 
 class ErrHandle:
     """Error handling"""
@@ -49,3 +51,37 @@ class ErrHandle:
 
     def get_error_stack(self):
         return " ".join(self.loc_errStack)
+
+class BlockedIpMiddleware(object):
+
+    bot_list = ['googlebot', 'bot.htm', 'bot.com', '/petalbot', 'crawler.com', 'robot', 'crawler' ]
+
+    def process_request(self, request):
+        oErr = ErrHandle()
+        remote_ip = request.META['REMOTE_ADDR']
+        if remote_ip in settings.BLOCKED_IPS:
+            oErr.Status("Blocking IP: {}".format(remote_ip))
+            return http.HttpResponseForbidden('<h1>Forbidden</h1>')
+        else:
+            # Try the IP addresses the other way around
+            for block_ip in settings.BLOCKED_IPS:
+                if block_ip in remote_ip:
+                    oErr.Status("Blocking IP: {}".format(remote_ip))
+                    return http.HttpResponseForbidden('<h1>Forbidden</h1>')
+            # Get the user agent
+            user_agent = request.META.get('HTTP_USER_AGENT')
+            if user_agent == None or user_agent == "":
+                # This is forbidden...
+                oErr.Status("Blocking empty user agent")
+                return http.HttpResponseForbidden('<h1>Forbidden</h1>')
+            else:
+                # Check what the user agent is...
+                user_agent = user_agent.lower()
+                for bot in self.bot_list:
+                    if bot in user_agent:
+                        ip = request.META.get('REMOTE_ADDR')
+                        # Print it for logging
+                        msg = "blocking bot: [{}] {}: {}".format(ip, bot, user_agent)
+                        print(msg, file=sys.stderr)
+                        return http.HttpResponseForbidden('<h1>Forbidden</h1>')
+        return None
