@@ -37,6 +37,9 @@ paginateValues = (100, 50, 20, 10, 5, 2, 1, )
 # Global debugging 
 bDebug = False
 
+# Opening the pages for non-authenticated users
+bNeedAuthentication = False
+
 # General functions serving the list and details views
 
 def get_application_name():
@@ -60,15 +63,19 @@ app_userplus = "{}_userplus".format(PROJECT_NAME.lower())
 app_moderator = "{}_moderator".format(PROJECT_NAME.lower())
 
 def user_is_authenticated(request):
-    # Is this user authenticated?
-    username = request.user.username
-    user = User.objects.filter(username=username).first()
-    response = False 
-    if user != None:
-        try:
-            response = user.is_authenticated()
-        except:
-            response = user.is_authenticated
+    if bNeedAuthentication:
+        # Is this user authenticated?
+        username = request.user.username
+        user = User.objects.filter(username=username).first()
+        response = False 
+        if user != None:
+            try:
+                response = user.is_authenticated()
+            except:
+                response = user.is_authenticated
+    else:
+        response = True
+    # Return the verdict
     return response
 
 def user_is_ingroup(request, sGroup):
@@ -108,7 +115,7 @@ def get_breadcrumbs(request, name, is_menu, lst_crumb=[], **kwargs):
     p_list.append({'name': 'Home', 'url': reverse('home')})
     # Find out who this is
     username = "anonymous" if request.user == None else request.user.username
-    if username != "anonymous" and request.user.username != "":
+    if not bNeedAuthentication or username != "anonymous" and request.user.username != "":
         # Add the visit
         currenturl = request.get_full_path()
         # Visit.add(username, name, currenturl, is_menu, **kwargs)
@@ -176,7 +183,7 @@ def has_obj_value(field, obj):
     response = (field != None and field in obj and obj[field] != None)
     return response
 
-def adapt_search(val, regex_function=None):
+def adapt_search(val, regex_function=None, orfields=None):
     # First trim
     val = val.strip()
     # Double check whether we don't have a starting ^ and trailing $ yet
@@ -200,7 +207,27 @@ def adapt_search(val, regex_function=None):
                     # Exactly like PASSIM
                     item = r'(^|(.*\b))' + item.replace('#', r'((\b.*)|$)')
                 arWord[idx] = item
-            val = " ".join(arWord)
+            if orfields == None:
+                # Combine: in order
+                val = " ".join(arWord)
+            elif orfields == []:
+                # Return the list
+                val = arWord
+            else:
+                s_q_lst = ""
+                for orfield in orfields:
+                    s_q_terms = ""
+                    for term in arWord:
+                        s_q = Q(**{"{}__iregex".format(orfield): term})
+                        if s_q_terms == "":
+                            s_q_terms = s_q
+                        else:
+                            s_q_terms = s_q_terms & s_q
+                    if s_q_lst == "":
+                        s_q_lst = ( s_q_terms )
+                    else:
+                        s_q_lst = s_q_lst | ( s_q_terms )
+                val = ( s_q_lst )
         else:
             val = fnmatch.translate(val)
             if val[0] != '^':
@@ -368,7 +395,7 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                         bContains = False
                         if not isinstance(val, int):
                             if "*" in val or "#" in val:
-                                val = adapt_search(val, regex_function)
+                                val = adapt_search(val, regex_function, orfields=orfield.split(";"))
                                 bUseRegex = True
                             elif "^" in val:
                                 # This option is *NOT* taken in any case because of the [ELSE] part!!!
@@ -379,20 +406,23 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                                 bContains = True
                         s_q_lst = ""
                         enable_filter(filter_type, head_id)
-                        for dbfield in orfield.split(";"):
-                            if isinstance(val, int):
-                                s_q = Q(**{"{}".format(dbfield): val})
-                            elif bUseRegex:                                
-                                s_q = Q(**{"{}__iregex".format(dbfield): val})
-                            elif bContains:                                
-                                s_q = Q(**{"{}__icontains".format(dbfield): val})
-                            else:
-                                s_q = Q(**{"{}__iexact".format(dbfield): val})
-                            if s_q_lst == "":
-                                s_q_lst = s_q
-                            else:
-                                s_q_lst = s_q_lst | s_q
-                        s_q = s_q_lst
+                        if bUseRegex:
+                            s_q = val
+                        else:
+                            for dbfield in orfield.split(";"):
+                                if isinstance(val, int):
+                                    s_q = Q(**{"{}".format(dbfield): val})
+                                elif bUseRegex:                                
+                                    s_q = Q(**{"{}__iregex".format(dbfield): val})
+                                elif bContains:                                
+                                    s_q = Q(**{"{}__icontains".format(dbfield): val})
+                                else:
+                                    s_q = Q(**{"{}__iexact".format(dbfield): val})
+                                if s_q_lst == "":
+                                    s_q_lst = s_q
+                                else:
+                                    s_q_lst = s_q_lst | s_q
+                            s_q = s_q_lst
 
                 # Check for list of specific signatures
                 if has_list_value(keyList, oFields):
@@ -1090,7 +1120,8 @@ class BasicDetails(DetailView):
         data = {'status': 'ok', 'html': '', 'statuscode': ''}
         # always do this initialisation to get the object
         self.initializations(request, pk)
-        if not request.user.is_authenticated:
+        if not user_is_authenticated(request):
+        #if not request.user.is_authenticated:
             # Do not allow to get a good response
             if self.rtype == "json":
                 data['html'] = "(No authorization)"

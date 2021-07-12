@@ -111,6 +111,13 @@
     </Content>
     <None Include="lentensermons\seeker\static\seeker\scripts\_references.js" />
     <Content Include="lentensermons\basic\static\basic\content\basic.css" />
+    <Content Include="lentensermons\basic\static\basic\content\font-awesome.min.css" />
+    <Content Include="lentensermons\basic\static\basic\fonts\fontawesome-webfont.eot" />
+    <Content Include="lentensermons\basic\static\basic\fonts\fontawesome-webfont.svg" />
+    <Content Include="lentensermons\basic\static\basic\fonts\fontawesome-webfont.ttf" />
+    <Content Include="lentensermons\basic\static\basic\fonts\fontawesome-webfont.woff" />
+    <Content Include="lentensermons\basic\static\basic\fonts\fontawesome-webfont.woff2" />
+    <Content Include="lentensermons\basic\static\basic\fonts\FontAwesome.otf" />
     <Content Include="lentensermons\basic\static\basic\fonts\glyphicons-halflings-regular.eot" />
     <Content Include="lentensermons\basic\static\basic\fonts\glyphicons-halflings-regular.svg" />
     <Content Include="lentensermons\basic\static\basic\fonts\glyphicons-halflings-regular.ttf" />

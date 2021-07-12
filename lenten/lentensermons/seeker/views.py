@@ -35,7 +35,7 @@ import csv, re
 from io import StringIO
 
 # My own application
-from lentensermons.basic.views import BasicList, BasicDetails, adapt_search
+from lentensermons.basic.views import BasicList, BasicDetails, adapt_search, user_is_authenticated
 
 # Application specific
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
@@ -733,11 +733,11 @@ def treat_bom(sHtml):
     # Return what we have
     return sHtml
 
-def user_is_authenticated(request):
-    # Is this user authenticated?
-    username = request.user.username
-    user = User.objects.filter(username=username).first()
-    return user.is_authenticated()
+#def user_is_authenticated(request):
+#    # Is this user authenticated?
+#    username = request.user.username
+#    user = User.objects.filter(username=username).first()
+#    return user.is_authenticated()
 
 def user_is_ingroup(request, sGroup):
     # Is this user part of the indicated group?
@@ -1478,14 +1478,15 @@ class PassimDetails(DetailView):
         data = {'status': 'ok', 'html': '', 'statuscode': ''}
         # always do this initialisation to get the object
         self.initializations(request, pk)
-        if not request.user.is_authenticated:
+        #if not request.user.is_authenticated:
+        if not user_is_authenticated(request):
             # Do not allow to get a good response
             if self.rtype == "json":
                 data['html'] = "(No authorization)"
                 data['status'] = "error"
                 response = JsonResponse(data)
             else:
-                response = reverse('nlogin')
+                response = redirect( reverse('nlogin'))
         else:
             context = self.get_context_data(object=self.object)
 
@@ -2089,14 +2090,6 @@ class SermonList(BasicList):
                     sermo.save()
             Information.set_kvalue("sermonflat", "done")
 
-        searchterm = self.qd.get('sermo-descr')
-        if searchterm != None and searchterm != "":
-            # Make sure column Thema is hidden, and Div/Sum is shown
-            for obj in self.order_heads:
-                if obj['name'] == "Thema":
-                    obj['autohide'] = "on"
-                elif obj['name'] == "Division/summary":
-                    obj['autohide'] = "off"
         return None
 
     def get_field_value(self, instance, custom):
@@ -2131,12 +2124,13 @@ class SermonList(BasicList):
             elif custom == "descr":
                 # Show hits in [divisionL, divisionE, summary, note]
                 searchterm = self.qd.get('sermo-descr')
+                orfields = ["fdivisionL","fdivisionE","fsummary","fnote"]
                 if searchterm != None and searchterm != "":
                     count = 0
                     bRegex = False
                     bContains = False
                     if "*" in searchterm or "#" in searchterm:
-                        val = adapt_search(searchterm)
+                        val = adapt_search(searchterm, orfields = [])
                         bRegex = True
                     elif "^" in searchterm:
                         val = searchterm.replace("^", "").lower()
@@ -2148,14 +2142,27 @@ class SermonList(BasicList):
 
                     # Check for MD, S, GN
                     if bRegex or bContains:
-                        num_MDL = len(re.findall(val, instance.fdivisionL.lower()))
-                        num_MDE = len(re.findall(val, instance.fdivisionE.lower()))
-                        num_S = len(re.findall(val, instance.fsummary.lower()))
-                        num_GN = len(re.findall(val, instance.fnote.lower()))
+                        if bRegex:
+                            term_MDL = 0 ; term_MDE = 0 ; term_S = 0 ; term_GN = 0
+                            num_terms = len(val)
+                            for term in val:
+                                if len(re.findall(term, instance.fdivisionL.lower())) > 0: term_MDL += 1
+                                if len(re.findall(term, instance.fdivisionE.lower())) > 0: term_MDE += 1
+                                if len(re.findall(term, instance.fsummary.lower())) > 0: term_S += 1
+                                if len(re.findall(term, instance.fnote.lower())) > 0: term_GN += 1
+                            num_MDL = 1 if term_MDL == num_terms else 0
+                            num_MDE = 1 if term_MDE == num_terms else 0
+                            num_S = 1 if term_S == num_terms else 0
+                            num_GN = 1 if term_GN == num_terms else 0
+                        else:
+                            num_MDL = len(re.findall(val, instance.fdivisionL.lower()))
+                            num_MDE = len(re.findall(val, instance.fdivisionE.lower()))
+                            num_S = len(re.findall(val, instance.fsummary.lower()))
+                            num_GN = len(re.findall(val, instance.fnote.lower()))
                         count = num_MDE + num_MDL + num_S + num_GN
                         matches = []
-                        if num_MDE > 0: matches.append("MD ({})".format(num_MDE))
-                        if num_MDL > 0: matches.append("MD-L ({})".format(num_MDL))
+                        if num_MDE > 0: matches.append("MD-T ({})".format(num_MDE))
+                        if num_MDL > 0: matches.append("MD-O ({})".format(num_MDL))
                         if num_S > 0: matches.append("S ({})".format(num_S))
                         if num_GN > 0: matches.append("GN ({})".format(num_GN))
                         html.append(", ".join(matches))
@@ -2177,6 +2184,29 @@ class SermonList(BasicList):
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
+
+    def adapt_search(self, fields):
+        lstExclude = []
+        qAlternative = None
+
+        searchterm = fields.get('descr')
+        if searchterm != None and searchterm != "":
+            # Make sure column Thema is hidden, and Div/Sum is shown
+            for obj in self.order_heads:
+                if obj['name'] == "Thema":
+                    obj['autohide'] = "on"
+                elif obj['name'] == "Division/summary":
+                    obj['autohide'] = "off"
+        else:
+            # Make sure column Thema is shown, and Div/Sum is hidden
+            for obj in self.order_heads:
+                if obj['name'] == "Thema" and obj.get('autohide') == "on":
+                    obj['autohide'] = "off"
+                elif obj['name'] == "Division/summary" and obj.get('autohide') == "off":
+                    obj['autohide'] = "on"
+
+
+        return fields, lstExclude, qAlternative
 
     def get_helptext(self, name):
         """Use the get_helptext function defined in models.py"""
