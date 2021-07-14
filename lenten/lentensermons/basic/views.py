@@ -62,8 +62,8 @@ app_editor = "{}_editor".format(PROJECT_NAME.lower())
 app_userplus = "{}_userplus".format(PROJECT_NAME.lower())
 app_moderator = "{}_moderator".format(PROJECT_NAME.lower())
 
-def user_is_authenticated(request):
-    if bNeedAuthentication:
+def user_is_authenticated(request, bStrict = False):
+    if bNeedAuthentication or bStrict:
         # Is this user authenticated?
         username = request.user.username
         user = User.objects.filter(username=username).first()
@@ -1148,6 +1148,10 @@ class BasicDetails(DetailView):
             else:
                 response = reverse('nlogin')
         else:
+            # Double check for extended permission
+            if not user_is_authenticated(request, True):
+                self.permission = "readonly"
+
             context = self.get_context_data(object=self.object)
 
             if self.is_basic and self.template_name == "":
