@@ -61,6 +61,7 @@ app_uploader = "{}_uploader".format(PROJECT_NAME.lower())
 app_editor = "{}_editor".format(PROJECT_NAME.lower())
 app_userplus = "{}_userplus".format(PROJECT_NAME.lower())
 app_moderator = "{}_moderator".format(PROJECT_NAME.lower())
+editing_right = [app_uploader, app_editor, app_userplus, app_moderator]
 
 def user_is_authenticated(request, bStrict = False):
     if bNeedAuthentication or bStrict:
@@ -106,6 +107,24 @@ def user_is_superuser(request):
         if user != None:
             bFound = user.is_superuser
     return bFound
+
+def user_may_edit(request):
+    bFound = False
+    # Is this user part of the indicated group?
+    username = request.user.username
+    if username != "":
+        user = User.objects.filter(username=username).first()
+        if user != None:
+            bFound = user.is_superuser
+            if not bFound:
+                # Look for other possibilities: member of one of the groups
+                glist = [x.name for x in user.groups.all()]
+                for gname in editing_right:
+                    if gname in glist:
+                        bFound = True
+                        break
+    return bFound
+
 
 def get_breadcrumbs(request, name, is_menu, lst_crumb=[], **kwargs):
     """Process one visit and return updated breadcrumbs"""
@@ -1150,6 +1169,8 @@ class BasicDetails(DetailView):
         else:
             # Double check for extended permission
             if not user_is_authenticated(request, True):
+                self.permission = "readonly"
+            elif not user_may_edit(request):
                 self.permission = "readonly"
 
             context = self.get_context_data(object=self.object)
