@@ -234,9 +234,23 @@ def adapt_search(val, regex_function=None, orfields=None):
                 val = "^{}".format(val)
             if val[-1] != "$":
                 val = "{}$".format(val)
+            if orfields != None:
+                if orfields == []:
+                    # Make sure this is a list
+                    val = [ val ]
+                else:
+                    # It should be a Q term
+                    s_q_lst = ""
+                    for orfield in orfields:
+                        s_q = Q(**{"{}__iregex".format(orfield): val})
+                        if s_q_lst == "":
+                            s_q_lst = ( s_q )
+                        else:
+                            s_q_lst = s_q_lst | ( s_q )
+                    val = ( s_q_lst )
 
         # Is there a regex function?
-        if regex_function != None:
+        if regex_function != None and orfields == None:
             val = regex_function(val)
     return val
 
