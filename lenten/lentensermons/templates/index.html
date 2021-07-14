@@ -31,6 +31,20 @@
         </p>
         <p>A three-minute introduction to Lenten preaching in <a href="https://www.youtube.com/watch?v=Ndr-fzci2FQ">this video</a>.</p>
 
+
+      </div>
+      <div class="col-md-6">
+        <div class="home-image" style="position: relative;">
+          <img src="{% static 'seeker/content/lenten_homepage.jpg' %}" alt="Homepag Image" 
+          style="width: 565px; position: absolute; top: -205px;" />
+        </div>
+
+ 
+      </div>
+  </div>
+
+  <div class="row">
+      <div class="col-md-6 bgimg">
         <h2>Summary and news</h2>
         <p>The web application currently hosts information about {{sermoncount}} sermons by {{collectioncount}} collections.</p>
         {% if newsitem_list %}
@@ -56,20 +70,16 @@
         {% endif %}
       </div>
       <div class="col-md-6">
-
-        <h2>Start your research</h2>
-        <p>Regular researchers are able to read and search through the information that is provided. 
-        As entry point, please use the option offered in the above menu (list and tool). 
-        More detailed instruction are provided in the section instruction (see Extra manu).</p>
-        <!--
-        <p style="color: red;">Access to the database will be activated soon.</p>
-          -->
-
-        <h2>Get involved</h2>
-        <p>Are you working on Lenten sermons? 
-        Do you have addition or correction to the data provided? 
-        Do you want to collaborate with this project? 
-        Please, get in touch with dr. Pietro Delcorno (p.delcorno@let.ru.nl).</p>
+        <div >
+          <h2>Start your research</h2>
+          <p>As entry point, please use the options offered in the above menu (List and Tool). 
+          For further information, see the section Instruction. 
+          More about the project <a href="{% url 'about' %}">here</a>.
+          </p>
+          <p>Do you have addition or correction to the data provided? 
+          Do you want to collaborate with this project? 
+          Please, get in touch with Pietro Delcorno (pietro.delcorno@ru.nl).</p>
+        </div>
       </div>
   </div>
 </div>

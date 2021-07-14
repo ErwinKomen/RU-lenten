@@ -128,6 +128,7 @@
     <Content Include="lentensermons\basic\templates\basic\basic_edit.html" />
     <Content Include="lentensermons\basic\templates\basic\basic_list.html" />
     <Content Include="lentensermons\seeker\static\seeker\content\bootstrap.css" />
+    <Content Include="lentensermons\seeker\static\seeker\content\lenten_homepage.jpg" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-admin.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-base.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-form.css" />
