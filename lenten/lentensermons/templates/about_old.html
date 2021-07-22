@@ -1,0 +1,57 @@
+﻿{% extends "layout.html" %}
+{% load staticfiles %}
+
+
+{% block content %}
+
+<div class="container body-content">
+  <div class="row">
+
+    <h2>{{ title }}</h2>
+
+    <div class="col-md-6">
+      <h3>Background</h3>
+      <p>The LENTENSERMONS web application is being developed as preparation for the Veni <a href="https://lentensermons.veni.nl" target="_blank">LentenSermons project</a>.</p>
+
+      The project is <i>not</i> a study of the contents of these sermons, 
+      it focuses instead on their dissemination, their manipulation and their interpretation in the Mid West.
+      </p>
+
+    </div>
+    <div class="col-md-6">
+      <h3>Quick Reference</h3>
+      <p>The main purpose of the LentenSermon web application is to facilitate searches:
+      <table>
+        <tr><td valign="top">Sermon:</td><td valign="top"><i>(mockup phase)</i></td></tr>
+      </table>
+      </p>
+      <p>
+        The source code of LentenSermons is available at <a href="https://github.com/ErwinKomen/RU-lenten">github</a>.
+      </p>
+      <p>
+        <a class="btn btn-default" href="mailto:e.komen@let.ru.nl">Request assistance &raquo;</a>
+        <span class="pull-right">
+          <a class="btn btn-primary" href="{% static 'seeker/content/LentenManual.pdf' %}" target="_blank">Manual (pdf)</a>
+          <a class="btn btn-primary" href="{% url 'short' %}">Short overview</a>
+        </span>
+      </p>
+    </div>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <h4>Bibliography</h4>
+      <div class="citation">
+        Surname, I.N. 2019 <i>Lenten sermon dissemination in the Middle Ages - European routes</i>, The Best Journal 36(2):430-462. (<a href="" target="_blank">pdf</a>)
+      </div>
+      <div class="citation">
+        b.
+      </div>
+      <div class="citation">
+          c.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
