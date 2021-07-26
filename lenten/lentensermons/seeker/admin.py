@@ -399,7 +399,7 @@ class SermonCollectionAdmin(admin.ModelAdmin):
     list_display = ['idno', 'title', 'datecomp', 'authorlist']
     search_fields =  ['idno', 'title']
     list_filter = ['place', 'authors']
-    inlines = [ManuscriptInline, EditionInline]
+    # inlines = [ManuscriptInline, EditionInline]
     filter_horizontal = ('authors',)
 
     def response_post_save_change(self, request, obj):
