@@ -56,6 +56,12 @@ class BlockedIpMiddleware(object):
 
     bot_list = ['googlebot', 'bot.htm', 'bot.com', '/petalbot', 'crawler.com', 'robot', 'crawler' ]
 
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
     def process_request(self, request):
         oErr = ErrHandle()
         remote_ip = request.META['REMOTE_ADDR']

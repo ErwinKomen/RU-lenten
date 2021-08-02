@@ -4,7 +4,7 @@
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <Name>lentensermons</Name>
     <RootNamespace>lentensermons</RootNamespace>
-    <InterpreterId>{7c44c3c8-8d6c-4da5-a360-fff67178e75a}</InterpreterId>
+    <InterpreterId>{7bbf1962-95f6-49d4-87e6-238eee4f2fb5}</InterpreterId>
     <WebBrowserPort>6405</WebBrowserPort>
     <WebBrowserUrl>
     </WebBrowserUrl>
@@ -128,7 +128,9 @@
     <Content Include="lentensermons\basic\templates\basic\basic_edit.html" />
     <Content Include="lentensermons\basic\templates\basic\basic_list.html" />
     <Content Include="lentensermons\seeker\static\seeker\content\bootstrap.css" />
+    <Content Include="lentensermons\seeker\static\seeker\content\lenten_ghs.png" />
     <Content Include="lentensermons\seeker\static\seeker\content\lenten_homepage.jpg" />
+    <Content Include="lentensermons\seeker\static\seeker\content\lenten_nwo.jpg" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-admin.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-base.css" />
     <Content Include="lentensermons\seeker\static\seeker\content\ru-form.css" />
@@ -173,6 +175,7 @@
     <Content Include="lentensermons\seeker\templates\seeker\report_details.html" />
     <Content Include="lentensermons\seeker\templates\seeker\report_list.html" />
     <Content Include="lentensermons\tagtext\templates\tagtext\tagtextarea.html" />
+    <Content Include="lentensermons\templates\about_old.html" />
     <Content Include="lentensermons\templates\about.html" />
     <Content Include="lentensermons\templates\admin\base.html" />
     <Content Include="lentensermons\templates\breadcrumb_list.html" />
@@ -198,10 +201,11 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Interpreter Include="..\..\..\..\..\env\lenten\">
-      <Id>{7c44c3c8-8d6c-4da5-a360-fff67178e75a}</Id>
+    <Interpreter Include="..\..\..\..\..\env\lentensermons\">
+      <Id>{7bbf1962-95f6-49d4-87e6-238eee4f2fb5}</Id>
+      <BaseInterpreter>{9a7a9026-48c1-4688-9d5d-e5699d47d074}</BaseInterpreter>
       <Version>3.5</Version>
-      <Description>lenten (Python 64-bit 3.5)</Description>
+      <Description>lentensermons (Python 64-bit 3.5)</Description>
       <InterpreterPath>Scripts\python.exe</InterpreterPath>
       <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
       <LibraryPath>Lib\</LibraryPath>

@@ -6,6 +6,7 @@ from datetime import datetime
 from django.contrib.auth.decorators import login_required, permission_required
 from django.conf.urls import include, url
 from django.contrib import admin
+from django.contrib.auth.views import LoginView, LogoutView
 import django.contrib.auth.views
 
 import lentensermons.seeker.forms
@@ -15,9 +16,9 @@ from lentensermons.seeker.views import *
 from lentensermons.settings import APP_PREFIX
 
 # Other Django stuff
-from django.core import urlresolvers
+# from django.core import urlresolvers
 from django.shortcuts import redirect
-from django.core.urlresolvers import reverse, reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views.generic.base import RedirectView
 
 admin.autodiscover()
@@ -109,28 +110,18 @@ urlpatterns = [
 
     url(r'^login/user/(?P<user_id>\w[\w\d_]+)$', lentensermons.seeker.views.login_as_user, name='login_as'),
 
-    url(r'^login/$',
-        django.contrib.auth.views.login,
-        {
-            'template_name': 'login.html',
-            'authentication_form': lentensermons.seeker.forms.BootstrapAuthenticationForm,
-            'extra_context':
-            {
-                'title': 'Log in',
-                'year': datetime.now().year,
-            }
-        },
+    url(r'^login/$', LoginView.as_view
+        (
+            template_name= 'login.html',
+            authentication_form= lentensermons.seeker.forms.BootstrapAuthenticationForm,
+            extra_context= {'title': 'Log in','year': datetime.now().year,}
+        ),
         name='login'),
-    url(r'^logout$',
-        django.contrib.auth.views.logout,
-        {
-            'next_page':  reverse_lazy('home'),
-        },
-        name='logout'),
+    url(r'^logout$',  LogoutView.as_view(next_page=reverse_lazy('home')), name='logout'),
 
     # Uncomment the admin/doc line below to enable admin documentation:
-    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # Uncomment the next line to enable the admin:
-    url(r'^admin/', include(admin.site.urls), name='admin_base'),
+    url(r'^admin/', admin.site.urls, name='admin_base'),
 ]

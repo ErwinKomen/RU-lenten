@@ -579,7 +579,7 @@ class Action(models.Model):
     """Track actions made by users"""
 
     # [1] The user
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_actions")
     # [1] The item (e.g: Manuscript, SermonDescr, SermonGold)
     itemtype = models.CharField("Item type", max_length=MEDIUM_LENGTH)
     # [1] The kind of action performed (e.g: create, edit, delete)
@@ -616,7 +616,7 @@ class Report(models.Model):
     """Report of an upload action or something like that"""
 
     # [1] Every report must be connected to a user and a date (when a user is deleted, the Report is deleted too)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_reports")
     # [1] And a date: the date of saving this report
     created = models.DateTimeField(default=get_current_datetime)
     # [1] A report should have a type to know what we are reporting about
@@ -682,7 +682,7 @@ class Profile(models.Model):
     """Information about the user"""
 
     # [1] Every profile is linked to a user
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_profiles")
     # [1] Every user has a stack: a list of visit objects
     stack = models.TextField("Stack", default = "[]")
 
@@ -784,7 +784,7 @@ class Visit(models.Model):
     """One visit to part of the application"""
 
     # [1] Every visit is made by a user
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_visits")
     # [1] Every visit is done at a certain moment
     when = models.DateTimeField(default=get_current_datetime)
     # [1] Every visit is to a 'named' point
@@ -942,7 +942,7 @@ class Location(models.Model):
     # [1] obligatory name in ENGLISH
     name = models.CharField("Name (eng)", max_length=STANDARD_LENGTH)
     # [1] Link to the location type of this location
-    loctype = models.ForeignKey(LocationType)
+    loctype = models.ForeignKey(LocationType, on_delete=models.CASCADE, related_name="loctype_locations")
 
     # Many-to-many field that identifies relations between locations
     relations = models.ManyToManyField("self", through="LocationRelation", symmetrical=False, related_name="relations_location", blank=True)
@@ -1040,7 +1040,7 @@ class LocationName(models.Model):
     # [1] the language in which this name is given - ISO 3 letter code
     language = models.CharField("Language", max_length=STANDARD_LENGTH, default="eng")
     # [1] the Location to which this (vernacular) name belongs
-    location = models.ForeignKey(Location, related_name="location_names")
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="location_names")
 
     def __str__(self):
         return "{} ({})".format(self.name, self.language)
@@ -1050,9 +1050,9 @@ class LocationRelation(models.Model):
     """Container-contained relation between two locations"""
 
     # [1] Obligatory container
-    container = models.ForeignKey(Location, related_name="container_locrelations")
+    container = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="container_locrelations")
     # [1] Obligatory contained
-    contained = models.ForeignKey(Location, related_name="contained_locrelations")
+    contained = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="contained_locrelations")
 
 
 # ============================= Different TAG related CLASSES =====================================
@@ -1985,7 +1985,7 @@ class Sermon(tagtext.models.TagtextModel):
     statussrm = models.CharField("Status of this sermon", choices=build_abbr_list(PROGRESS_TYPE), default="ini", max_length=5)
 
     # [0-1] This is a helper field that gets automatically filled with the first topic in 'topics'
-    firsttopic = models.ForeignKey(Topic, blank=True, null=True)
+    firsttopic = models.ForeignKey(Topic, blank=True, null=True, on_delete=models.SET_NULL)
 
     # [1] Each sermon belongs to a collection
     collection = models.ForeignKey(SermonCollection, related_name="collection_sermons", on_delete=models.CASCADE)

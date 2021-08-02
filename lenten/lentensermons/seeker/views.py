@@ -5,7 +5,7 @@ Definition of views for the SEEKER app.
 from django.contrib import admin
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import Group
-from django.core.urlresolvers import reverse, reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.db.models import Q

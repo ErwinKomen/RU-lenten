@@ -33,22 +33,23 @@ elif "/applejack" in BASE_DIR:
 MEDIA_DIR = os.path.abspath(os.path.join(WRITABLE_DIR, "../media/"))
 
 APP_PREFIX = ""
+ADMIN_SITE_URL = ""
 if "d:" in WRITABLE_DIR or "D:" in WRITABLE_DIR or "c:" in WRITABLE_DIR or "C:" in WRITABLE_DIR or bUseTunnel:
     APP_PREFIX = ""
-    admin.site.site_url = '/'
+    ADMIN_SITE_URL = '/'
 elif "131.174" in hst:
     # Configuration within the Radboud University environment (AppleJack)
     APP_PREFIX = ""
-    admin.site.site_url = '/'
+    ADMIN_SITE_URL = '/'
 elif "/var/www" in WRITABLE_DIR:
     # New configuration 
     APP_PREFIX = "lentensermons/"
-    admin.site.site_url = '/lentensermons'
+    ADMIN_SITE_URL = '/lentensermons'
 else:
     APP_PREFIX = "dd/"
-    admin.site.site_url = '/dd'
+    ADMIN_SITE_URL = '/dd'
 
-FORCE_SCRIPT_NAME = admin.site.site_url
+# FORCE_SCRIPT_NAME = admin.site.site_url
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
@@ -92,14 +93,14 @@ INSTALLED_APPS = [
     'lentensermons.seeker',
 ]
 
-MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'lentensermons.utils.BlockedIpMiddleware'
