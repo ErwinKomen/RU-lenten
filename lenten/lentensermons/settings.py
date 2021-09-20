@@ -16,6 +16,10 @@ import socket
 import sys
 from django.contrib import admin
 
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = False        # Further down DEBUG is put to True for development environment
+
+# Get the HOST by IP address
 hst = socket.gethostbyname(socket.gethostname())
 bUseTunnel = False
 
@@ -37,6 +41,7 @@ ADMIN_SITE_URL = ""
 if "d:" in WRITABLE_DIR or "D:" in WRITABLE_DIR or "c:" in WRITABLE_DIR or "C:" in WRITABLE_DIR or bUseTunnel:
     APP_PREFIX = ""
     ADMIN_SITE_URL = '/'
+    DEBUG = True
 elif "131.174" in hst:
     # Configuration within the Radboud University environment (AppleJack)
     APP_PREFIX = ""
@@ -70,9 +75,6 @@ BLOCKED_IPS = ['40.77.167.57',
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '561c5400-4ebf-4e45-a2ec-12d856638e45'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', 'applejack.science.ru.nl', 'lentensermons.science.ru.nl', 'lentensermons.cls.ru.nl', 'testserver' ]
 
