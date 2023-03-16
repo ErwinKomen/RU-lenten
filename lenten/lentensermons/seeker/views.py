@@ -5,7 +5,8 @@ Definition of views for the SEEKER app.
 from django.contrib import admin
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import Group
-from django.core.urlresolvers import reverse, reverse_lazy
+# from django.core.urlresolvers import reverse, reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.db.models import Q
@@ -550,6 +551,25 @@ def short(request):
     context['is_app_uploader'] = user_is_ingroup(request, app_uploader)
     return render(request, template, context)
 
+def login_as_user(request, user_id):
+    assert isinstance(request, HttpRequest)
+
+    # Find out who I am
+    supername = request.user.username
+    super = User.objects.filter(username__iexact=supername).first()
+    if super == None:
+        return nlogin(request)
+
+    # Make sure that I am superuser
+    if super.is_staff and super.is_superuser:
+        user = User.objects.filter(username__iexact=user_id).first()
+        if user != None:
+            # Perform the login
+            login(request, user)
+            return HttpResponseRedirect(reverse("home"))
+
+    return home(request)
+
 def signup(request):
     """Provide basic sign up and validation of it """
 
@@ -570,8 +590,8 @@ def signup(request):
                                     is_staff=True)
                 user.is_staff = True
                 user.save()
-                # Add user to the "passim_user" group
-                gQs = Group.objects.filter(name="passim_user")
+                # Add user to the "lentensermons_user" group
+                gQs = Group.objects.filter(name="lentensermons_user")
                 if gQs.count() > 0:
                     g = gQs[0]
                     g.user_set.add(user)
