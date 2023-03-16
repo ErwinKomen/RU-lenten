@@ -4,7 +4,7 @@
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <Name>lentensermons</Name>
     <RootNamespace>lentensermons</RootNamespace>
-    <InterpreterId>{7bbf1962-95f6-49d4-87e6-238eee4f2fb5}</InterpreterId>
+    <InterpreterId>{d4636386-db4f-433d-81f4-fec022bf75fe}</InterpreterId>
     <WebBrowserPort>6405</WebBrowserPort>
     <WebBrowserUrl>
     </WebBrowserUrl>
@@ -201,16 +201,16 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Interpreter Include="..\..\..\..\..\env\lentensermons\">
-      <Id>{7bbf1962-95f6-49d4-87e6-238eee4f2fb5}</Id>
-      <BaseInterpreter>{9a7a9026-48c1-4688-9d5d-e5699d47d074}</BaseInterpreter>
+    <Interpreter Include="..\..\..\..\..\env\lenten\">
+      <Id>{d4636386-db4f-433d-81f4-fec022bf75fe}</Id>
+      <BaseInterpreter>{fa12ebed-1e4e-41b9-9058-82b46bf63678}</BaseInterpreter>
       <Version>3.5</Version>
-      <Description>lentensermons (Python 64-bit 3.5)</Description>
+      <Description>lenten (Python35_2021)</Description>
       <InterpreterPath>Scripts\python.exe</InterpreterPath>
       <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
       <LibraryPath>Lib\</LibraryPath>
       <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
-      <Architecture>Amd64</Architecture>
+      <Architecture>X86</Architecture>
     </Interpreter>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.Django.targets" />
