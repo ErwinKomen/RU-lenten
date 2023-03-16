@@ -4,10 +4,11 @@
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <Name>lentensermons</Name>
     <RootNamespace>lentensermons</RootNamespace>
-    <InterpreterId>MSBuild|{7c44c3c8-8d6c-4da5-a360-fff67178e75a}|$(MSBuildProjectFullPath)</InterpreterId>
+    <InterpreterId>{7c44c3c8-8d6c-4da5-a360-fff67178e75a}</InterpreterId>
     <WebBrowserPort>6405</WebBrowserPort>
     <WebBrowserUrl>
     </WebBrowserUrl>
+    <InterpreterVersion>3.5</InterpreterVersion>
   </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
