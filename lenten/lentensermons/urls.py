@@ -51,7 +51,8 @@ urlpatterns = [
     url(r'^author/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/author/add'), name='author_add'),
     url(r'^author/view(?:/(?P<pk>\d+))?/$', AuthorDetailsView.as_view(), name='author_details'),
 
-    url(r'^sermon/list',  SermonListView.as_view(), name='sermon_list'),
+    # url(r'^sermon/list',  SermonListView.as_view(), name='sermon_list'),
+    url(r'^sermon/list',  SermonList.as_view(), name='sermon_list'),
     url(r'^sermon/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/sermon/add'), name='sermon_add'),
     url(r'^sermon/view(?:/(?P<pk>\d+))?/$', SermonDetailsView.as_view(), name='sermon_details'),
 
@@ -87,6 +88,10 @@ urlpatterns = [
     url(r'^news/add',  RedirectView.as_view(url='/'+APP_PREFIX+'admin/seeker/newsitem/add'), name='newsitem_add'),
     url(r'^news/view(?:/(?P<pk>\d+))?/$', NewsDetailsView.as_view(), name='newsitem_details'),
 
+    url(r'^instruction/list',  InstructionListView.as_view(), name='instruction_list'),
+    url(r'^instruction/edit(?:/(?P<pk>\d+))?/$', InstructionEdit.as_view(), name='instruction_edit'),
+    url(r'^instruction/view(?:/(?P<pk>\d+))?/$', InstructionDetails.as_view(), name='instruction_details'),
+
     url(r'^reference/list',  LitrefListView.as_view(), name='litref_list'),
     url(r'^reference/view(?:/(?P<pk>\d+))?/$', LitrefDetailsView.as_view(), name='litref_details'),
     url(r'^reference/edit(?:/(?P<pk>\d+))?/$', LitrefEditView.as_view(), name='litref_edit'),
@@ -113,25 +118,6 @@ urlpatterns = [
         ),
         name='login'),
     url(r'^logout$',  LogoutView.as_view(next_page=reverse_lazy('home')), name='logout'),
-
-    #url(r'^login/$',
-    #    django.contrib.auth.views.login,
-    #    {
-    #        'template_name': 'login.html',
-    #        'authentication_form': lentensermons.seeker.forms.BootstrapAuthenticationForm,
-    #        'extra_context':
-    #        {
-    #            'title': 'Log in',
-    #            'year': datetime.now().year,
-    #        }
-    #    },
-    #    name='login'),
-    #url(r'^logout$',
-    #    django.contrib.auth.views.logout,
-    #    {
-    #        'next_page':  reverse_lazy('home'),
-    #    },
-    #    name='logout'),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),

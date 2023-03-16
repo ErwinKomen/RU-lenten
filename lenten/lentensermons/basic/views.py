@@ -21,6 +21,7 @@ from django.views.generic import ListView, View
 
 import json
 import fnmatch
+import re
 import os
 from datetime import datetime
 
@@ -35,6 +36,9 @@ paginateValues = (100, 50, 20, 10, 5, 2, 1, )
 
 # Global debugging 
 bDebug = False
+
+# Opening the pages for non-authenticated users
+bNeedAuthentication = False
 
 # General functions serving the list and details views
 
@@ -57,17 +61,22 @@ app_uploader = "{}_uploader".format(PROJECT_NAME.lower())
 app_editor = "{}_editor".format(PROJECT_NAME.lower())
 app_userplus = "{}_userplus".format(PROJECT_NAME.lower())
 app_moderator = "{}_moderator".format(PROJECT_NAME.lower())
+editing_right = [app_uploader, app_editor, app_userplus, app_moderator]
 
-def user_is_authenticated(request):
-    # Is this user authenticated?
-    username = request.user.username
-    user = User.objects.filter(username=username).first()
-    response = False 
-    if user != None:
-        try:
-            response = user.is_authenticated()
-        except:
-            response = user.is_authenticated
+def user_is_authenticated(request, bStrict = False):
+    if bNeedAuthentication or bStrict:
+        # Is this user authenticated?
+        username = request.user.username
+        user = User.objects.filter(username=username).first()
+        response = False 
+        if user != None:
+            try:
+                response = user.is_authenticated()
+            except:
+                response = user.is_authenticated
+    else:
+        response = True
+    # Return the verdict
     return response
 
 def user_is_ingroup(request, sGroup):
@@ -99,6 +108,24 @@ def user_is_superuser(request):
             bFound = user.is_superuser
     return bFound
 
+def user_may_edit(request):
+    bFound = False
+    # Is this user part of the indicated group?
+    username = request.user.username
+    if username != "":
+        user = User.objects.filter(username=username).first()
+        if user != None:
+            bFound = user.is_superuser
+            if not bFound:
+                # Look for other possibilities: member of one of the groups
+                glist = [x.name for x in user.groups.all()]
+                for gname in editing_right:
+                    if gname in glist:
+                        bFound = True
+                        break
+    return bFound
+
+
 def get_breadcrumbs(request, name, is_menu, lst_crumb=[], **kwargs):
     """Process one visit and return updated breadcrumbs"""
 
@@ -107,7 +134,7 @@ def get_breadcrumbs(request, name, is_menu, lst_crumb=[], **kwargs):
     p_list.append({'name': 'Home', 'url': reverse('home')})
     # Find out who this is
     username = "anonymous" if request.user == None else request.user.username
-    if username != "anonymous" and request.user.username != "":
+    if not bNeedAuthentication or username != "anonymous" and request.user.username != "":
         # Add the visit
         currenturl = request.get_full_path()
         # Visit.add(username, name, currenturl, is_menu, **kwargs)
@@ -175,11 +202,75 @@ def has_obj_value(field, obj):
     response = (field != None and field in obj and obj[field] != None)
     return response
 
-def adapt_search(val):
+def adapt_search(val, regex_function=None, orfields=None):
     # First trim
     val = val.strip()
-    # Then add start and en matter 
-    val = '^' + fnmatch.translate(val) + '$'
+    # Double check whether we don't have a starting ^ and trailing $ yet
+    if len(val) > 0:
+        # Make sure we only start searching lower case
+        val =val.lower()
+        if "#" in val:
+            # Break it up into words
+            arWord = val.split(" ")
+            for idx, item in enumerate(arWord):
+                # Remove any 'lone' * (i.e. none #*)
+                item = item.replace("#*", "@2")
+                item = item.replace("#", "@1")
+                item = item.replace("*", "")
+                item = item.replace("@1", "#")
+                item = item.replace("@2", "#*")
+                if "#*" in item:
+                    # Extension of PASSIM
+                    item = r'(^|(.*\b))' + item.replace('#*', r'((.*)|$)')
+                elif "#" in item:
+                    # Exactly like PASSIM
+                    item = r'(^|(.*\b))' + item.replace('#', r'((\b.*)|$)')
+                arWord[idx] = item
+            if orfields == None:
+                # Combine: in order
+                val = " ".join(arWord)
+            elif orfields == []:
+                # Return the list
+                val = arWord
+            else:
+                s_q_lst = ""
+                for orfield in orfields:
+                    s_q_terms = ""
+                    for term in arWord:
+                        s_q = Q(**{"{}__iregex".format(orfield): term})
+                        if s_q_terms == "":
+                            s_q_terms = s_q
+                        else:
+                            s_q_terms = s_q_terms & s_q
+                    if s_q_lst == "":
+                        s_q_lst = ( s_q_terms )
+                    else:
+                        s_q_lst = s_q_lst | ( s_q_terms )
+                val = ( s_q_lst )
+        else:
+            val = fnmatch.translate(val)
+            if val[0] != '^':
+                val = "^{}".format(val)
+            if val[-1] != "$":
+                val = "{}$".format(val)
+            if orfields != None:
+                if orfields == []:
+                    # Make sure this is a list
+                    val = [ val ]
+                else:
+                    # It should be a Q term
+                    s_q_lst = ""
+                    for orfield in orfields:
+                        s_q = Q(**{"{}__iregex".format(orfield): val})
+                        if s_q_lst == "":
+                            s_q_lst = ( s_q )
+                        else:
+                            s_q_lst = s_q_lst | ( s_q )
+                    val = ( s_q_lst )
+
+        # Is there a regex function?
+        if regex_function != None and orfields == None:
+            val = regex_function(val)
     return val
 
 def make_search_list(filters, oFields, search_list, qd, lstExclude):
@@ -229,9 +320,11 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                 infield = get_value(search_item, "infield")
                 dbfield = get_value(search_item, "dbfield")
                 fkfield = get_value(search_item, "fkfield")
+                orfield = get_value(search_item, "orfield")
                 keyType = get_value(search_item, "keyType")
                 filter_type = get_value(search_item, "filter")
                 code_function = get_value(search_item, "code")
+                regex_function = get_value(search_item, "regex")
                 s_q = ""
                 arFkField = []
                 if fkfield != None:
@@ -264,8 +357,8 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                             # we are dealing with a foreign key, so we should use keyFk
                             s_q = None
                             for fkfield in arFkField:
-                                if "*" in val:
-                                    val = adapt_search(val)
+                                if "*" in val or "#" in val:
+                                    val = adapt_search(val, regex_function)
                                     s_q_add = Q(**{"{}__{}__iregex".format(fkfield, keyFk): val})
                                 else:
                                     s_q_add = Q(**{"{}__{}__iexact".format(fkfield, keyFk): val})
@@ -320,13 +413,49 @@ def make_search_list(filters, oFields, search_list, qd, lstExclude):
                             enable_filter(filter_type, head_id)
                             if isinstance(val, int):
                                 s_q = Q(**{"{}".format(dbfield): val})
-                            elif "*" in val:
-                                val = adapt_search(val)
+                            elif "*" in val or "#" in val:
+                                val = adapt_search(val, regex_function)
                                 s_q = Q(**{"{}__iregex".format(dbfield): val})
                             else:
                                 s_q = Q(**{"{}__iexact".format(dbfield): val})
                     elif has_Q_value(keyS, oFields):
                         s_q = oFields[keyS]
+                elif orfield:
+                    # This field contains an orrable selection of db-fields
+                    if has_string_value(keyS, oFields):
+                        val = oFields[keyS]
+                        bUseRegex = False
+                        bContains = False
+                        if not isinstance(val, int):
+                            if "*" in val or "#" in val:
+                                val = adapt_search(val, regex_function, orfields=orfield.split(";"))
+                                bUseRegex = True
+                            elif "^" in val:
+                                # This option is *NOT* taken in any case because of the [ELSE] part!!!
+                                val = val.replace("^", "")
+                                bContains = True
+                            else:
+                                # Just use the 'contains' by default
+                                bContains = True
+                        s_q_lst = ""
+                        enable_filter(filter_type, head_id)
+                        if bUseRegex:
+                            s_q = val
+                        else:
+                            for dbfield in orfield.split(";"):
+                                if isinstance(val, int):
+                                    s_q = Q(**{"{}".format(dbfield): val})
+                                elif bUseRegex:                                
+                                    s_q = Q(**{"{}__iregex".format(dbfield): val})
+                                elif bContains:                                
+                                    s_q = Q(**{"{}__icontains".format(dbfield): val})
+                                else:
+                                    s_q = Q(**{"{}__iexact".format(dbfield): val})
+                                if s_q_lst == "":
+                                    s_q_lst = s_q
+                                else:
+                                    s_q_lst = s_q_lst | s_q
+                            s_q = s_q_lst
 
                 # Check for list of specific signatures
                 if has_list_value(keyList, oFields):
@@ -373,40 +502,83 @@ def make_ordering(qs, qd, order_default, order_cols, order_heads):
         colnum = ""
         # reset 'used' feature for all heads
         for item in order_heads: item['used'] = None
+
+        # Set the default sort order numbers
+        for item in order_heads:
+            sorting = ""
+            if "order" in item:
+                sorting = item['order']
+                if "=" in sorting: sorting = sorting.split("=")[1]
+            item['sorting'] = sorting
+            item['direction'] = ""
+            item['priority'] = ""
+
+        # Check out the 'o' parameter...
         if 'o' in qd and qd['o'] != "":
+            # Initializations
+            order = []
             colnum = qd['o']
-            if '=' in colnum:
-                colnum = colnum.split('=')[1]
-            if colnum != "":
-                order = []
-                iOrderCol = int(colnum)
+
+            # Get the current 'o' parameter value and turn it into a list of column sortables
+            sort_list = [int(x) for x in qd['o'].split(".")]
+
+            # Walk through and implement the sort list
+            priority = 1
+            for iOrderCol in sort_list:
+
                 bAscending = (iOrderCol>0)
                 iOrderCol = abs(iOrderCol)
 
                 # Set the column that it is in use
                 order_heads[iOrderCol-1]['used'] = 1
+                # Set priority and direction
+                if len(sort_list) > 1:
+                    order_heads[iOrderCol-1]['priority'] = priority
+                    priority += 1
+                order_heads[iOrderCol-1]['direction'] = "up" if bAscending else "down"
+
                 # Get the type
                 sType = order_heads[iOrderCol-1]['type']
                 for order_item in order_cols[iOrderCol-1].split(";"):
                     if order_item != "":
                         if sType == 'str':
-                            order.append(Lower(order_item).asc(nulls_last=True))
+                            if bAscending:
+                                order.append(Lower(order_item).asc(nulls_last=True))
+                            else:
+                                order.append(Lower(order_item).desc(nulls_last=True))
                         else:
-                            order.append(F(order_item).asc(nulls_last=True))
-                if bAscending:
-                    order_heads[iOrderCol-1]['order'] = 'o=-{}'.format(iOrderCol)
-                else:
-                    # order = "-" + order
-                    order_heads[iOrderCol-1]['order'] = 'o={}'.format(iOrderCol)
-
-                # Reset the sort order to ascending for all others
-                for idx, item in enumerate(order_heads):
-                    if idx != iOrderCol - 1:
-                        # Reset this sort order
-                        order_heads[idx]['order'] = order_heads[idx]['order'].replace("-", "")
+                            if bAscending:
+                                order.append(F(order_item).asc(nulls_last=True))
+                            else:
+                                order.append(F(order_item).desc(nulls_last=True))
+ 
+            # Adapt the 'sorting' parameter for all heads that need it
+            for order_head in order_heads:
+                # Get the current default sorting (the column number)
+                sorting_default = item['sorting']
+                # Is this one sortable?
+                if 'order' in order_head and '=' in order_head['order']:
+                    # Get the column number
+                    col_num = int(order_head['order'].split("=")[1])
+                    col_num_neg = -1 * col_num
+                    order_combined = [str(x) for x in sort_list]
+                    # Is this column in the sort_list or not?
+                    if col_num in sort_list or col_num_neg in sort_list:
+                        # This column is in the sort list: suggest the negation of what is there
+                        for idx, order_one in enumerate(order_combined):
+                            if abs(int(order_one)) == col_num:
+                                order_combined[idx] = str(-1 * int(order_one))
+                                break
+                    else:
+                        # This colum is not in the sort list: just combine
+                        order_combined.append(str(col_num))
+                    order_head['sorting'] = ".".join(order_combined)
         else:
             orderings = []
             for idx, order_item in enumerate(order_default):
+                if idx == 0 and order_item[0] == "-":
+                    bAscending = False
+                    order_item = order_item[1:]
                 # Get the type
                 sType = order_heads[idx]['type']
                 if ";" in order_item:
@@ -418,7 +590,7 @@ def make_ordering(qs, qd, order_default, order_cols, order_heads):
                 sType = item['type']
                 order_item = item['item']
                 if order_item != "":
-                    if sType == "int":
+                    if sType == "int" or "-" in order_item:
                         order.append(order_item)
                     else:
                         order.append(Lower(order_item))
@@ -429,9 +601,9 @@ def make_ordering(qs, qd, order_default, order_cols, order_heads):
                 qs = qs.order_by(*order)
         else:
             qs = qs.order_by(*order)
-        # Possibly reverse the order
-        if not bAscending:
-            qs = qs.reverse()
+        ## Possibly reverse the order
+        #if not bAscending:
+        #    qs = qs.reverse()
     except:
         msg = oErr.get_error_message()
         oErr.DoError("make_ordering")
@@ -486,6 +658,8 @@ class BasicList(ListView):
     permission = True
     lst_typeaheads = []
     sort_order = ""
+    col_wrap = ""
+    colwrap_show = False
     qs = None
     page_function = "ru.basic.search_paged_start"
 
@@ -572,6 +746,7 @@ class BasicList(ListView):
         context['result_list'] = self.get_result_list(context['object_list'])
 
         context['sortOrder'] = self.sort_order
+        context['colWrap'] = self.col_wrap
 
         context['new_button'] = self.new_button
         context['add_text'] = self.add_text
@@ -658,6 +833,11 @@ class BasicList(ListView):
                             # Append the [fitem] to the [fitems]                            
                             filteritem['fitems'].append(fitem)
                             filteritem['count'] = len(filteritem['fitems'])
+                            filteritem['help'] = ""
+                            # Possibly add help
+                            if 'help' in item:
+                                filteritem['helptext'] = self.get_helptext(item['help'])
+                                filteritem['help'] = item['help']
                             # Make sure we indicate that there is a value
                             if  bHasItemValue: filteritem['hasvalue'] = True
                             break
@@ -672,6 +852,7 @@ class BasicList(ListView):
         context['filters'] = self.filters
         context['fsections'] = fsections
         context['list_fields'] = self.list_fields
+        context['colwrap_show'] = self.colwrap_show
 
         # Add any typeaheads that should be initialized
         context['typeaheads'] = json.dumps( self.lst_typeaheads)
@@ -741,12 +922,19 @@ class BasicList(ListView):
                         fobj['delete'] = True
                     fobj['styles'] = "width: {}px;".format(50 * len(options))
                     classes.append("tdnowrap")
+                elif 'flex' in head and len(head['flex']) > 0:
+                    # fobj['styles'] = "max-width: 100px; display: flex"
+                    classes.append("flexsvg")
                 else:
                     fobj['styles'] = "width: 100px;"
                     classes.append("tdnowrap")
                 if 'align' in head and head['align'] != "":
                     fobj['align'] = head['align'] 
                 fobj['classes'] = " ".join(classes)
+                if 'colwrap' in head:
+                    fobj['colwrap'] = True
+                if 'autohide' in head:
+                    fobj['autohide'] = head['autohide']
                 fields.append(fobj)
             # Make the list of field-values available
             result['fields'] = fields
@@ -759,6 +947,9 @@ class BasicList(ListView):
             # Add to the list of results
             result_list.append(result)
         return result_list
+
+    def get_helptext(self, name):
+        return ""
 
     def get_template_names(self):
         names = [ self.template_name ]
@@ -781,12 +972,12 @@ class BasicList(ListView):
         return fields, None, None
   
     def get_queryset(self):
-        self.initializations()
-
         # Get the parameters passed on with the GET or the POST request
         get = self.request.GET if self.request.method == "GET" else self.request.POST
         get = get.copy()
         self.qd = get
+
+        self.initializations()
 
         username=self.request.user.username
         team_group=app_editor
@@ -871,10 +1062,24 @@ class BasicList(ListView):
             elif not self.none_on_empty:
                 # Just show everything
                 qs = self.model.objects.all().distinct()
-                
+
             # Do the ordering of the results
             order = self.order_default
             qs, self.order_heads, colnum = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
+
+            # Adapt order_heads 'autohide' if a column has a filter set
+            for oOrderHead in self.order_heads:
+                if 'filter' in oOrderHead:
+                    sFilterId = oOrderHead['filter']
+                    # Initial: on
+                    oOrderHead['autohide'] = "on"
+                    # Look for the correct filter
+                    for oFilter in self.filters:
+                        if oFilter['id'] == sFilterId:
+                            # We found the filter - is it being used?
+                            if oFilter['enabled']:
+                                # It is used, so make sure to switch OFF the autohide
+                                oOrderHead['autohide'] = "off"
         else:
             # No filter and no basked: show all
             self.basketview = False
@@ -885,6 +1090,21 @@ class BasicList(ListView):
             order = self.order_default
             qs, tmp_heads, colnum = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
         self.sort_order = colnum
+
+        # Process column wrapping...
+        for oHead in self.order_heads:
+            if 'colwrap' in oHead:
+                del oHead['colwrap']
+        colwrap = self.qd.get("w", None)
+        if colwrap != None:
+            self.col_wrap = colwrap.strip()
+            if colwrap != "" and colwrap[0] == "[":
+                # Process the column wrapping
+                lColWrap = json.loads(colwrap)
+                for idx, oHead in enumerate(self.order_heads):
+                    if idx+1 in lColWrap:
+                        # Indicate that this column must be hidden
+                        oHead['colwrap'] = True
 
         # Determine the length
         self.entrycount = len(qs)
@@ -933,7 +1153,8 @@ class BasicDetails(DetailView):
         data = {'status': 'ok', 'html': '', 'statuscode': ''}
         # always do this initialisation to get the object
         self.initializations(request, pk)
-        if not request.user.is_authenticated:
+        if not user_is_authenticated(request):
+        #if not request.user.is_authenticated:
             # Do not allow to get a good response
             if self.rtype == "json":
                 data['html'] = "(No authorization)"
@@ -946,6 +1167,12 @@ class BasicDetails(DetailView):
             else:
                 response = reverse('nlogin')
         else:
+            # Double check for extended permission
+            if not user_is_authenticated(request, True):
+                self.permission = "readonly"
+            elif not user_may_edit(request):
+                self.permission = "readonly"
+
             context = self.get_context_data(object=self.object)
 
             if self.is_basic and self.template_name == "":
@@ -1318,6 +1545,8 @@ class BasicDetails(DetailView):
                 # Calculate view-mode versus any-mode
                 #  'field_key' in mainitem or 'field_list' in mainitem and permission == "write"  or  is_app_userplus and mainitem.maywrite
                 if self.permission == "write":       # or app_userplus and 'maywrite' in mobj and mobj['maywrite']:
+                    mobj['allowing'] = "edit"
+                elif self.permission == "readonly" and user_is_superuser(self.request):
                     mobj['allowing'] = "edit"
                 else:
                     mobj['allowing'] = "view"

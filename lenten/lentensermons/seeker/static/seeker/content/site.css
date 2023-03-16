@@ -68,11 +68,20 @@ table tbody tr:hover {
   cursor: pointer;*/
   /*  */
 }
-table tbody tr td.clickable:hover, table tbody tr.clickable td:hover, div.clickable:hover, span.clickable:hover {
+table tbody tr td.clickable:hover, table tbody tr.clickable td:hover, div.clickable:hover, span.clickable:hover, th div a.clickable:hover {
   cursor: pointer;
 }
-table tbody tr td.clickable:hover, table tbody tr.clickable td:hover {
+table tbody tr td.clickable:hover, table tbody tr.clickable td:hover, table tbody tr td span.clickable:hover, th div a.clickable:hover {
   background-color: lightgoldenrodyellow ;
+}
+
+th div a.clickable.ordered {
+  color: darkgoldenrod;
+}
+
+th div a.clickable.ordered:hover {
+  color: darkgoldenrod;
+  background-color: lightgoldenrodyellow;
 }
 
 table tbody tr td.hoverable:hover {
@@ -141,6 +150,7 @@ div.inline-group a.add-related {
 /* link */
 .navbar-custom .navbar-nav > li > a {
     color: white;
+    font-size: 18px;
 }
 .navbar-custom .navbar-nav > li > a:hover,
 .navbar-custom .navbar-nav > li > a:focus {
@@ -1197,7 +1207,7 @@ td a.nostyle {
   color: darkblue;
 }
 
-div.view-mode a {
+div.view-mode a, div.any-mode a {
   text-decoration: none;
   color: inherit;
 }
@@ -1307,3 +1317,20 @@ span[contenteditable=false] > a:hover, span.topic > a:hover {
     cursor: pointer;
 }
 
+td.flexsvg, span.flexsvg {
+    max-width: 100px; 
+    display: flex;
+}
+
+td.flexsvg span:first-of-type, span.flexsvg span:first-of-type {
+    margin-right: auto;
+}
+
+.view-mode a[href], .any-mode a[href] {
+    color: darkblue;
+}
+
+.view-mode a[href]:hover, .any-mode a[href]:hover {
+    color: lightblue;
+    background-color: darkblue;
+}

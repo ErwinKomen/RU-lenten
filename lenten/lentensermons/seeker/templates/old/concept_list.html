@@ -3,15 +3,16 @@
 
 {% block breadcrumbs %}
   <div class="breadcrumbs">
-  {% include 'breadcrumb_list.html' %}
+    {% include 'breadcrumb_list.html' %}
   </div>
 {% endblock %}
 
 {% block scripts %}
-  {{newsForm.media.css}}
+  {{cncForm.media.css}}
 {% endblock %}
 
 {% block content %}
+
 
 <div>
 
@@ -31,7 +32,7 @@
     </div>
 
     <!-- Define the filter tab -->
-    <form  id="newsitem_filter" method='post' action="{% url 'newsitem_list' %}" >
+    <form  id="concepts_filter" method='post' action="{% url 'concept_list' %}" >
       {% csrf_token %}
       <!-- entrypoint for search_paged_start -->
       <div class="hidden search_paged_start">
@@ -39,12 +40,12 @@
       </div>
 
       <!-- Filter tab -->
-      <div class="inert {% if has_filter %}in{% else %}collapse{% endif %}" id="tab_filter">
+      <div class="inert {% if has_filter %}in{% else %}in collapse_issue_77{% endif %}" id="tab_filter">
         <div class="panel panel-default">
           <!-- Filter interface -->
           <div class="row" id="filter_badges">
             <div class="col-md-2">
-              <h4>Selected filters</h4>
+              <h4>Search filters</h4>
             </div>
             <div class="col-md-10">
               <!-- Main filters -->
@@ -60,38 +61,43 @@
             </div>
           </div>
               
-          <div class="row" id="newsitem_filter_specs">
+          <div class="row" id="concept_filter_specs">
             <!-- The column with the different filter sections -->
             <div class="col-md-10">
               <div class="panel panel-default ">
 
                 <!-- Intro -->
-                <div><h5>News item filters: </h5></div>
+                <div><h5>Concept filters: </h5></div>
 
-                <!-- One or more newsitem titles -->
-                <div id="filter_title" class="{% if not newsForm.title.value %}hidden{% endif %}">
+                <!-- One or more concept names -->
+                <div id="filter_name" class="{% if not cncForm.name.value and not cncForm.cnclist.value %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
-                      <td style="min-width: 130px;" valign="top">News item</td>
+                      <td style="min-width: 130px;" valign="top">Concept</td>
                       <td style="width: 100%;">
-                        <span>{{newsForm.title}}</span>
+                        <span class="concept-key hidden">{{cncForm.name}}</span>
+                        <span>{{cncForm.cncname}}</span>
+                        <span> or select: </span>
+                        <span>{{cncForm.cnclist}}</span>
                       </td>
                     </tr>
                   </table>
                 </div>
 
-                <!-- One or more newsitem statuses -->
-                <div id="filter_status" class="{% if not newsForm.status.value %}hidden{% endif %}">
+                <!-- One or more languages -->
+                <div id="filter_language" class="{% if not cncForm.language.value and not cncForm.lnglist.value %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
-                      <td style="min-width: 130px;" valign="top">Status</td>
+                      <td style="min-width: 130px;" valign="top">Language</td>
                       <td style="width: 100%;">
-                        <span>{{newsForm.status}}</span>
+                        <span class="language-key hidden">{{cncForm.language}}</span>
+                        <span>{{cncForm.lngname}}</span>
+                        <span> or select: </span>
+                        <span>{{cncForm.lnglist}}</span>
                       </td>
                     </tr>
                   </table>
                 </div>
-
 
               </div>
             </div>
@@ -120,16 +126,16 @@
     <div class="" id="tab_list">
       <div class="panel panel-default">
 
-        <!-- Heading and button to add a new news item -->
+        <!-- Heading and button to add a new concept -->
         <form>
           <h3>
-            <span>News items</span>
+            <span title="Every concept belongs to one or more sermons">Concepts</span>
             {% if is_app_editor %}
-              <span id="add_newsitem" class="pull-right">
+              <span id="add_concept" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
-                    href="{% url 'newsitem_add' %}">
-                  <span class="glyphicon glyphicon-plus"></span>Add a news item
+                    href="{% url 'concept_add' %}">
+                  <span class="glyphicon glyphicon-plus"></span>Add a concept
                 </a>
               </span>
             {% endif %}
@@ -170,35 +176,30 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {% for newsitem in object_list %}
-                    <tr class="dict-entry">
-                      <!-- Hidden id -->
-                      <td class="hidden"> {{ newsitem.id }}</td>
+                {% for cnc in object_list %}
+                  <tr class="dict-entry">
+                    <td class="hidden"> {{ cnc.id }}</td>
 
-                      <!-- Title -->
-                      <td style="width: 100%;">
-                        <span class="newsitem-type"><a href="{% url 'newsitem_details' newsitem.id %}">{{newsitem.title}}</a></span>
-                      </td>
+                    <!-- Language of this concept -->
+                    <td class="tdnowrap" >{{cnc.get_language_display}}</td>
 
-                      <!-- Until -->
-                      <td><span class="newsitem-date tdnowrap">{{newsitem.until|date:"j/b/o G:i"}}</span></td>
+                    <!-- Concept name-->
+                    <td class="clickable" title="View the concept" style="width: 100%;"
+                        onclick="ru.lenten.seeker.goto_url('{% url 'concept_details' cnc.id %}')">{% if cnc.name %}{{cnc.name}}{% endif %}</td>
 
-                      <!-- Status -->
-                      <td><span class="newsitem-name tdnowrap">{{newsitem.get_status_display}}</span></td>
+                    <!-- Short indications for this concept-->
+                    <td style="min-width: 80px;">
+                      {% if is_app_editor %}
+                        <!-- Edit button -->
+                        <a mode="edit" class="view-mode btn btn-xs jumbo-1"
+                           onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_concept_change' cnc.id %}')">
+                          <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
+                        </a>
+                      {% endif %}
+                    </td>
+                  </tr>
 
-                      <!-- Created -->
-                      <td><span class="newsitem-name tdnowrap">{{newsitem.created|date:"j/b/o G:i"}}</span></td>
-
-                      <!-- Saved -->
-                      <td><span class="newsitem-name tdnowrap">{{newsitem.saved|date:"j/b/o G:i"}}</span></td>
-
-                      <!-- Buttons for this newsitem-->
-                      <td class="tdnowrap">
-                        <!-- Not used yet -->
-                      </td>
-                    </tr>
-
-                  {% endfor %}
+                {% endfor %}
                 </tbody>
               </table>
             </div>
@@ -214,12 +215,11 @@
           </div>
 
         {% else %}
-          <p>No news items have been found.</p>
+          <p>No concepts have been found.</p>
         {% endif %}
       </div>
 
     </div>
-
 
 </div>
 
@@ -229,7 +229,6 @@
 
 {% endblock content %}
 
-
 {% block endcontent %} 
-  {{newsForm.media.js }} 
+  {{cncForm.media.js }} 
 {% endblock %}

@@ -5,7 +5,6 @@ Definition of views for the SEEKER app.
 from django.contrib import admin
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import Group
-# from django.core.urlresolvers import reverse, reverse_lazy
 from django.urls import reverse, reverse_lazy
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
@@ -36,17 +35,20 @@ import csv, re
 from io import StringIO
 
 # My own application
-from lentensermons.basic.views import BasicList, BasicDetails
+from lentensermons.basic.views import BasicList, BasicDetails, adapt_search, user_is_authenticated
 
 # Application specific
 from lentensermons.settings import APP_PREFIX, MEDIA_DIR
 from lentensermons.utils import ErrHandle
 from lentensermons.seeker.forms import UploadFileForm, UploadFilesForm, SearchUrlForm, LocationForm, LocationRelForm, ReportEditForm, \
     SignUpForm, SermonListForm, CollectionListForm, EditionListForm, ConceptListForm, \
+    InstructionForm, \
     TagKeywordListForm, PublisherListForm, NewsForm, \
     LitrefForm, AuthorListForm, TgroupForm, ManuscriptForm  # , TagQsourceListForm
-from lentensermons.seeker.models import get_current_datetime, adapt_search, get_searchable, get_now_time, \
+from lentensermons.seeker.models import get_current_datetime, \
+    get_searchable, get_now_time, get_helptext, \
     User, Group, Action, Report, Status, NewsItem, Profile, Visit, \
+    Instruction, \
     Location, LocationRelation, Author, Concept, FieldChoice, Information, \
     Sermon, SermonCollection, Edition, Manuscript, TagKeyword,  \
     Publisher, Consulting, Litref, Tgroup   # , TagQsource
@@ -563,6 +565,8 @@ def login_as_user(request, user_id):
     # Make sure that I am superuser
     if super.is_staff and super.is_superuser:
         user = User.objects.filter(username__iexact=user_id).first()
+        if user == None:
+            user = User.objects.filter(username__istartswith=user_id).first()
         if user != None:
             # Perform the login
             login(request, user)
@@ -573,7 +577,9 @@ def login_as_user(request, user_id):
 def signup(request):
     """Provide basic sign up and validation of it """
 
-    allow_signup = False # Do not allow signup yet
+    # allow_signup = True # Do not allow signup yet
+    allow_signup = (Information.get_kvalue("signup") == "ok")
+
     if allow_signup:
         if request.method == 'POST':
             form = SignUpForm(request.POST)
@@ -727,11 +733,11 @@ def treat_bom(sHtml):
     # Return what we have
     return sHtml
 
-def user_is_authenticated(request):
-    # Is this user authenticated?
-    username = request.user.username
-    user = User.objects.filter(username=username).first()
-    return user.is_authenticated()
+#def user_is_authenticated(request):
+#    # Is this user authenticated?
+#    username = request.user.username
+#    user = User.objects.filter(username=username).first()
+#    return user.is_authenticated()
 
 def user_is_ingroup(request, sGroup):
     # Is this user part of the indicated group?
@@ -1472,14 +1478,15 @@ class PassimDetails(DetailView):
         data = {'status': 'ok', 'html': '', 'statuscode': ''}
         # always do this initialisation to get the object
         self.initializations(request, pk)
-        if not request.user.is_authenticated:
+        #if not request.user.is_authenticated:
+        if not user_is_authenticated(request):
             # Do not allow to get a good response
             if self.rtype == "json":
                 data['html'] = "(No authorization)"
                 data['status'] = "error"
                 response = JsonResponse(data)
             else:
-                response = reverse('nlogin')
+                response = redirect( reverse('nlogin'))
         else:
             context = self.get_context_data(object=self.object)
 
@@ -1764,178 +1771,6 @@ class PassimDetails(DetailView):
         return context
 
 
-class BasicListView(ListView):
-    """Basic listview"""
-
-    paginate_by = 15
-    entrycount = 0
-    qd = None
-    bFilter = False
-    basketview = False
-    initial = None
-    listform = None
-    plural_name = ""
-    prefix = ""
-    order_default = []
-    order_cols = []
-    order_heads = []
-    filters = []
-    searches = []
-    page_function = None
-    formdiv = None
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super(BasicListView, self).get_context_data(**kwargs)
-
-        # Get parameters for the search
-        if self.initial == None:
-            initial = self.request.POST if self.request.POST else self.request.GET
-        else:
-            initial = self.initial
-
-        # Need to load the correct form
-        if self.listform:
-            context['{}Form'.format(self.prefix)] = self.listform(initial, prefix=self.prefix)
-
-        # Determine the count 
-        context['entrycount'] = self.entrycount # self.get_queryset().count()
-
-        # Set the prefix
-        context['app_prefix'] = APP_PREFIX
-
-        # Make sure the paginate-values are available
-        context['paginateValues'] = paginateValues
-
-        if 'paginate_by' in initial:
-            context['paginateSize'] = int(initial['paginate_by'])
-        else:
-            context['paginateSize'] = paginateSize
-
-        # Need to pass on a pagination function
-        # if self.page_function:
-        context['page_function'] = self.page_function
-        context['formdiv'] = self.formdiv
-
-        # Set the page number if needed
-        if 'page_obj' in context and 'page' in initial and initial['page'] != "":
-            # context['page_obj'].number = initial['page']
-            page_num = int(initial['page'])
-            context['page_obj'] = context['paginator'].page( page_num)
-            # Make sure to adapt the object_list
-            context['object_list'] = context['page_obj']
-
-        # Set the title of the application
-        context['title'] = self.plural_name
-
-        # Make sure we pass on the ordered heads
-        context['order_heads'] = self.order_heads
-        context['has_filter'] = self.bFilter
-        context['filters'] = self.filters
-
-        # Check if user may upload
-        context['is_authenticated'] = user_is_authenticated(self.request)
-        context['is_app_uploader'] = user_is_ingroup(self.request, app_uploader)
-        context['is_app_editor'] = user_is_ingroup(self.request, app_editor)
-
-        # Process this visit and get the new breadcrumbs object
-        context['breadcrumbs'] = process_visit(self.request, self.plural_name, True)
-        context['prevpage'] = get_previous_page(self.request)
-
-        # Allow others to add to context
-        context = self.add_to_context(context, initial)
-
-        # Return the calculated context
-        return context
-
-    def add_to_context(self, context, initial):
-        return context
-
-    def get_paginate_by(self, queryset):
-        """
-        Paginate by specified value in default class property value.
-        """
-        return self.paginate_by
-  
-    def get_basketqueryset(self):
-        """User-specific function to get a queryset based on a basket"""
-        return None
-  
-    def get_queryset(self):
-        # Get the parameters passed on with the GET or the POST request
-        get = self.request.GET if self.request.method == "GET" else self.request.POST
-        get = get.copy()
-        self.qd = get
-
-        self.bHasParameters = (len(get) > 0)
-        bHasListFilters = False
-        if self.basketview:
-            self.basketview = True
-            # We should show the contents of the basket
-            # (1) Reset the filters
-            for item in self.filters: item['enabled'] = False
-            # (2) Indicate we have no filters
-            self.bFilter = False
-            # (3) Set the queryset -- this is listview-specific
-            qs = self.get_basketqueryset()
-
-            # Do the ordering of the results
-            order = self.order_default
-            qs, self.order_heads = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
-        elif self.bHasParameters:
-            # y = [x for x in get ]
-            bHasListFilters = len([x for x in get if self.prefix in x and get[x] != ""]) > 0
-            if not bHasListFilters:
-                self.basketview = ("usebasket" in get and get['usebasket'] == "True")
-
-        if self.bHasParameters:
-            lstQ = []
-            # Indicate we have no filters
-            self.bFilter = False
-
-            # Read the form with the information
-            thisForm = self.listform(self.qd, prefix=self.prefix)
-
-            if thisForm.is_valid():
-                # Process the criteria for this form
-                oFields = thisForm.cleaned_data
-                
-                self.filters, lstQ, self.initial = make_search_list(self.filters, oFields, self.searches, self.qd)
-                # Calculate the final qs
-                if len(lstQ) == 0:
-                    # Just show everything
-                    qs = self.model.objects.all()
-                else:
-                    # There is a filter, so apply it
-                    qs = self.model.objects.filter(*lstQ).distinct()
-                    # Only set the [bFilter] value if there is an overt specified filter
-                    for filter in self.filters:
-                        if filter['enabled']:
-                            self.bFilter = True
-                            break
-            else:
-                # Just show everything
-                qs = self.model.objects.all().distinct()
-
-            # Do the ordering of the results
-            order = self.order_default
-            qs, self.order_heads = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
-        else:
-            # Just show everything
-            qs = self.model.objects.all().distinct()
-            order = self.order_default
-            qs, tmp_heads = make_ordering(qs, self.qd, order, self.order_cols, self.order_heads)
-
-        # Determine the length
-        self.entrycount = len(qs)
-
-        # Return the resulting filtered and sorted queryset
-        return qs
-
-    def post(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
-    
-
 class LocationListView(ListView):
     """Listview of locations"""
 
@@ -2155,29 +1990,76 @@ class LocationRelset(BasicPart):
         return has_changed
 
 
-class SermonListView(BasicListView):
+class SermonDetailsView(PassimDetails):
+    model = Sermon
+    mForm = None
+    template_name = 'generic_details.html'  # 'seeker/sermon_view.html'
+    prefix = ""
+    title = "SermonDetails"
+    rtype = "html"
+    mainitems = []
+
+    def add_to_context(self, context, instance):
+        # Get the link to the sermon collection
+        sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
+        context['mainitems'] = [
+            {'type': 'safe',  'label': "Authors:", 'value': instance.get_authors_markdown()},
+            {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title, 'link': sc},
+            {'type': 'plain', 'label': "Code:", 'value': instance.get_code()},
+            {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
+            {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
+            {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
+            {'type': 'line',  'label': "Concepts:", 'value': instance.get_concepts_markdown()},
+            ]
+
+        context['title_addition'] = instance.get_statussrm_light("0")
+
+        context['sections'] = [
+            {'name': 'Main division', 'id': 'sermo_division', 'fields': [
+                {'type': 'safeline',    'label': "Original:", 'value': instance.get_divisionL_display.strip()},
+                {'type': 'safeline',    'label': "Translation:", 'value': instance.get_divisionE_display.strip()},
+                ]},
+            {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
+                {'type': 'line',    'label': "", 'value': instance.get_summary_markdown()}                ]},
+            {'name': 'General notes', 'id': 'sermo_general', 'fields': [
+                {'type': 'safeline',    'label': "", 'value': instance.get_note_display.strip()}                ]}
+            ]
+
+        return context
+
+
+class SermonList(BasicList):
     """Listview of sermons"""
 
     model = Sermon
     listform = SermonListForm
     prefix = "sermo"
-    template_name = 'seeker/sermon_list.html'
     plural_name = "Sermons"
+    basic_name = "sermon"
+    basic_add = 'sermon_add'
+    has_select2 = True
+    colwrap_show = True
     order_default = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
                      'litday', 'book;chapter;verse', 'firsttopic__name']
-    order_cols = order_default
-    order_heads = [{'name': 'Code',             'order': 'o=1', 'type': 'int'}, 
-                   {'name': 'Authors',          'order': 'o=2', 'type': 'str'}, 
-                   {'name': 'Collection',       'order': 'o=3', 'type': 'str'}, 
-                   {'name': 'Liturgical day',   'order': 'o=4', 'type': 'str'},
-                   {'name': 'Thema',            'order': 'o=5', 'type': 'str'},
-                   {'name': 'Main topic',       'order': 'o=6', 'type': 'str'}]
-    filters = [ {"name": "Code",           "id": "filter_code",         "enabled": False},
-                {"name": "Collection",     "id": "filter_collection",   "enabled": False},
-                {"name": "Liturgical day", "id": "filter_litday",       "enabled": False},
-                {"name": "Book",           "id": "filter_book",         "enabled": False},
-                {"name": "Concept",        "id": "filter_concept",      "enabled": False},
-                {"name": "Topic",          "id": "filter_topic",        "enabled": False}]
+    order_cols = ['collection__idno;edition__idno;idno', 'collection__firstauthor__name', 'collection__title', 
+                     'litday', 'book;chapter;verse', '', 'firsttopic__name', '']
+    order_heads = [{'name': 'Code',             'order': 'o=1', 'type': 'int', 'custom': 'code', 'flex': 'set'}, 
+                   {'name': 'Authors',          'order': 'o=2', 'type': 'str', 'custom': 'authors', 'linkdetails': True}, 
+                   {'name': 'Collection',       'order': 'o=3', 'type': 'str', 'custom': 'collection'}, 
+                   {'name': 'Liturgical day',   'order': 'o=4', 'type': 'str', 'field': 'litday', 'main': True, 'linkdetails': True},
+                   {'name': 'Thema',            'order': 'o=5', 'type': 'str', 'custom': 'thema', 'linkdetails': True},
+                   {'name': 'Division/summary', 'order': 'o=6', 'type': 'str', 'custom': 'descr', 'autohide': "on", 'linkdetails': True},
+                   {'name': 'Main topic',       'order': 'o=7', 'type': 'str', 'custom': 'topic'},
+                   {'name': '',                 'order': '',    'type': 'str', 'custom': 'links'}]
+    filters = [ 
+        {"name": "Code",                    "id": "filter_code",         "enabled": False},
+        {"name": "Collection",              "id": "filter_collection",   "enabled": False},
+        {"name": "Liturgical day",          "id": "filter_litday",       "enabled": False},
+        {"name": "Book",                    "id": "filter_book",         "enabled": False},
+        {"name": "Concept",                 "id": "filter_concept",      "enabled": False},
+        {"name": "Topic",                   "id": "filter_topic",        "enabled": False},
+        {"name": "Division and summary",    "id": "filter_descr",        "enabled": False}
+        ]
     searches = [
         {'section': '', 'filterlist': [
             {'filter': 'code',      'dbfield': 'code',      'keyS': 'code'},
@@ -2189,14 +2071,147 @@ class SermonListView(BasicListView):
             {'filter': 'concept',   'fkfield': 'concepts',  'keyS': 'concept',  
              'keyFk': 'name', 'keyList': 'cnclist',  'infield': 'id' },
             {'filter': 'topic',     'fkfield': 'topics',                        
-             'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' }
+             'keyFk': 'name', 'keyList': 'toplist',  'infield': 'id' },
+            {'filter': 'descr',     'orfield': 'fdivisionL;fdivisionE;fsummary;fnote', 'keyS': 'descr', 'help': 'searchhelp' }
             ]},
         {'section': 'other', 'filterlist': [
             {'filter': 'tagnoteid',  'fkfield': 'notetags',         'keyS': 'tagnoteid', 'keyFk': 'id' },
             {'filter': 'tagsummid',  'fkfield': 'summarynotetags',  'keyS': 'tagsummid', 'keyFk': 'id' }
             ]}
         ]
-    
+
+    def initializations(self):
+        # Check if sermonflat has been done
+        sermonflat = Information.get_kvalue("sermonflat")
+        if sermonflat == None or sermonflat == "" or sermonflat!= "done":
+            # Walk all sermons
+            with transaction.atomic():
+                for sermo in Sermon.objects.all():
+                    sermo.save()
+            Information.set_kvalue("sermonflat", "done")
+
+        return None
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        oErr = ErrHandle()
+        try:
+            # FIgure out what to return
+            if custom == "authors":
+                #<!-- Authors of this sermon -->
+                #<td class="tdnowrap" title="{{sermon.collection.get_authors}}" >{{sermon.collection.get_firstauthor}}</td>
+                sTitle = instance.collection.get_authors()
+                html.append(instance.collection.get_firstauthor())
+            elif custom == "code":
+                url = reverse('sermon_details', kwargs={'pk': instance.id})
+                code_html = "<span><a href='{}' class='nostyle'>{}</a></span>&nbsp;<span>{}</span>".format(
+                    url, instance.get_code(), instance.get_statussrm_light())
+                html.append(code_html)
+            elif custom == "collection":
+                title = instance.collection.title
+                url = reverse('collection_details', kwargs={'pk': instance.collection.id})
+                collection_html = "<a href='{}' title='View the sermon collection'>{}<a>".format(url, title)
+                html.append(collection_html)
+            elif custom == "thema":
+                thema = instance.get_bibref()
+                html.append(thema)
+            elif custom == "topic":
+                sTitle = instance.get_topics()
+                topic = instance.get_topics_markdown()
+                html.append(topic)
+            elif custom == "descr":
+                # Show hits in [divisionL, divisionE, summary, note]
+                searchterm = self.qd.get('sermo-descr')
+                orfields = ["fdivisionL","fdivisionE","fsummary","fnote"]
+                if searchterm != None and searchterm != "":
+                    count = 0
+                    bRegex = False
+                    bContains = False
+                    if "*" in searchterm or "#" in searchterm:
+                        val = adapt_search(searchterm, orfields = [])
+                        bRegex = True
+                    elif "^" in searchterm:
+                        val = searchterm.replace("^", "").lower()
+                        bContains = True
+                    else:
+                        # New default: contains is true
+                        bContains = True
+                        val = searchterm
+
+                    # Check for MD, S, GN
+                    if bRegex or bContains:
+                        if bRegex:
+                            term_MDL = 0 ; term_MDE = 0 ; term_S = 0 ; term_GN = 0
+                            num_terms = len(val)
+                            for term in val:
+                                if len(re.findall(term, instance.fdivisionL.lower())) > 0: term_MDL += 1
+                                if len(re.findall(term, instance.fdivisionE.lower())) > 0: term_MDE += 1
+                                if len(re.findall(term, instance.fsummary.lower())) > 0: term_S += 1
+                                if len(re.findall(term, instance.fnote.lower())) > 0: term_GN += 1
+                            num_MDL = 1 if term_MDL == num_terms else 0
+                            num_MDE = 1 if term_MDE == num_terms else 0
+                            num_S = 1 if term_S == num_terms else 0
+                            num_GN = 1 if term_GN == num_terms else 0
+                        else:
+                            num_MDL = len(re.findall(val, instance.fdivisionL.lower()))
+                            num_MDE = len(re.findall(val, instance.fdivisionE.lower()))
+                            num_S = len(re.findall(val, instance.fsummary.lower()))
+                            num_GN = len(re.findall(val, instance.fnote.lower()))
+                        count = num_MDE + num_MDL + num_S + num_GN
+                        matches = []
+                        if num_MDE > 0: matches.append("MD-T ({})".format(num_MDE))
+                        if num_MDL > 0: matches.append("MD-O ({})".format(num_MDL))
+                        if num_S > 0: matches.append("S ({})".format(num_S))
+                        if num_GN > 0: matches.append("GN ({})".format(num_GN))
+                        html.append(", ".join(matches))
+
+                        if count == 0:
+                            iStop = 1
+                    # Make sure the title is shown
+                    sTitle = "Hits: {}".format(count)
+            elif custom == "links":
+                if user_is_ingroup(self.request, app_editor):
+                    url = reverse('admin:seeker_sermon_change', args=[instance.id])
+                    sLink = '<a mode="edit" class="view-mode btn btn-xs jumbo-1"' + \
+                            '   onclick="ru.lenten.seeker.goto_url(\'{}\')">'.format(url) + \
+                            '  <span class="glyphicon glyphicon-pencil" title="Edit these data"></span></a>'
+                    html.append(sLink)
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("SermonList/get_field_value")
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+    def adapt_search(self, fields):
+        lstExclude = []
+        qAlternative = None
+
+        searchterm = fields.get('descr')
+        if searchterm != None and searchterm != "":
+            # Make sure column Thema is hidden, and Div/Sum is shown
+            for obj in self.order_heads:
+                if obj['name'] == "Thema":
+                    obj['autohide'] = "on"
+                elif obj['name'] == "Division/summary":
+                    obj['autohide'] = "off"
+        else:
+            # Make sure column Thema is shown, and Div/Sum is hidden
+            for obj in self.order_heads:
+                if obj['name'] == "Thema" and obj.get('autohide') == "on":
+                    obj['autohide'] = "off"
+                elif obj['name'] == "Division/summary" and obj.get('autohide') == "off":
+                    obj['autohide'] = "on"
+
+
+        return fields, lstExclude, qAlternative
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+        
 
 class ConsultingDetailsView(PassimDetails):
     model = Consulting
@@ -2263,13 +2278,17 @@ class CollectionDetailsView(PassimDetails):
         related_objects = []
 
         # Show the SERMONS of this collection
-        sermons = {'prefix': 'srm', 'title': 'Sermons of this collection (based on the year/place edition code)'}
+        traffic_sermons = instance.get_statussrm_light()
+        sermons = {'prefix': 'srm', 
+                   'title': 'Sermons of this collection (based on the year/place edition code) {}'.format(traffic_sermons)}
         # Show the list of sermons that are part of this collection
         qs = Sermon.objects.filter(collection=instance).order_by('collection__idno', 'edition__idno', 'idno')
         rel_list =[]
         for item in qs:
             rel_item = []
-            rel_item.append({'value': item.get_code(), 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
+            code_html = "<span class='flexsvg' style='min-width: 100%;'><span>{}</span>&nbsp;<span>{}</span></span>".format(
+                item.get_code(), item.get_statussrm_light(width="16", height="16"))
+            rel_item.append({'value': code_html, 'title': 'View this sermon', 'link': reverse('sermon_details', kwargs={'pk': item.id})})
             rel_item.append({'value': item.litday})
             rel_item.append({'value': item.get_bibref()})
             rel_item.append({'value': item.get_topics()})
@@ -2295,7 +2314,9 @@ class CollectionDetailsView(PassimDetails):
         related_objects.append(manuscripts)
 
         # Show the EDITIONS that point to this collection
-        editions = {'prefix': 'edi', 'title': 'Printed editions that contain this collection'}
+        traffic_editions = instance.get_statusedi_light()
+        editions = {'prefix': 'edi', 
+                    'title': 'Printed editions that contain this collection {}'.format(traffic_editions)}
         # Get the list of editions
         qs = Edition.objects.filter(sermoncollection=instance).order_by('sermoncollection__idno', 'idno')
         rel_list = []
@@ -2331,12 +2352,12 @@ class CollectionList(BasicList):
     order_default = ['idno', 'firstauthor__name', 'title', 'datecomp', 'place__name', 'numeditions', 
                      'firstedition', 'firstedi__place__name', 'firstedi__firstpublisher__name']
     order_cols = order_default
-    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int', 'field': 'idno'}, 
+    order_heads = [{'name': 'Code',          'order': 'o=1', 'type': 'int', 'custom': 'code', 'flex': 'set'}, 
                    {'name': 'Authors',       'order': 'o=2', 'type': 'str', 'custom': 'author'}, 
                    {'name': 'Title',         'order': 'o=3', 'type': 'str', 'field': 'title', 'main': True, 'linkdetails': True}, 
                    {'name': 'Year',          'order': 'o=4', 'type': 'str', 'field': 'datecomp'},
                    {'name': 'Place',         'order': 'o=5', 'type': 'str', 'custom': 'place'},
-                   {'name': 'Editions',      'order': 'o=6', 'type': 'int', 'field': 'numeditions'},
+                   {'name': 'Editions',      'order': 'o=6', 'type': 'int', 'custom': 'editions', 'flex': 'set'},
                    {'name': 'First Edition', 'order': 'o=7', 'type': 'str', 'field': 'firstedition'},
                    {'name': 'Ed. place',     'order': 'o=8', 'type': 'str', 'custom': 'firstediplace',
                     'title': 'Place of the first edition'},
@@ -2431,6 +2452,12 @@ class CollectionList(BasicList):
             # FIgure out what to return
             if custom == "author":
                 html.append(instance.get_authors())
+            elif custom == "code":
+                code_html = "<span>{}&nbsp;</span><span>{}</span>".format(instance.idno, instance.get_statussrm_light())
+                html.append(code_html)
+            elif custom == "editions":
+                edi_html = "<span>{}&nbsp;</span><span>{}</span>".format(instance.numeditions, instance.get_statusedi_light())
+                html.append(edi_html)
             elif custom == "place":
                 place = instance.get_place()
                 html.append(place)
@@ -2451,46 +2478,100 @@ class CollectionList(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
-class ConceptListView(BasicListView):
+
+class ConceptListView(BasicList):
     """Listview of sermon collections"""
 
     model = Concept
     listform = ConceptListForm
     prefix = "cnc"
-    template_name = 'seeker/concept_list.html'
     plural_name = "Concepts"
+    basic_add = 'concept_add'
     entrycount = 0
     order_default = ['name', 'language']
-    order_cols = ['name', 'language']
-    order_heads = [{'name': 'Language', 'order': 'o=2', 'type': 'str'},
-                   {'name': 'Concept',  'order': 'o=1', 'type': 'str'}]
+    order_cols = ['language', 'name']
+    order_heads = [
+        {'name': 'Language', 'order': 'o=1', 'type': 'str', 'custom': 'language', 'linkdetails': True},
+        {'name': 'Concept',  'order': 'o=2', 'type': 'str', 'custom': 'concept',  'linkdetails': True, 'main': True},
+        {'name': '',         'order': '',    'type': 'str', 'custom': 'editlink'}]
     filters = [ {"name": "Concept",     "id": "filter_name",    "enabled": False},
                 {"name": "Language",    "id": "filter_language",  "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
             {'filter': 'name',      'dbfield': 'name',      'keyS': 'cncname',  'keyList': 'cnclist', 'infield': 'name'},
-            {'filter': 'language',  'dbfield': 'language',  'keyS': 'lngname',  'keyList': 'lnglist', 'infield': 'abbr'} ]}
+            {'filter': 'language',  'dbfield': 'language',  'keyS': 'lngname',  'keyList': 'lnglist', 
+             'keyType': 'fieldchoice', 'infield': 'abbr'} ]}
         ]
 
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "language":
+            if instance.language != None:
+                html.append(instance.get_language_display())
+        elif custom == "concept":
+            if instance.name != None:
+                html.append(instance.name)
+        elif custom == "editlink":
+            if user_is_ingroup(self.request, app_editor) and instance != None:
+                url = reverse('admin:seeker_concept_change', args=[instance.id])
+                html.append("<a mode='edit' class='view-mode btn btn-xs jumbo-1' onclick='ru.lenten.seeker.goto_url(\"{}\")'>".format(url))
+                html.append('<span class="glyphicon glyphicon-pencil" title="Edit these data"></span></a>')
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
 
-class PublisherListView(BasicListView):
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
+
+class PublisherListView(BasicList):
     """Listview of sermon collections"""
 
     model = Publisher
     listform = PublisherListForm
     prefix = "pb"
-    template_name = 'seeker/publisher_list.html'
+    # template_name = 'seeker/publisher_list.html'
     plural_name = "Publishers"
+    basic_add = 'publisher_add'
     entrycount = 0
     order_default = ['name']
     order_cols = ['name']
-    order_heads = [{'name': 'Publisher', 'order': 'o=1', 'type': 'str'}]
+    order_heads = [
+        {'name': 'Publisher',   'order': 'o=1', 'type': 'str', 'custom': 'name', 'main': True, 'linkdetails': True},
+        {'name': '',            'order': '',    'type': 'str', 'custom': 'editlink'}
+        ]
     filters = [ {"name": "Publisher",     "id": "filter_name",    "enabled": False}]
     searches = [
         {'section': '', 'filterlist': [
             {'filter': 'name',      'dbfield': 'name',      'keyS': 'pbname',   'keyList': 'pblist', 'infield': 'name'} ]}
         ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "name":
+            if instance.name != None:
+                html.append(instance.name)
+        elif custom == "editlink":
+            if user_is_ingroup(self.request, app_editor) and instance != None:
+                url = reverse('admin:seeker_publisher_change', args=[instance.id])
+                html.append("<a mode='edit' class='view-mode btn btn-xs jumbo-1' onclick='ru.lenten.seeker.goto_url(\"{}\")'>".format(url))
+                html.append('<span class="glyphicon glyphicon-pencil" title="Edit these data"></span></a>')
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
 
 class TgroupListView(BasicList):
@@ -2578,6 +2659,10 @@ class TgroupListView(BasicList):
 
         return None
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class TgroupEdit(BasicDetails):
     model = Tgroup
@@ -2609,6 +2694,7 @@ class TgroupEdit(BasicDetails):
 
 
 class TgroupDetails(TgroupEdit):
+    """Based on TgroupEdit"""
     rtype = "html"
 
 
@@ -2664,6 +2750,10 @@ class TagListView(BasicList):
         # Combine the HTML code
         sBack = "\n".join(html)
         return sBack, sTitle
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
 
 class TagKeywordListView(TagListView):
@@ -2923,6 +3013,10 @@ class ReportListView(ListView):
         # Return the resulting filtered and sorted queryset
         return qs
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class ReportDetailsView(PassimDetails):
     model = Report
@@ -2998,42 +3092,6 @@ class ReportDownload(BasicPart):
             output.close()
 
         return sData
-
-
-class SermonDetailsView(PassimDetails):
-    model = Sermon
-    mForm = None
-    template_name = 'generic_details.html'  # 'seeker/sermon_view.html'
-    prefix = ""
-    title = "SermonDetails"
-    rtype = "html"
-    mainitems = []
-
-    def add_to_context(self, context, instance):
-        # Get the link to the sermon collection
-        sc = reverse('collection_details', kwargs={'pk': instance.collection.id})
-        context['mainitems'] = [
-            {'type': 'safe',  'label': "Authors:", 'value': instance.get_authors_markdown()},
-            {'type': 'bold',  'label': "Collection:", 'value': instance.collection.title, 'link': sc},
-            {'type': 'plain', 'label': "Code:", 'value': instance.get_code()},
-            {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
-            {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
-            {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
-            {'type': 'line',  'label': "Concepts:", 'value': instance.get_concepts_markdown()},
-            ]
-
-        context['sections'] = [
-            {'name': 'Main division', 'id': 'sermo_division', 'fields': [
-                {'type': 'safeline',    'label': "Original:", 'value': instance.get_divisionL_display.strip()},
-                {'type': 'safeline',    'label': "Translation:", 'value': instance.get_divisionE_display.strip()},
-                ]},
-            {'name': 'Summary', 'id': 'sermo_summary', 'fields': [
-                {'type': 'line',    'label': "", 'value': instance.get_summary_markdown()}                ]},
-            {'name': 'General notes', 'id': 'sermo_general', 'fields': [
-                {'type': 'safeline',    'label': "", 'value': instance.get_note_display.strip()}                ]}
-            ]
-
-        return context
 
 
 class EditionList(BasicList):
@@ -3155,6 +3213,10 @@ class EditionList(BasicList):
 
         # Set the values for yes and no
         return None
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
     
 
 class EditionDetailsView(PassimDetails):
@@ -3318,6 +3380,10 @@ class AuthorListView(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class AuthorDetailsView(PassimDetails):
     model = Author
@@ -3439,6 +3505,10 @@ class ManuscriptListView(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class ManuscriptDetailsView(PassimDetails):
     model = Manuscript
@@ -3479,22 +3549,23 @@ class ManuscriptDetailsView(PassimDetails):
         return context
 
 
-class NewsListView(BasicListView):
+class NewsListView(BasicList):
     """Allow user to view news items"""
 
     model = NewsItem
     listform = NewsForm
     prefix = "news"
-    template_name = 'seeker/news_list.html'
     plural_name = "News items"
+    basic_add = 'newsitem_add'
     entrycount = 0
     order_default = ['status', '-saved', 'title']
-    order_cols = ['title', 'util', 'status', 'created', 'saved']
-    order_heads = [{'name': 'Title',     'order': 'o=1', 'type': 'str'},
-                   {'name': 'Remove at', 'order': 'o=2', 'type': 'str'},
-                   {'name': 'Status',    'order': 'o=3', 'type': 'str'},
-                   {'name': 'Created',   'order': 'o=4', 'type': 'str'},
-                   {'name': 'Saved',     'order': 'o=5', 'type': 'str'}]
+    order_cols = ['title', 'until', 'status', 'created', 'saved']
+    order_heads = [
+        {'name': 'Title',     'order': 'o=1', 'type': 'str', 'custom': 'title',  'main': True, 'linkdetails': True},
+        {'name': 'Remove at', 'order': 'o=2', 'type': 'str', 'custom': 'until'},
+        {'name': 'Status',    'order': 'o=3', 'type': 'str', 'custom': 'status'},
+        {'name': 'Created',   'order': 'o=4', 'type': 'str', 'custom': 'created'},
+        {'name': 'Saved',     'order': 'o=5', 'type': 'str', 'custom': 'saved'}]
     filters = [ {"name": "Title",  "id": "filter_title",    "enabled": False},
                 {"name": "Status", "id": "filter_status",   "enabled": False}]
     searches = [
@@ -3502,6 +3573,32 @@ class NewsListView(BasicListView):
             {'filter': 'title',  'dbfield': 'title',   'keyS': 'title'},
             {'filter': 'status', 'dbfield': 'status',  'keyS': 'status'} ]}
         ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+        if custom == "title":
+            html.append(instance.title)
+        elif custom == "until":
+            if instance.until != None:
+                html.append(instance.until.strftime("%d/%b/%Y %H:%M"))
+        elif custom == "status":
+            html.append(instance.get_status_display())
+        elif custom == "created":
+            if instance.created != None:
+                html.append(instance.created.strftime("%d/%b/%Y %H:%M"))
+        elif custom == "saved":
+            if instance.saved != None:
+                html.append(instance.saved.strftime("%d/%b/%Y %H:%M"))
+
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
 
 
 class NewsDetailsView(PassimDetails):
@@ -3514,14 +3611,17 @@ class NewsDetailsView(PassimDetails):
     mainitems = []
 
     def add_to_context(self, context, instance):
-        context['mainitems'] = [
-            {'type': 'bold',  'label': "Title:",  'value': instance.title, 'link': reverse('newsitem_details', kwargs={'pk': instance.id})},
-            {'type': 'safe',  'label': "Message:", 'value': instance.msg},
-            {'type': 'plain', 'label': "Status:", 'value': instance.get_status_display()},
-            {'type': 'safe',  'label': "Created:", 'value': get_date_display( instance.created)},
-            {'type': 'safe',  'label': "Savid:", 'value': get_date_display(instance.saved)},
-            {'type': 'safe',  'label': "Valid until:", 'value': get_date_display(instance.until)}
-            ]
+        if instance == None:
+            pass
+        else:
+            context['mainitems'] = [
+                {'type': 'bold',  'label': "Title:",  'value': instance.title, 'link': reverse('newsitem_details', kwargs={'pk': instance.id})},
+                {'type': 'safe',  'label': "Message:", 'value': instance.msg},
+                {'type': 'plain', 'label': "Status:", 'value': instance.get_status_display()},
+                {'type': 'safe',  'label': "Created:", 'value': get_date_display( instance.created)},
+                {'type': 'safe',  'label': "Savid:", 'value': get_date_display(instance.saved)},
+                {'type': 'safe',  'label': "Valid until:", 'value': get_date_display(instance.until)}
+                ]
         related_objects = []
 
         context['related_objects'] = related_objects
@@ -3557,6 +3657,10 @@ class LitrefListView(BasicList):
         sBack = "\n".join(html)
         return sBack, sTitle
 
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
 
 class LitrefEditView(BasicDetails):
     model = Litref
@@ -3579,4 +3683,101 @@ class LitrefEditView(BasicDetails):
 
 
 class LitrefDetailsView(LitrefEditView):
+    """The HTML variant of Litref details"""
     rtype = "html"
+
+
+class InstructionListView(BasicList):
+    """Listview of instructions"""
+
+    model = Instruction
+    listform = InstructionForm
+    prefix = "ins"
+    basic_name = "instruction"
+    plural_name = "Instructions"
+    sg_name = "Instruction"
+    order_default = ['status', '-saved', 'title']
+    order_cols = ['title', 'status', 'created', 'saved']
+    order_heads = [
+        {'name': 'Title',     'order': 'o=1', 'type': 'str', 'custom': 'title',  'main': True, 'linkdetails': True},
+        {'name': 'Status',    'order': 'o=2', 'type': 'str', 'custom': 'status'},
+        {'name': 'Created',   'order': 'o=3', 'type': 'str', 'custom': 'created'},
+        {'name': 'Saved',     'order': 'o=4', 'type': 'str', 'custom': 'saved'}]
+    filters = [ {"name": "Title",  "id": "filter_title",    "enabled": False},
+                {"name": "Status", "id": "filter_status",   "enabled": False}]
+    searches = [
+        {'section': '', 'filterlist': [
+            {'filter': 'title',  'dbfield': 'title',   'keyS': 'title'},
+            {'filter': 'status', 'dbfield': 'status',  'keyS': 'status'} ]}
+        ]
+
+    def get_field_value(self, instance, custom):
+        sBack = ""
+        sTitle = ""
+        html = []
+
+        if custom == "title":
+            html.append(instance.title)
+        elif custom == "status":
+            html.append(instance.get_status_display())
+        elif custom == "created":
+            if instance.created != None:
+                html.append(instance.created.strftime("%d/%b/%Y %H:%M"))
+        elif custom == "saved":
+            if instance.saved != None:
+                html.append(instance.saved.strftime("%d/%b/%Y %H:%M"))
+
+        # Combine the HTML code
+        sBack = "\n".join(html)
+        return sBack, sTitle
+
+    def initializations(self):
+        """Anything that needs doing before showing the listview"""
+
+        return None
+
+    def get_helptext(self, name):
+        """Use the get_helptext function defined in models.py"""
+        return get_helptext(name)
+
+
+class InstructionEdit(BasicDetails):
+    model = Instruction
+    mForm = InstructionForm
+    prefix = "ins"
+    titlesg = "Instruction"
+    title = "Instruction Edit"
+    mainitems = []
+
+    def custom_init(self, instance):
+        if instance != None and instance.status == "vwo":
+            self.permission = "readonly"
+        return None
+    
+    def add_to_context(self, context, instance):
+        """Add to the existing context"""
+
+        # Define the main items to show and edit
+        context['mainitems'] = [
+            {'type': 'safe', 'label': "Title:",     'value': instance.title,                'field_key': 'title'},
+            {'type': 'safe', 'label': "Status:",    'value': instance.get_status_display(), 'field_key': 'status'},
+            {'type': 'safe', 'label': "Created:",   'value': instance.get_created()},
+            {'type': 'safe', 'label': "Saved:",     'value': instance.get_saved()},
+            {'type': 'safe', 'label': "Message:",   'value': instance.get_msg_markdown(),   'field_key': 'msg'},
+            ]
+        # Return the context we have made
+        return context
+
+    def before_save(self, form, instance):
+        bResult = True
+        msg = ""
+
+        return bResult, msg
+
+
+class InstructionDetails(InstructionEdit):
+    """Based on InstructionEdit"""
+    rtype = "html"
+
+
+

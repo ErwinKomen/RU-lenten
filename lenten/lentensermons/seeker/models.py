@@ -13,9 +13,11 @@ import pytz
 from django.urls import reverse
 from datetime import datetime
 from markdown import markdown
+
 from lentensermons.utils import *
 from lentensermons.settings import APP_PREFIX, WRITABLE_DIR
 from lentensermons import tagtext
+
 import sys, os, io, re
 import copy
 import json
@@ -34,10 +36,23 @@ REPORT_TYPE = "seeker.reptype"
 LINK_TYPE = "seeker.linktype"
 EDI_TYPE = "seeker.editype"
 STATUS_TYPE = "seeker.stype"
+PROGRESS_TYPE = "seeker.ptype"
 DATE_TYPE = "seeker.datetype"
 FORMAT_TYPE = "seeker.formattype"
 LANGUAGE_tYPE = "seeker.language"
 YESNO_TYPE = "seeker.yesno"
+
+PTYPE_INITIAL = "ini"
+PTYPE_PROGRESS = "pro"
+PTYPE_COMPLETE = "com"
+traffic_red = ['-', PTYPE_INITIAL]
+traffic_orange = [PTYPE_PROGRESS]
+traffic_green = [PTYPE_COMPLETE]
+traffic_light = '<span title="{}">' + \
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="{}" height="{}" style="margin-bottom: {}px;">' + \
+                '    <circle cx="15" fill="{}" stroke="black" stroke-width="1" cy="15" r="14"></circle>' + \
+                '</svg>' + \
+                '</span>'
 
 
 class FieldChoice(models.Model):
@@ -59,10 +74,16 @@ class FieldChoice(models.Model):
 class HelpChoice(models.Model):
     """Define the URL to link to for the help-text"""
     
-    field = models.CharField(max_length=200)        # The 'path' to and including the actual field
-    searchable = models.BooleanField(default=False) # Whether this field is searchable or not
-    display_name = models.CharField(max_length=50)  # Name between the <a></a> tags
-    help_url = models.URLField(default='')          # THe actual help url (if any)
+    # [1] The 'path' to and including the actual field
+    field = models.CharField(max_length=200)        
+    # [1] Whether this field is searchable or not
+    searchable = models.BooleanField(default=False) 
+    # [1] Name between the <a></a> tags
+    display_name = models.CharField(max_length=50)  
+    # [0-1] The actual help url (if any)
+    help_url = models.URLField("Link to more help", blank=True, null=True, default='')         
+    # [0-1] One-line contextual help
+    help_html = models.TextField("One-line help", blank=True, null=True)
 
     def __str__(self):
         return "[{}]: {}".format(
@@ -80,7 +101,38 @@ class HelpChoice(models.Model):
                     self.display_name, self.help_url)
         return help_text
 
+    def get_text(self):
+        help_text = ''
+        # is anything available??
+        if self.help_url != None and self.help_url != '':
+            if self.help_url[:4] == 'http':
+                help_text = "See: <a href='{}'>{}</a>".format(
+                    self.help_url, self.display_name)
+            else:
+                help_text = "{} ({})".format(
+                    self.display_name, self.help_url)
+        elif self.help_html != None and self.help_html != "":
+            help_text = self.help_html
+        return help_text
+
+    def get_help_markdown(sField):
+        """Get help based on the field name """
+
+        oErr = ErrHandle()
+        sBack = ""
+        try:
+            obj = HelpChoice.objects.filter(field__iexact=sField).first()
+            if obj != None:
+                sBack = obj.get_text()
+                # Convert markdown to html
+                sBack = markdown(sBack) # .replace("<p>", "<code>").replace("</p>", "</code>")
+        except:
+            msg = oErr.get_error_message()
+            oErr.DoError("get_help")
+        return sBack
+
 def get_current_datetime():
+    """Get the current time and date in an appropriate way"""
     return timezone.now()
 
 def adapt_search(val):
@@ -108,6 +160,7 @@ def adapt_markdown(val, lowercase=True):
     return sBack
 
 def is_number(s_input):
+    """Does the string only consist of numbers, optionally between square brackets?"""
     return re.match(r'^[[]?(\d+)[]]?', s_input)
 
 def get_linktype_abbr(sLinkType):
@@ -146,6 +199,12 @@ def get_help(field):
 
     return help_text
 
+def get_helptext(name):
+    sBack = ""
+    if name != "":
+        sBack = HelpChoice.get_help_markdown(name)
+    return sBack
+
 def get_crpp_date(dtThis):
     """Convert datetime to string"""
 
@@ -154,6 +213,7 @@ def get_crpp_date(dtThis):
     return sDate
 
 def get_now_time():
+    """Get the current [time] time"""
     return time.clock()
 
 def obj_text(d):
@@ -447,6 +507,38 @@ def tag_combine_html(obj, sParts, sWhole):
         lHtml = [ "error", msg ]
     return "\n".join(lHtml)
 
+def get_ptype_light(ptype, margin_bottom="-5", width="20", height="20"):
+    """HTML visualization of the different PTYPE statuses"""
+
+    sBack = ""
+    if ptype == "": ptype = "-"
+    red = "gray"
+    orange = "gray"
+    green = "gray"
+    color = "gray"
+    # Determine what the light is going to be
+    
+    if ptype in traffic_orange:
+        orange = "orange"
+        color = "orange"
+        htext = "Status: In progress..."
+    elif ptype in traffic_green:
+        green = "green"
+        color = "green"
+        htext = "Status: Completed"
+    elif ptype in traffic_red:
+        red = "red"
+        color = "red"
+        htext = "Status: Initial"
+
+    # We have the color of the light: visualize it
+    # sBack = traffic_light.format(htext, red, orange, green)
+    sBack = traffic_light.format(htext, width, height, margin_bottom, color)
+
+
+    # REturn what we made
+    return sBack
+
 
 
 # ============= GENERAL CLASSES =================================================================
@@ -487,7 +579,7 @@ class Action(models.Model):
     """Track actions made by users"""
 
     # [1] The user
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_actions")
     # [1] The item (e.g: Manuscript, SermonDescr, SermonGold)
     itemtype = models.CharField("Item type", max_length=MEDIUM_LENGTH)
     # [1] The kind of action performed (e.g: create, edit, delete)
@@ -524,7 +616,7 @@ class Report(models.Model):
     """Report of an upload action or something like that"""
 
     # [1] Every report must be connected to a user and a date (when a user is deleted, the Report is deleted too)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_reports")
     # [1] And a date: the date of saving this report
     created = models.DateTimeField(default=get_current_datetime)
     # [1] A report should have a type to know what we are reporting about
@@ -590,7 +682,7 @@ class Profile(models.Model):
     """Information about the user"""
 
     # [1] Every profile is linked to a user
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_profiles")
     # [1] Every user has a stack: a list of visit objects
     stack = models.TextField("Stack", default = "[]")
 
@@ -692,7 +784,7 @@ class Visit(models.Model):
     """One visit to part of the application"""
 
     # [1] Every visit is made by a user
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_visits")
     # [1] Every visit is done at a certain moment
     when = models.DateTimeField(default=get_current_datetime)
     # [1] Every visit is to a 'named' point
@@ -749,7 +841,7 @@ class NewsItem(models.Model):
     # [1] the message that needs to be shown (in html)
     msg = models.TextField("Message")
     # [1] the status of this message (can e.g. be 'archived')
-    status = models.CharField("Status", choices=build_abbr_list(VIEW_STATUS), 
+    status = models.CharField("Status", choices=build_abbr_list(VIEW_STATUS), default="val",
                               max_length=5, help_text=get_help(VIEW_STATUS))
 
     def __str__(self):
@@ -780,6 +872,52 @@ class NewsItem(models.Model):
 
 # ============================= APPLICATION-SPECIFIC CLASSES =====================================
 
+class Instruction(models.Model):
+    """An instruction-item that can be displayed or switched off"""
+
+    # [1] title of this news-item
+    title = models.CharField("Title",  max_length=MEDIUM_LENGTH, default="SUPPLY A TITLE")
+    # [1] the date when this item was created
+    created = models.DateTimeField(default=get_current_datetime)
+    saved = models.DateTimeField(null=True, blank=True)
+    # [1] the message that needs to be shown (in html)
+    msg = models.TextField("Message", null=True, blank=True)
+    # [1] the status of this message (can e.g. be 'archived')
+    status = models.CharField("Status", choices=build_abbr_list(VIEW_STATUS), default="val",
+                              max_length=5, help_text=get_help(VIEW_STATUS))
+
+    def __str__(self):
+        # A news item is the tile and the created
+        sDate = get_crpp_date(self.created)
+        sItem = "{}-{}".format(self.title, sDate)
+        return sItem
+
+    def save(self, force_insert = False, force_update = False, using = None, update_fields = None):
+      # Adapt the save date
+      self.saved = get_current_datetime()
+      response = super(Instruction, self).save(force_insert, force_update, using, update_fields)
+      return response
+
+    def get_msg_markdown(self):
+        """Get the [msg] field using markdown interpretation"""
+
+        sBack = ""
+        if self.msg != None and self.msg != "":
+            try:
+                sBack = markdown(self.msg.strip())
+            except:
+                sBack = "There is a mistake in this instruction's markdown:\n{}".format( self.msg)
+        return sBack
+
+    def get_created(self):
+        sBack = self.created.strftime("%d/%b/%Y %H:%M")
+        return sBack
+
+    def get_saved(self):
+        sBack = self.saved.strftime("%d/%b/%Y %H:%M")
+        return sBack
+
+
 # ============================= LOCATION related CLASSES =========================================
 
 class LocationType(models.Model):
@@ -804,7 +942,7 @@ class Location(models.Model):
     # [1] obligatory name in ENGLISH
     name = models.CharField("Name (eng)", max_length=STANDARD_LENGTH)
     # [1] Link to the location type of this location
-    loctype = models.ForeignKey(LocationType, on_delete=models.CASCADE)
+    loctype = models.ForeignKey(LocationType, on_delete=models.CASCADE, related_name="loctype_locations")
 
     # Many-to-many field that identifies relations between locations
     relations = models.ManyToManyField("self", through="LocationRelation", symmetrical=False, related_name="relations_location", blank=True)
@@ -1195,10 +1333,14 @@ class SermonCollection(tagtext.models.TagtextModel):
     # [0-1] Date of composition
     datecomp = models.IntegerField("Year of composition", blank=True, null=True)
     # [0-1] Type of this date: fixed, approximate?
-    datetype = models.CharField("Composition date type", choices=build_abbr_list(DATE_TYPE), 
-                            max_length=5)
+    datetype = models.CharField("Composition date type", choices=build_abbr_list(DATE_TYPE), max_length=5)
     # [0-1] Place of manuscript: may be city or country
     place = models.ForeignKey(Location, blank=True, null=True, on_delete=models.SET_NULL, related_name="placecollections")
+
+    # [1] Type of this date: fixed, approximate?
+    statussrm = models.CharField("Status of sermons", choices=build_abbr_list(PROGRESS_TYPE), default="ini", max_length=5)
+    # [1] Type of this date: fixed, approximate?
+    statusedi = models.CharField("Status of editions", choices=build_abbr_list(PROGRESS_TYPE), default="ini", max_length=5)
 
     # FOr sorting purposes: automatically add the FIRST author in a list of authors
     firstauthor = models.ForeignKey(Author, blank=True, null=True, on_delete=models.SET_NULL, related_name="collection_firstauthor")
@@ -1416,6 +1558,14 @@ class SermonCollection(tagtext.models.TagtextModel):
         url = reverse('api_tributes')
         return url
 
+    def get_statussrm_light(self):
+        sBack = get_ptype_light(self.statussrm)
+        return sBack
+
+    def get_statusedi_light(self):
+        sBack = get_ptype_light(self.statusedi)
+        return sBack
+
 
 class Manuscript(tagtext.models.TagtextModel):
     """Information on the manuscripts that belong to a sermon collection""" 
@@ -1575,7 +1725,7 @@ class Edition(tagtext.models.TagtextModel):
     fcolophon = models.TextField("Flat Colophon", blank=True, null=True)
 
     # ======================== HELPER ===============================
-    firstpublisher = models.ForeignKey(Publisher, blank=True, null=True, on_delete=models.SET_NULL, related_name="firstpublisher_editions")
+    firstpublisher = models.ForeignKey(Publisher, blank=True, null=True, related_name="firstpublisher_editions", on_delete=models.SET_NULL)
 
     # [1] Each edition belongs to a sermoncollection. 
     #     (When the SermonCollection is deleted, I should be deleted too - CASCADE)
@@ -1821,11 +1971,18 @@ class Sermon(tagtext.models.TagtextModel):
     verse = models.IntegerField("Verse", null=True, blank=True)
     # [0-1] The main division of the sermon: both in Latin as well as in English
     divisionL = models.TextField("Division (Latin)", null=True, blank=True)
+    fdivisionL = models.TextField("Flat Division (Latin)", null=True, blank=True)
     divisionE = models.TextField("Division (English)", null=True, blank=True)
+    fdivisionE = models.TextField("Flat Division (English)", null=True, blank=True)
     # [0-1] Summary of the sermon
     summary = models.TextField("Summary", null=True, blank=True)
+    fsummary = models.TextField("Flat Summary", null=True, blank=True)
     # [0-1] Notes on this sermon
     note = models.TextField("Note", null=True, blank=True)
+    fnote = models.TextField("Flat Note", null=True, blank=True)
+
+    # [1] Type of this date: fixed, approximate?
+    statussrm = models.CharField("Status of this sermon", choices=build_abbr_list(PROGRESS_TYPE), default="ini", max_length=5)
 
     # [0-1] This is a helper field that gets automatically filled with the first topic in 'topics'
     firsttopic = models.ForeignKey(Topic, blank=True, null=True, on_delete=models.SET_NULL)
@@ -1851,10 +2008,10 @@ class Sermon(tagtext.models.TagtextModel):
     notetags = models.ManyToManyField(TagKeyword, blank=True, related_name="sermon_notetags")
 
     mixed_tag_fields = [
-            {"textfield": "divisionL",  "m2mfield": "divisionLtags",    "class": TagKeyword,    "url": "tagkeyword_details"},
-            {"textfield": "divisionE",  "m2mfield": "divisionEtags",    "class": TagKeyword,    "url": "tagkeyword_details"},
-            {"textfield": "summary",    "m2mfield": "summarynotetags",  "class": TagKeyword,    "url": "tagkeyword_details"},
-            {"textfield": "note",       "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"}
+            {"textfield": "divisionL",  "textflat": "fdivisionL",  "m2mfield": "divisionLtags",    "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "divisionE",  "textflat": "fdivisionE",  "m2mfield": "divisionEtags",    "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "summary",    "textflat": "fsummary",    "m2mfield": "summarynotetags",  "class": TagKeyword,    "url": "tagkeyword_details"},
+            {"textfield": "note",       "textflat": "fnote",       "m2mfield": "notetags",         "class": TagKeyword,    "url": "tagkeyword_details"}
         ]
 
     def tagtext_url(self):
@@ -1992,6 +2149,13 @@ class Sermon(tagtext.models.TagtextModel):
             lHtml.append("<span class='topic'><a href='{}'>{}</a></span>".format(url,topic.name))
 
         sBack = ", ".join(lHtml)
+        return sBack
+
+    def get_statussrm_light(self, margin_bottom="-5", width="20", height="20"):
+        sBack = get_ptype_light(self.statussrm, 
+                                margin_bottom=margin_bottom, 
+                                width=width, 
+                                height=height)
         return sBack
 
 

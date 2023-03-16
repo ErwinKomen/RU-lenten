@@ -7,36 +7,46 @@
   <div class="jumbotron" style="max-height: 180px;">
       <h1>
         <span>Lenten Sermons</span>
-        <span class="pull-right">
-          {% if not user.is_authenticated %}
-            <a class="btn btn-default" href="{% url 'login' %}"><span class="glyphicon glyphicon-user" aria-hidden="true"></span>Log in</a>
-            <a class="btn btn-default" href="{% url 'signup' %}">Sign up</a>
-          {% endif %}
-          <a href="{% url 'about' %}" class="btn btn-primary btn-large">Learn more &raquo;</a>
-        </span>
       </h1>
       <p class="lead">
-        <span>This web application provides search facilities to the main late medieval Lenten sermon collections.</span>
-        <span class="pull-right" style="color: red; font-size: x-large"><i>under construction</i></span>
+        <span style="font-size: larger;">Search facilities to the main late medieval Lenten sermon collections</span>
       </p>
   </div>
 
   <div class="row">
       <div class="col-md-6 bgimg">
         <h2>Project</h2>
-        <p>The “Lenten sermon bestsellers” project, led by <a href="https://radboud.academia.edu/PietroDelcorno">Dr. P. Delcorno</a>, 
-        aims to map and provide several tools to navigate to the most popular Lenten sermon collections circulating in late medieval Europe. 
-        Lenten preaching played a vital role in process of mass-communication and identity formation as an intensified form of religious instruction. 
-        The web-application is meant to facilitate the identification and analysis of the conceptual and textual ‘infrastructure’ that supported this widespread socio-religious practice. 
+        <p>The “Lenten sermon bestsellers” project, led by <a href="https://radboud.academia.edu/PietroDelcorno">Pietro Delcorno</a>, 
+        aims to map and provide several tools to navigate the most popular Lenten sermon collections circulating in late medieval Europe. 
+        Lenten preaching played a vital role in processes of mass-communication and identity formation. 
+        The web-application is meant to facilitate the identification and analysis of the textual ‘infrastructure’ 
+        that supported this widespread socio-religious practice. 
         </p>
         <p>
           In its first phase, the project will map the Lenten sermon collections printed before the Reformation (1470-1520), 
           considering these normative texts as pocket-sized encyclopaedias that reflected and produced the shared (religious) grammar of the time. 
         </p>
-        <p>See <a href="https://www.youtube.com/watch?v=Ndr-fzci2FQ">this video</a>.</p>
+        <p>
+          More on the project <a href="{% url 'about' %}">here</a>.
+        </p>
+        <p>A three-minute introduction to Lenten preaching in <a href="https://www.youtube.com/watch?v=Ndr-fzci2FQ">this video</a>.</p>
 
+
+      </div>
+      <div class="col-md-6">
+        <div class="home-image" style="position: relative;">
+          <img src="{% static 'seeker/content/lenten_homepage.jpg' %}" alt="Homepage Image" 
+          style="width: 565px; position: absolute; top: -205px;" />
+        </div>
+
+ 
+      </div>
+  </div>
+
+  <div class="row">
+      <div class="col-md-6 bgimg">
         <h2>Summary and news</h2>
-        <p>The web application currently hosts {{sermoncount}} sermons, that are part of {{collectioncount}} collections.</p>
+        <p>The web application currently hosts information about {{sermoncount}} sermons by {{collectioncount}} collections.</p>
         {% if newsitem_list %}
           {% for item in newsitem_list %}
             <div class="panel-news panel-default">
@@ -60,32 +70,16 @@
         {% endif %}
       </div>
       <div class="col-md-6">
-
-        <h2>Getting started</h2>
-        <p>
-          The Lenten Sermon application has been designed by the Technical Service Group of the Humanities Lab at the Radboud University Nijmegen.
-          Any researcher is invited to register (via <a role="button" class="btn btn-default btn-xs" href="{% url 'signup' %}">sign up</a>).
-          Regular researchers are able to read and search through the information that is provided.
-        </p>
-        <p>
-          {% if user.is_authenticated %}
-          (See the <b>Extra</b> menu for logout and other options)
-          {% endif %}
-        </p>
-        <p>The development of the Lenten Sermon application was made possible by two grants from the Gerda Henkel Stiftung 
-        and from the ‘Nederlandse Organisatie voor Wetenschappelijk Onderzoek’ (see About in the Extra menu).</p>
-
-        <h2>Start your research</h2>
-        <p>Regular researchers are able to read and search through the information that is provided. 
-        As entry point, please use the option offered in the above menu (list and tool). 
-        More detailed instruction are provided in the section instruction (see Extra manu).</p>
-        <p style="color: red;">Access to the database will be activated soon.</p>
-
-        <h2>Get involved</h2>
-        <p>Are you working on Lenten sermons? 
-        Do you have addition or correction to the data provided? 
-        Do you want to collaborate with this project? 
-        Please, get in touch with <a href="mailto:pietro.delcorno3@unibo.it">Pietro Delcorno</a>.</p>
+        <div >
+          <h2>Start your research</h2>
+          <p>As entry point, please use the options offered in the above menu (List and Tool). 
+          For further information, see the section Instruction. 
+          More about the project <a href="{% url 'about' %}">here</a>.
+          </p>
+          <p>Do you have addition or correction to the data provided? 
+          Do you want to collaborate with this project? 
+          Please, get in touch with Pietro Delcorno (pietro.delcorno@ru.nl).</p>
+        </div>
       </div>
   </div>
 </div>

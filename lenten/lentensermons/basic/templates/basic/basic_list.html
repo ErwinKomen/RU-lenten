@@ -10,6 +10,7 @@
 {% block scripts %}
     {% load staticfiles %}
     <link rel="stylesheet" type="text/css" href="{% static 'basic/content/basic.css' %}" />
+    <link rel="stylesheet" href="{% static 'basic/content/font-awesome.min.css' %}" />
     <script src="{% static 'basic/scripts/basic.js' %}"></script>
   {% if has_select2 %}{{listForm.media.css}}{% endif %}
 {% endblock %}
@@ -70,12 +71,18 @@
               {% if filters %}
                 <span class="">
                   <!-- NEW: use filtering instead of 'searching' -->
-                  <a class="btn btn-xs jumbo-4" data-toggle="collapse" data-target="#tab_filter" role="button" title="Define your filter(s)...">
-                    <span class="glyphicon glyphicon-filter"></span>
+                  <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_filter" role="button" title="Define your filter(s)...">
+                    <span class="glyphicon glyphicon-search"></span>
                   </a>
 
                 </span>
               {% endif %}
+              <!-- Always: show/hide the row to show/hide columns -->
+              <span class="">
+                  <a class="btn btn-sm jumbo-1" data-toggle="collapse" data-target="#tab_colwrap" role="button" title="Show/hide column(s)...">
+                    <span class="glyphicon glyphicon-tasks"></span>
+                  </a>
+              </span>
             </div>
           </div>
         </div>
@@ -90,6 +97,7 @@
           <!-- entrypoint for search_ordered_start -->
           <div class="hidden search_ordered_start">
             <input name="o" type="text" value="{{sortOrder}}" />
+            <input name="w" type="text" value="{{colWrap}}" />
           </div>
 
           {% if downloads %}
@@ -106,12 +114,12 @@
 
           <!-- Filter tab -->
           {% if filters %}
-            <div class="inert {% if has_filter %}in{% else %}collapse{% endif %}" id="tab_filter">
+            <div class="inert {% if has_filter %}in{% else %}in collapse_issue_77{% endif %}" id="tab_filter">
               <div class="panel panel-default">
                 <!-- Filter interface -->
                 <div class="row" id="filter_badges">
                   <div class="col-md-2">
-                    <h4>Selected filters</h4>
+                    <h4>Search filters</h4>
                   </div>
                   <div class="col-md-10">
                     <!-- Main filters -->
@@ -141,20 +149,34 @@
                           <div id="{{filter.id}}" class="{% if not filter.hasvalue %}hidden{% endif %}">
                             <table style="width: 100%;">
                               <tr class="form-row">
-                                <td style="min-width: 130px;" valign="top">{{filter.name}}</td>
+                                <td style="min-width: 130px;" valign="top" class="tdnowrap">
+                                  {{filter.name}}
+                                  {% if filter.help != "" and filter.helptext != "" %}
+                                    <a role="button" data-toggle="collapse" data-target="#basic_h_{{filter.help}}">
+                                      <span class="glyphicon glyphicon-question-sign" style="color: blue;"></span>
+                                    </a>
+                                  {% endif %}
+                                </td>
                                 <td style="width: 100%;">
-                                  {% for fitem in filter.fitems %}
-                                    {% if fitem.dbfield %}<span class="keyword-key hidden filter-dbfield">{{fitem.dbfield}}</span>{% endif %}
-                                    {% if fitem.keyS %}
-                                      <span class="filter-keys">{{fitem.keyS}}</span>
-                                      {% if fitem.has_keylist %}
-                                        <span> or select: </span>
-                                        <span class="filter-keylist">{{fitem.keyList}}</span>
+                                  {% if filter.help != "" and filter.helptext != "" %}
+                                    <div id="basic_h_{{filter.help}}" class="collapse">
+                                      {{filter.helptext|safe}}
+                                    </div>
+                                  {% endif %}
+                                  <div>
+                                    {% for fitem in filter.fitems %}
+                                      {% if fitem.dbfield %}<span class="keyword-key hidden filter-dbfield">{{fitem.dbfield}}</span>{% endif %}
+                                      {% if fitem.keyS %}
+                                        <span class="filter-keys">{{fitem.keyS}}</span>
+                                        {% if fitem.has_keylist %}
+                                          <span> or select: </span>
+                                          <span class="filter-keylist">{{fitem.keyList}}</span>
+                                        {% endif %}
+                                      {% elif fitem.has_keylist %}
+                                          <span class="filter-keylist">{{fitem.keyList}}</span>
                                       {% endif %}
-                                    {% elif fitem.has_keylist %}
-                                        <span class="filter-keylist">{{fitem.keyList}}</span>
-                                    {% endif %}
-                                  {% endfor %}
+                                    {% endfor %}
+                                  </div>
                                 </td>
                               </tr>
                             </table>
@@ -340,6 +362,18 @@
             </div>
 
             {% if object_list %}
+              <!-- Column Wrapping tab -->
+              <div class="{% if colwrap_show or colWrap and colWrap != '[]' %}in{% else %}collapse{% endif %}" id="tab_colwrap" >
+                <span>Show or hide columns: </span>
+                {% for hd in order_heads %}
+                  {% if hd.name %}
+                    <a role="button" class="btn btn-xs {% if hd.colwrap or hd.autohide == "on" %}{% else %}jumbo-1{% endif %}"
+                       offset="{{forloop.counter}}"
+                       onclick="ru.basic.colwrap(this);">{{hd.name}}</a>
+                  {% endif %}
+                {% endfor %}
+              </div>
+
               <!-- Top pagination -->
               <div class="row">
                   <div class="col-sm-4"><span>Total: </span><span>{{entrycount}}</span></div>
@@ -360,11 +394,30 @@
                       <tr>
                         <th class="hidden">id</th>
                         {% for hd in order_heads %}
-                          <th class="sortable" scope="col" {% if hd.title %}title="{{hd.title}}"{% endif %}>
+                          <th class="sortable tdnowrap {% if hd.colwrap or hd.autohide == "on" %}hidden{% endif %}" 
+                              scope="col" {% if hd.title %}title="{{hd.title}}"{% endif %}>
                             <div class="text">
                               {% if hd.order == "" %}{{hd.name}}
                               {% else %}
-                              <a class="clickable {% if hd.used %}ordered{% endif %}" onclick="ru.basic.search_ordered_start('{{hd.order}}');">{{hd.name}}</a>
+                                <a class="clickable {% if hd.used %}sorted{% endif %}" 
+                                   onclick="ru.basic.search_ordered_start('{{hd.sorting}}');">
+                                  {{hd.name}}
+                                </a>
+                                <span class="sortoptions">
+                                  {% if hd.used %}
+                                    <a class="sortremove" title="Clear this sort column"
+                                       onclick="ru.basic.search_ordered_start('{{hd.sorting}}', '{{hd.order}}');">
+                                      <span class="fa fa-sort"></span>
+                                    </a>
+                                  {% endif %}
+                                  {% if hd.priority %}
+                                    <span class="sortpriority" title="sorteerprioriteit: {{hd.priority}}">{{hd.priority}}</span>
+                                  {% endif %}
+                                  <a class="clickable"
+                                     onclick="ru.basic.search_ordered_start('{{hd.sorting}}');">
+                                    <span class="fa fa-sort{% if hd.direction %}-{{hd.direction}}{% endif %} sortmulti"></span>
+                                  </a>
+                                </span>
                               {% endif %}
                             </div>
                           </th>
@@ -381,7 +434,9 @@
 
                         <!-- walk the other fields -->
                         {% for field in result.fields %}
-                          <td class="{{field.classes}}" style="{{field.styles}}" {% if field.title %}title="{{field.title}}"{% endif %} {% if field.align %}align="{{field.align}}"{% endif %}>
+                          <td class="{{field.classes}}  {% if field.colwrap or field.autohide == "on" %}hidden{% endif %}" 
+                              style="{{field.styles}}" {% if field.title %}title="{{field.title}}"{% endif %} 
+                              {% if field.align %}align="{{field.align}}"{% endif %}>
                             {% if field.linkdetails %}
                               <a href="{% url basic_details result.id %}" class="nostyle" title="Show details of this {{titlesg}}">
                                 {% if field.value %}{{field.value|safe}}{% else %}<i>(unidentified)</i>{% endif %}

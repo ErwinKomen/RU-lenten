@@ -3,16 +3,15 @@
 
 {% block breadcrumbs %}
   <div class="breadcrumbs">
-    {% include 'breadcrumb_list.html' %}
+  {% include 'breadcrumb_list.html' %}
   </div>
 {% endblock %}
 
 {% block scripts %}
-  {{pbForm.media.css}}
+  {{newsForm.media.css}}
 {% endblock %}
 
 {% block content %}
-
 
 <div>
 
@@ -32,7 +31,7 @@
     </div>
 
     <!-- Define the filter tab -->
-    <form  id="publisher_filter" method='post' action="{% url 'publisher_list' %}" >
+    <form  id="newsitem_filter" method='post' action="{% url 'newsitem_list' %}" >
       {% csrf_token %}
       <!-- entrypoint for search_paged_start -->
       <div class="hidden search_paged_start">
@@ -40,12 +39,12 @@
       </div>
 
       <!-- Filter tab -->
-      <div class="inert {% if has_filter %}in{% else %}collapse{% endif %}" id="tab_filter">
+      <div class="inert {% if has_filter %}in{% else %}in collapse_issue_77{% endif %}" id="tab_filter">
         <div class="panel panel-default">
           <!-- Filter interface -->
           <div class="row" id="filter_badges">
             <div class="col-md-2">
-              <h4>Selected filters</h4>
+              <h4>Search filters</h4>
             </div>
             <div class="col-md-10">
               <!-- Main filters -->
@@ -61,28 +60,38 @@
             </div>
           </div>
               
-          <div class="row" id="publisher_filter_specs">
+          <div class="row" id="newsitem_filter_specs">
             <!-- The column with the different filter sections -->
             <div class="col-md-10">
               <div class="panel panel-default ">
 
                 <!-- Intro -->
-                <div><h5>Publisher filters: </h5></div>
+                <div><h5>News item filters: </h5></div>
 
-                <!-- One or more publisher names -->
-                <div id="filter_name" class="{% if not pbForm.name.value and not pbForm.pblist.value %}hidden{% endif %}">
+                <!-- One or more newsitem titles -->
+                <div id="filter_title" class="{% if not newsForm.title.value %}hidden{% endif %}">
                   <table style="width: 100%;">
                     <tr class="form-row">
-                      <td style="min-width: 130px;" valign="top">Publisher</td>
+                      <td style="min-width: 130px;" valign="top">News item</td>
                       <td style="width: 100%;">
-                        <span class="concept-key hidden">{{pbForm.name}}</span>
-                        <span>{{pbForm.pbname}}</span>
-                        <span> or select: </span>
-                        <span>{{pbForm.pblist}}</span>
+                        <span>{{newsForm.title}}</span>
                       </td>
                     </tr>
                   </table>
                 </div>
+
+                <!-- One or more newsitem statuses -->
+                <div id="filter_status" class="{% if not newsForm.status.value %}hidden{% endif %}">
+                  <table style="width: 100%;">
+                    <tr class="form-row">
+                      <td style="min-width: 130px;" valign="top">Status</td>
+                      <td style="width: 100%;">
+                        <span>{{newsForm.status}}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
 
               </div>
             </div>
@@ -111,16 +120,16 @@
     <div class="" id="tab_list">
       <div class="panel panel-default">
 
-        <!-- Heading and button to add a new publisher -->
+        <!-- Heading and button to add a new news item -->
         <form>
           <h3>
-            <span title="Every publisher belongs to one or more editions">Publishers</span>
+            <span>News items</span>
             {% if is_app_editor %}
-              <span id="add_publisher" class="pull-right">
+              <span id="add_newsitem" class="pull-right">
                 {% csrf_token %}
                 <a class="btn btn-xs jumbo-3" role="button" 
-                    href="{% url 'publisher_add' %}">
-                  <span class="glyphicon glyphicon-plus"></span>Add a publisher
+                    href="{% url 'newsitem_add' %}">
+                  <span class="glyphicon glyphicon-plus"></span>Add a news item
                 </a>
               </span>
             {% endif %}
@@ -161,27 +170,35 @@
                   </tr>
                 </thead>
                 <tbody>
-                {% for pb in object_list %}
-                  <tr class="dict-entry">
-                    <td class="hidden"> {{ pb.id }}</td>
+                  {% for newsitem in object_list %}
+                    <tr class="dict-entry">
+                      <!-- Hidden id -->
+                      <td class="hidden"> {{ newsitem.id }}</td>
 
-                    <!-- Publisher name-->
-                    <td class="clickable" title="View the publisher" style="width: 100%;"
-                        onclick="ru.lenten.seeker.goto_url('{% url 'publisher_details' pb.id %}')">{% if pb.name %}{{pb.name}}{% endif %}</td>
+                      <!-- Title -->
+                      <td style="width: 100%;">
+                        <span class="newsitem-type"><a href="{% url 'newsitem_details' newsitem.id %}">{{newsitem.title}}</a></span>
+                      </td>
 
-                    <!-- Button(s) for this publisher-->
-                    <td style="min-width: 80px;">
-                      {% if is_app_editor %}
-                        <!-- Edit button -->
-                        <a mode="edit" class="view-mode btn btn-xs jumbo-1"
-                           onclick="ru.lenten.seeker.goto_url('{% url 'admin:seeker_publisher_change' pb.id %}')">
-                          <span class="glyphicon glyphicon-pencil" title="Edit these data"></span>
-                        </a>
-                      {% endif %}
-                    </td>
-                  </tr>
+                      <!-- Until -->
+                      <td><span class="newsitem-date tdnowrap">{{newsitem.until|date:"j/b/o G:i"}}</span></td>
 
-                {% endfor %}
+                      <!-- Status -->
+                      <td><span class="newsitem-name tdnowrap">{{newsitem.get_status_display}}</span></td>
+
+                      <!-- Created -->
+                      <td><span class="newsitem-name tdnowrap">{{newsitem.created|date:"j/b/o G:i"}}</span></td>
+
+                      <!-- Saved -->
+                      <td><span class="newsitem-name tdnowrap">{{newsitem.saved|date:"j/b/o G:i"}}</span></td>
+
+                      <!-- Buttons for this newsitem-->
+                      <td class="tdnowrap">
+                        <!-- Not used yet -->
+                      </td>
+                    </tr>
+
+                  {% endfor %}
                 </tbody>
               </table>
             </div>
@@ -197,11 +214,12 @@
           </div>
 
         {% else %}
-          <p>No publishers have been found.</p>
+          <p>No news items have been found.</p>
         {% endif %}
       </div>
 
     </div>
+
 
 </div>
 
@@ -211,6 +229,7 @@
 
 {% endblock content %}
 
+
 {% block endcontent %} 
-  {{pbForm.media.js }} 
+  {{newsForm.media.js }} 
 {% endblock %}

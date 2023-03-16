@@ -16,6 +16,10 @@ import socket
 import sys
 from django.contrib import admin
 
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = False        # Further down DEBUG is put to True for development environment
+
+# Get the HOST by IP address
 hst = socket.gethostbyname(socket.gethostname())
 bUseTunnel = False
 
@@ -36,17 +40,15 @@ APP_PREFIX = ""
 ADMIN_SITE_URL = ""
 if "d:" in WRITABLE_DIR or "D:" in WRITABLE_DIR or "c:" in WRITABLE_DIR or "C:" in WRITABLE_DIR or bUseTunnel:
     APP_PREFIX = ""
-    # admin.site.site_url = '/'
-    ADMIN_SITE_URL = "/"
+    ADMIN_SITE_URL = '/'
+    DEBUG = True
 elif "131.174" in hst:
     # Configuration within the Radboud University environment (AppleJack)
     APP_PREFIX = ""
-    # admin.site.site_url = '/'
-    ADMIN_SITE_URL = "/"
+    ADMIN_SITE_URL = '/'
 elif "/var/www" in WRITABLE_DIR:
     # New configuration 
     APP_PREFIX = "lentensermons/"
-    # admin.site.site_url = '/lentensermons'
     ADMIN_SITE_URL = '/lentensermons'
 else:
     APP_PREFIX = "dd/"
@@ -56,6 +58,16 @@ else:
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
+BLOCKED_IPS = ['40.77.167.57',
+               '45.146.165.123',
+               '45.61.186.43',
+               '46.229.168.133', 
+               '88.198.17.136', 
+               '157.55.39.235',
+               '157.55.39.199',
+               '54.36.148.', '54.36.149.'
+               ]
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -63,9 +75,6 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '561c5400-4ebf-4e45-a2ec-12d856638e45'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', 'applejack.science.ru.nl', 'lentensermons.science.ru.nl', 'lentensermons.cls.ru.nl', 'testserver' ]
 
@@ -86,7 +95,6 @@ INSTALLED_APPS = [
     'lentensermons.seeker',
 ]
 
-# MIDDLEWARE_CLASSES = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -94,9 +102,10 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'lentensermons.utils.BlockedIpMiddleware'
 ]
 
 ROOT_URLCONF = 'lentensermons.urls'

@@ -1,4 +1,4 @@
-﻿{% extends "layout.html" %}
+{% extends "layout.html" %}
 {% load staticfiles %}
 
 
@@ -7,51 +7,80 @@
 <div class="container body-content">
   <div class="row">
 
-    <h2>{{ title }}</h2>
-
     <div class="col-md-6">
-      <h3>Background</h3>
-      <p>The LENTENSERMONS web application is being developed as preparation for the Veni <a href="https://lentensermons.veni.nl" target="_blank">LentenSermons project</a>.</p>
-
-      The project is <i>not</i> a study of the contents of these sermons, 
-      it focuses instead on their dissemination, their manipulation and their interpretation in the Mid West.
+      <h3>Project</h3>
+      <p>In late medieval society, preaching was a crucial <b>medium of mass-communication</b> and identity formation. 
+      In a society still dominated by oral communication, sermons played a key role in forming public opinion. 
+      This was particularly true during Lent (the forty-day period before Christian Easter), when sermons were delivered on a daily basis. 
+      This form of public instruction gradually became an established feature of urban society across Europe. 
+      By means of well-organized and highly evocative sermon cycles, preachers aimed to lead the listeners 
+      to take part in prominent rituals of Christian life, such as the confession of sin, the participation 
+      in the Eucharist, and the liturgical commemoration of the Passion. 
+      In order to do so, <b>thousands of rank-and-file preachers</b> prepared their sermons using Lenten sermon collections. 
       </p>
+      <p>The research project <a href="https://www.nwo.nl/en/projects/viveni191h018">Lenten sermons bestsellers</a> 
+      led by Pietro Delcorno investigates how these widely disseminated books <b>encapsulate normative discourses 
+      to guide the faithful in interpreting and performing defining rituals</b>, 
+      which involved a personal revision of life and a public recognition of partaking in Christian society. 
+      As <b>pragmatic and ideologically oriented texts</b>, Lenten sermon collections are essential 
+      to understand better the late medieval religious and cultural landscape. 
+      The study of these texts – largely overlooked by the scholarship – can provide an original perspective 
+      on the <b>social dimension of religious communication</b> and uncover different, sometimes competing, 
+      ways to organize, disseminate, and impose religious ideas.
+      </p>
+
+      <h3>People involved</h3>
+      <ul>
+        <li>Pietro Delcorno (principal investigator)</li>
+        <li>Erwin Komen (Humanities Lab, Radboud University Nijmegen)</li>
+        <li>Astrid Linschoten (assistant researcher, 2021)</li>
+      </ul>
 
     </div>
     <div class="col-md-6">
-      <h3>Quick Reference</h3>
-      <p>The main purpose of the LentenSermon web application is to facilitate searches:
-      <table>
-        <tr><td valign="top">Sermon:</td><td valign="top"><i>(mockup phase)</i></td></tr>
-      </table>
+      <h3>Web-application</h3>
+      <p>This web-application offers a <b>tool</b> to analyse Lenten sermon collections as conceptual and textual ‘infrastructure’ 
+      that supported preaching as widespread socio-religious practice. Moreover, 
+      these books can be considered pocket-sized encyclopaedias that both reflected and produced the shared (religious) knowledge of the time. 
+      In this indirect way, these texts are a precious source of <b>information on virtually any aspect of society</b>, 
+      from theological topics to everyday issues such as food, gambling, fashion, or medical practices. 
+      This open-access online database provides scholars from different disciplines with <b>an entry point</b> on this type of material.
       </p>
       <p>
         The source code of LentenSermons is available at <a href="https://github.com/ErwinKomen/RU-lenten">github</a>.
       </p>
       <p>
-        <a class="btn btn-default" href="mailto:e.komen@let.ru.nl">Request assistance &raquo;</a>
-        <span class="pull-right">
-          <a class="btn btn-primary" href="{% static 'seeker/content/LentenManual.pdf' %}" target="_blank">Manual (pdf)</a>
-          <a class="btn btn-primary" href="{% url 'short' %}">Short overview</a>
-        </span>
+        Please, note that this is an <b>ongoing project</b>, which will be able to grow also through <b>collaborations</b> 
+        (if interested, please contact Pietro Delcorno). 
+        Information about the use of the database are provided under ‘Instruction’ (note that this section is still under construction)
       </p>
+ 
+      <h3>Acknowledgements</h3>
+      <p>The development of this web-application has been financed by a <a href="https://www.gerda-henkel-stiftung.de/">Gerda Henkel Stiftung</a> grant. 
+      The application had been designed by the Technical Service Group of the Humanities Lab of the <b>Radboud University Nijmegen</b>. 
+      The collection of data has been largely conducted as part of the project <i>Lenten Sermon Bestsellers: 
+      Shaping Society in Late Medieval Europe (1470-1520)</i> (project number VI.Veni.191H.018)  of the research programme Veni, 
+      which is financed by the <b>Dutch Research Council</b> (NWO). 
+      Pietro Delcorno conducted the exploratory phase of this project thanks to a <a href="https://ias.ceu.edu/people/pietro-delcorno">fellowship</a> 
+      of the <b>Institute for Advanced Study of the Central European University</b>. </p>
+
+      <table style="width: 100%;">
+        <tr>
+          <td>
+            <img src="{% static 'seeker/content/lenten_ghs.png' %}" alt="Gerda Henkel Stiftung"
+                 style="height: 200px;" />
+          </td>
+          <td align="right">
+            <img src="{% static 'seeker/content/lenten_nwo.svg' %}" alt="NWO (Dutch research council)" 
+                 style="height: 200px;" />
+          </td>
+        </tr>
+      </table>
+    
     </div>
 
   </div>
 
-  <div class="row">
-    <div class="col-md-12">
-      <h4>Bibliography</h4>
-      <div class="citation">
-        Surname, I.N. 2019 <i>Lenten sermon dissemination in the Middle Ages - European routes</i>, The Best Journal 36(2):430-462. (<a href="" target="_blank">pdf</a>)
-      </div>
-      <div class="citation">
-        b.
-      </div>
-      <div class="citation">
-          c.
-      </div>
-    </div>
-  </div>
+ 
 </div>
 {% endblock %}

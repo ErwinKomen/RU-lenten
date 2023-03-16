@@ -298,6 +298,28 @@ class ReportEditForm(forms.ModelForm):
                  }
         
 
+class InstructionForm(forms.ModelForm):
+
+    class Meta:
+        model = Instruction
+        fields = ['title', 'msg', 'status', 'created', 'saved']
+        widgets={'title':     forms.TextInput(attrs={'style': 'width: 100%;', 'class': "searching"}),
+                 'msg':       forms.Textarea(attrs={'rows': 2, 'cols': 60, 'style': 'height: 70px; width: 100%;'}),
+                 'status':    forms.Select(attrs={'style': 'width: 100%;'}),
+                 'created':   forms.TextInput(attrs={'style': 'width: 100%;'}),
+                 'saved':     forms.TextInput(attrs={'style': 'width: 100%;'})
+                 }
+
+    def __init__(self, *args, **kwargs):
+        # Start by executing the standard handling
+        super(InstructionForm, self).__init__(*args, **kwargs)
+        # Some fields are not required
+        self.fields['title'].required = False
+        self.fields['status'].required = False
+        self.fields['created'].required = False
+        self.fields['saved'].required = False
+    
+
 class NewsForm(forms.ModelForm):
 
     class Meta:
@@ -327,6 +349,8 @@ class SermonListForm(forms.ModelForm):
                 widget=forms.TextInput(attrs={'class': 'typeahead searching collections input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
     collectionlist  = ModelMultipleChoiceField(queryset=None, required=False, 
                 widget=CollectionWidget(attrs={'data-placeholder': 'Select multiple collections...', 'style': 'width: 100%;', 'class': 'searching'}))
+    descr = forms.CharField(label=_("Description"), required=False, 
+                widget=forms.TextInput(attrs={'class': 'searching input-sm', 'placeholder': 'Text in division, summary or general note...', 'style': 'width: 100%;'}))
     bookname = forms.CharField(label=_("Collection"), required=False, 
                 widget=forms.TextInput(attrs={'class': 'typeahead searching books input-sm', 'placeholder': 'Collection...', 'style': 'width: 100%;'}))
     booklist  = ModelMultipleChoiceField(queryset=None, required=False, 
