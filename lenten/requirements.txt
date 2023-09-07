@@ -1,3 +1,12 @@
-django >= 1.11.27
+# ===========================================================
+# Requirements for LENTENSERMONS
+# Date: 7/sep/2023
+#
+# Python version this works for: 3.8.10 / Ubuntu 20.04.6
+#
+# For a better overview of dependencies: install pipdeptree
+# ===========================================================
+
+django == 2.2.28
 django_select2 == 6.3.1
 markdown == 3.1.1
