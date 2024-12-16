@@ -4,11 +4,10 @@
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <Name>lentensermons</Name>
     <RootNamespace>lentensermons</RootNamespace>
-    <InterpreterId>{d4636386-db4f-433d-81f4-fec022bf75fe}</InterpreterId>
+    <InterpreterId>MSBuild|{d4636386-db4f-433d-81f4-fec022bf75fe}|$(MSBuildProjectFullPath)</InterpreterId>
     <WebBrowserPort>6405</WebBrowserPort>
     <WebBrowserUrl>
     </WebBrowserUrl>
-    <InterpreterVersion>3.5</InterpreterVersion>
   </PropertyGroup>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -22,6 +21,7 @@
     <WorkingDirectory>.</WorkingDirectory>
     <LaunchProvider>Web launcher</LaunchProvider>
     <OutputPath>.</OutputPath>
+    <WebBrowserUrl>http://localhost</WebBrowserUrl>
     <WebBrowserUrl>http://localhost</WebBrowserUrl>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -203,7 +203,6 @@
   <ItemGroup>
     <Interpreter Include="..\..\..\..\..\env\lenten\">
       <Id>{d4636386-db4f-433d-81f4-fec022bf75fe}</Id>
-      <BaseInterpreter>{fa12ebed-1e4e-41b9-9058-82b46bf63678}</BaseInterpreter>
       <Version>3.5</Version>
       <Description>lenten (Python35_2021)</Description>
       <InterpreterPath>Scripts\python.exe</InterpreterPath>
