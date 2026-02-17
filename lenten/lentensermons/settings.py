@@ -48,7 +48,7 @@ if "d:" in WRITABLE_DIR or "D:" in WRITABLE_DIR or "c:" in WRITABLE_DIR or "C:" 
     APP_PREFIX = ""
     ADMIN_SITE_URL = '/'
     DEBUG = True
-elif hst_name == "lenten":
+elif hst_name == "lentensermons":
     # Configuration within the new containerized Radboud University environment
     APP_PREFIX = ""
     ADMIN_SITE_URL = "/"
