@@ -2,4 +2,4 @@ from django.apps import AppConfig
 
 
 class basicConfig(AppConfig):
-    name = 'basic'
+    name = 'lentensermons.basic'
