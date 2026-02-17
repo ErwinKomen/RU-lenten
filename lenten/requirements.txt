@@ -2,7 +2,7 @@
 # Requirements for LENTENSERMONS
 # Date: 7/sep/2023
 #
-# Python version this works for: 3.8.10 / Ubuntu 20.04.6
+# Python version this works for: 3.10 / Ubuntu 20.04.6
 #
 # For a better overview of dependencies: install pipdeptree
 # ===========================================================
