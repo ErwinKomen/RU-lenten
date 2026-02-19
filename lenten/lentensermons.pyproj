@@ -4,7 +4,7 @@
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <Name>lentensermons</Name>
     <RootNamespace>lentensermons</RootNamespace>
-    <InterpreterId>MSBuild|{d4636386-db4f-433d-81f4-fec022bf75fe}|$(MSBuildProjectFullPath)</InterpreterId>
+    <InterpreterId>MSBuild|lenten39|$(MSBuildProjectFullPath)</InterpreterId>
     <WebBrowserPort>6405</WebBrowserPort>
     <WebBrowserUrl>
     </WebBrowserUrl>
@@ -75,6 +75,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="lentensermons\" />
+    <Folder Include="lentensermons\admin\static\" />
+    <Folder Include="lentensermons\admin\static\admin\" />
+    <Folder Include="lentensermons\admin\static\admin\css\" />
     <Folder Include="lentensermons\basic\" />
     <Folder Include="lentensermons\basic\migrations\" />
     <Folder Include="lentensermons\basic\static\" />
@@ -84,6 +87,7 @@
     <Folder Include="lentensermons\basic\static\basic\scripts\" />
     <Folder Include="lentensermons\basic\templates\" />
     <Folder Include="lentensermons\basic\templates\basic\" />
+    <Folder Include="lentensermons\admin\" />
     <Folder Include="lentensermons\seeker\static\" />
     <Folder Include="lentensermons\seeker\static\seeker\" />
     <Folder Include="lentensermons\seeker\static\seeker\content\" />
@@ -110,6 +114,8 @@
       <SubType>Code</SubType>
     </Content>
     <None Include="lentensermons\seeker\static\seeker\scripts\_references.js" />
+    <Content Include="lentensermons\admin\static\admin\css\base.css" />
+    <Content Include="lentensermons\admin\static\admin\css\forms.css" />
     <Content Include="lentensermons\basic\static\basic\content\basic.css" />
     <Content Include="lentensermons\basic\static\basic\content\font-awesome.min.css" />
     <Content Include="lentensermons\basic\static\basic\fonts\fontawesome-webfont.eot" />
@@ -201,6 +207,15 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Interpreter Include="..\..\..\..\..\env\lenten39\">
+      <Id>lenten39</Id>
+      <Version>3.9</Version>
+      <Description>lenten39 (Python39_64)</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X64</Architecture>
+    </Interpreter>
     <Interpreter Include="..\..\..\..\..\env\lenten\">
       <Id>{d4636386-db4f-433d-81f4-fec022bf75fe}</Id>
       <Version>3.5</Version>
