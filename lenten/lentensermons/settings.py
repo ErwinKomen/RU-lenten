@@ -92,17 +92,18 @@ ALLOWED_HOSTS = ['localhost', 'applejack.science.ru.nl', 'lentensermons.science.
 # Application definition
 
 INSTALLED_APPS = [
+    # Add your apps here to enable them
+    'django_select2',
+    'lentensermons.basic',
+    'lentensermons.tagtext',
+    'lentensermons.seeker',
+    # Django apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Add your apps here to enable them
-    'django_select2',
-    'lentensermons.basic',
-    'lentensermons.tagtext',
-    'lentensermons.seeker',
 ]
 
 MIDDLEWARE = [
