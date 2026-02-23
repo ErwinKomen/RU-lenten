@@ -33,7 +33,6 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="lentensermons\basic\.py" />
     <Compile Include="lentensermons\basic\apps.py" />
     <Compile Include="lentensermons\basic\migrations\__init__.py" />
     <Compile Include="lentensermons\basic\models.py" />
