@@ -19,8 +19,9 @@ from django.contrib import admin
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False        # Further down DEBUG is put to True for development environment
 
+hst_name = socket.gethostname()
 # Get the HOST by IP address
-hst = socket.gethostbyname(socket.gethostname())
+hst = socket.gethostbyname(hst_name)
 bUseTunnel = False
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -34,6 +35,11 @@ if "RU-lenten\\writable" in WRITABLE_DIR:
 elif "/applejack" in BASE_DIR:
     WRITABLE_DIR = os.path.abspath(os.path.join(BASE_DIR, "../../writable/lenten/database/"))
 
+# Containerized Radboud Environment
+if "/var/writable" in WRITABLE_DIR:
+    WRITABLE_DIR = os.path.abspath(os.path.join(BASE_DIR, "../writable/database/"))
+    PROJECT_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
+
 MEDIA_DIR = os.path.abspath(os.path.join(WRITABLE_DIR, "../media/"))
 
 APP_PREFIX = ""
@@ -42,6 +48,10 @@ if "d:" in WRITABLE_DIR or "D:" in WRITABLE_DIR or "c:" in WRITABLE_DIR or "C:" 
     APP_PREFIX = ""
     ADMIN_SITE_URL = '/'
     DEBUG = True
+elif hst_name == "lentensermons":
+    # Configuration within the new containerized Radboud University environment
+    APP_PREFIX = ""
+    ADMIN_SITE_URL = "/"
 elif "131.174" in hst:
     # Configuration within the Radboud University environment (AppleJack)
     APP_PREFIX = ""
@@ -76,23 +86,24 @@ BLOCKED_IPS = ['40.77.167.57',
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '561c5400-4ebf-4e45-a2ec-12d856638e45'
 
-ALLOWED_HOSTS = ['localhost', 'applejack.science.ru.nl', 'lentensermons.science.ru.nl', 'lentensermons.cls.ru.nl', 'testserver' ]
+ALLOWED_HOSTS = ['localhost', 'applejack.science.ru.nl', 'lentensermons.science.ru.nl', 'lentensermons.cls.ru.nl', 'testserver', 'dev.lentensermons.cls.ru.nl' ]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    # Add your apps here to enable them
+    'django_select2',
+    'lentensermons.basic',
+    'lentensermons.tagtext',
+    'lentensermons.seeker',
+    # Django apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Add your apps here to enable them
-    'django_select2',
-    'lentensermons.basic',
-    'lentensermons.tagtext',
-    'lentensermons.seeker',
 ]
 
 MIDDLEWARE = [

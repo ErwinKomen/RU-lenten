@@ -33,7 +33,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="lentensermons\basic\admin.py" />
+    <Compile Include="lentensermons\basic\.py" />
     <Compile Include="lentensermons\basic\apps.py" />
     <Compile Include="lentensermons\basic\migrations\__init__.py" />
     <Compile Include="lentensermons\basic\models.py" />
@@ -44,7 +44,7 @@
     <Compile Include="lentensermons\seeker\viewsold.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="lentensermons\tagtext\admin.py" />
+    <Compile Include="lentensermons\tagtext\.py" />
     <Compile Include="lentensermons\tagtext\apps.py" />
     <Compile Include="lentensermons\tagtext\forms.py">
       <SubType>Code</SubType>
@@ -55,7 +55,7 @@
     <Compile Include="lentensermons\tagtext\views.py" />
     <Compile Include="lentensermons\tagtext\__init__.py" />
     <Compile Include="manage.py" />
-    <Compile Include="lentensermons\seeker\admin.py" />
+    <Compile Include="lentensermons\seeker\.py" />
     <Compile Include="lentensermons\seeker\apps.py" />
     <Compile Include="lentensermons\seeker\forms.py">
       <SubType>Code</SubType>
@@ -75,9 +75,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="lentensermons\" />
-    <Folder Include="lentensermons\admin\static\" />
-    <Folder Include="lentensermons\admin\static\admin\" />
-    <Folder Include="lentensermons\admin\static\admin\css\" />
     <Folder Include="lentensermons\basic\" />
     <Folder Include="lentensermons\basic\migrations\" />
     <Folder Include="lentensermons\basic\static\" />
@@ -85,9 +82,10 @@
     <Folder Include="lentensermons\basic\static\basic\content\" />
     <Folder Include="lentensermons\basic\static\basic\fonts\" />
     <Folder Include="lentensermons\basic\static\basic\scripts\" />
+    <Folder Include="lentensermons\basic\static\admin\" />
+    <Folder Include="lentensermons\basic\static\admin\css\" />
     <Folder Include="lentensermons\basic\templates\" />
     <Folder Include="lentensermons\basic\templates\basic\" />
-    <Folder Include="lentensermons\admin\" />
     <Folder Include="lentensermons\seeker\static\" />
     <Folder Include="lentensermons\seeker\static\seeker\" />
     <Folder Include="lentensermons\seeker\static\seeker\content\" />
@@ -114,8 +112,8 @@
       <SubType>Code</SubType>
     </Content>
     <None Include="lentensermons\seeker\static\seeker\scripts\_references.js" />
-    <Content Include="lentensermons\admin\static\admin\css\base.css" />
-    <Content Include="lentensermons\admin\static\admin\css\forms.css" />
+    <Content Include="lentensermons\basic\static\admin\css\base.css" />
+    <Content Include="lentensermons\basic\static\admin\css\forms.css" />
     <Content Include="lentensermons\basic\static\basic\content\basic.css" />
     <Content Include="lentensermons\basic\static\basic\content\font-awesome.min.css" />
     <Content Include="lentensermons\basic\static\basic\fonts\fontawesome-webfont.eot" />
