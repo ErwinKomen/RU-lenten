@@ -2009,7 +2009,7 @@ class SermonDetailsView(PassimDetails):
             {'type': 'plain', 'label': "Liturgical day:", 'value': instance.litday},
             {'type': 'safe',  'label': "Thema:", 'value': instance.get_full_thema()},
             {'type': 'line',  'label': "Topics:", 'value': instance.get_topics_markdown()},
-            {'type': 'line',  'label': "Concepts:", 'value': instance.get_concepts_markdown()},
+            #{'type': 'line',  'label': "Concepts:", 'value': instance.get_concepts_markdown()},
             ]
 
         context['title_addition'] = instance.get_statussrm_light("0")
