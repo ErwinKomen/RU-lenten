@@ -211,7 +211,8 @@ class UploadFilesForm(forms.Form):
     """This is for uploading multiple files"""
 
     files_field = forms.FileField(label="Specify which file(s) should be loaded",
-                                  widget=forms.ClearableFileInput(attrs={'multiple': True}))
+        # OLD: widget=forms.ClearableFileInput(attrs={'multiple': True}))
+        widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
 
 
 class SearchUrlForm(forms.Form):

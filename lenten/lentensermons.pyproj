@@ -40,10 +40,10 @@
     <Compile Include="lentensermons\basic\utils.py" />
     <Compile Include="lentensermons\basic\views.py" />
     <Compile Include="lentensermons\basic\__init__.py" />
+    <Compile Include="lentensermons\seeker\admin.py" />
     <Compile Include="lentensermons\seeker\viewsold.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="lentensermons\tagtext\.py" />
     <Compile Include="lentensermons\tagtext\apps.py" />
     <Compile Include="lentensermons\tagtext\forms.py">
       <SubType>Code</SubType>
@@ -54,7 +54,6 @@
     <Compile Include="lentensermons\tagtext\views.py" />
     <Compile Include="lentensermons\tagtext\__init__.py" />
     <Compile Include="manage.py" />
-    <Compile Include="lentensermons\seeker\.py" />
     <Compile Include="lentensermons\seeker\apps.py" />
     <Compile Include="lentensermons\seeker\forms.py">
       <SubType>Code</SubType>
